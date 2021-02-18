@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KECS", "KECS\KECS.csproj", "{36627109-4466-4373-972C-A0B15E7EB105}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary1", "ClassLibrary1\ClassLibrary1.csproj", "{35130160-EF7D-4EF9-8782-BD845D470472}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{36627109-4466-4373-972C-A0B15E7EB105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36627109-4466-4373-972C-A0B15E7EB105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36627109-4466-4373-972C-A0B15E7EB105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36627109-4466-4373-972C-A0B15E7EB105}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35130160-EF7D-4EF9-8782-BD845D470472}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35130160-EF7D-4EF9-8782-BD845D470472}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35130160-EF7D-4EF9-8782-BD845D470472}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35130160-EF7D-4EF9-8782-BD845D470472}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
