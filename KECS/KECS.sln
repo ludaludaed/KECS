@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KECS", "KECS\KECS.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{7EB41A97-100D-4C8A-BBAE-FB05EC6EB444}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary1", "ClassLibrary1\ClassLibrary1.csproj", "{35130160-EF7D-4EF9-8782-BD845D470472}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morpeh", "Morpeh\Morpeh.csproj", "{35130160-EF7D-4EF9-8782-BD845D470472}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

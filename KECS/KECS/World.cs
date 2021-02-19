@@ -6,15 +6,15 @@ namespace KECS
 {
     public sealed class World
     {
-        private readonly SparseSet<IComponentPool> _pools;
-        private readonly IntDispenser _freeIds = new IntDispenser(-1);
-        private readonly ArchetypeManager _archetypeManager;
-        private readonly List<Filter> _filters = new List<Filter>();
-        private Entity[] _entities;
+        private readonly SparseSet<IComponentPool> pools;
+        private readonly IntDispenser freeIds = new IntDispenser(-1);
+        private readonly ArchetypeManager archetypeManager;
+        private readonly List<Filter> filters = new List<Filter>();
+        private Entity[] entities;
 
         public WorldConfig Config;
-        public int Count => _countOfEntities;
-        private int _countOfEntities = 0;
+        public int Count => countOfEntities;
+        private int countOfEntities = 0;
 
         public World()
         {
@@ -25,54 +25,58 @@ namespace KECS
                 ArchetypeCapacity = 256,
                 TypeCapacity = 256
             };
-            _entities = new Entity[Config.EntitiesCapacity];
-            _pools = new SparseSet<IComponentPool>(Config.TypeCapacity, Config.TypeCapacity);
-            _archetypeManager = new ArchetypeManager(this);
+            entities = new Entity[Config.EntitiesCapacity];
+            pools = new SparseSet<IComponentPool>(Config.TypeCapacity, Config.TypeCapacity);
+            archetypeManager = new ArchetypeManager(this);
         }
 
         public Entity New()
         {
-            int id = _freeIds.GetFreeInt();
+            int id = freeIds.GetFreeInt();
 
-            if (_entities.Length == _countOfEntities)
+            if (entities.Length == countOfEntities)
             {
                 EnsureEntitiesCapacity(id << 1);
             }
 
-            if (_entities[id] == null)
+            if (entities[id] == null)
             {
-                _entities[id] = new Entity(this, _archetypeManager, id);
+                entities[id] = new Entity(this, archetypeManager, id);
+            }
+            else
+            {
+                entities[id].Recycle();
             }
 
-            _countOfEntities++;
-            return _entities[id];
+            countOfEntities++;
+            return entities[id];
         }
 
         public void InternalEntityDestroy(int id)
         {
-            _freeIds.ReleaseInt(id);
-            _countOfEntities--;
+            freeIds.ReleaseInt(id);
+            countOfEntities--;
         }
 
         public Filter Filter
         {
             get
             {
-                var filter = new Filter(this, _archetypeManager);
-                _filters.Add(filter);
+                var filter = new Filter(this, archetypeManager);
+                filters.Add(filter);
                 return filter;
             }
         }
 
         private void EnsureEntitiesCapacity(int capacity)
         {
-            if (_entities.Length < capacity)
+            if (entities.Length < capacity)
             {
                 var newCapacity = EcsMath.Pot(capacity);
-                Array.Resize(ref _entities, newCapacity);
-                for (int i = 0; i < _pools.Count; i++)
+                Array.Resize(ref entities, newCapacity);
+                for (int i = 0; i < pools.Count; i++)
                 {
-                    _pools[i].EnsureLength(newCapacity);
+                    pools[i].EnsureLength(newCapacity);
                 }
             }
         }
@@ -81,18 +85,18 @@ namespace KECS
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (!_pools.Contains(idx))
+            if (!pools.Contains(idx))
             {
                 var pool = new ComponentPool<T>(this);
-                _pools.Add(idx, pool);
+                pools.Add(idx, pool);
             }
 
-            return (ComponentPool<T>) _pools.GetValue(idx);
+            return (ComponentPool<T>) pools.GetValue(idx);
         }
 
         public IComponentPool GetPool(int idx)
         {
-            var pool = _pools.GetValue(idx);
+            var pool = pools.GetValue(idx);
             return pool;
         }
     }

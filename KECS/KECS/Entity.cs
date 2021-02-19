@@ -6,19 +6,20 @@ namespace KECS
 {
     public class Entity
     {
-        private readonly World _owner;
-        private readonly ArchetypeManager _archetypeManager;
-        private Archetype _archetype;
+        private readonly World world;
+        private readonly ArchetypeManager archetypeManager;
+        private Archetype currentArchetype;
+        private Archetype previousArchetype;
+        private bool isDisposed;
         public int Id { get; }
 
         public Entity(World world, ArchetypeManager archetypeManager, int internalId)
         {
-            _owner = world;
-            _archetypeManager = archetypeManager;
-            this.Id = internalId;
-            
-            _archetype = _archetypeManager.Empty;
-            _archetype.AddEntity(this);
+            this.world = world;
+            Id = internalId;
+            this.archetypeManager = archetypeManager;
+            currentArchetype = this.archetypeManager.Empty;
+            currentArchetype.AddEntity(this);
         }
 
         public override string ToString()
@@ -26,39 +27,51 @@ namespace KECS
             return $"Entity_{Id}";
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T AddComponent<T>(T value = default) where T : struct
         {
-            var pool = _owner.GetPool<T>();
+            var pool = world.GetPool<T>();
+            var idx = ComponentTypeInfo<T>.TypeIndex;
             if (!HasComponent<T>())
             {
-                var idx = ComponentTypeInfo<T>.TypeIndex;
-                var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_archetype, idx);
                 pool.Add(Id, value);
-                _archetype.RemoveEntity(this);
-                _archetype = newArchetype;
-                _archetype.AddEntity(this);
+                AddTransfer(idx);
                 return ref pool.Get(Id);
             }
 
             return ref pool.Empty();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T SetComponent<T>(T value) where T : struct
+        {
+            var pool = world.GetPool<T>();
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            pool.Set(Id, value);
+
+            if (!HasComponent<T>())
+            {
+                AddTransfer(idx);
+            }
+
+            return ref pool.Get(Id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveComponent<T>() where T : struct
         {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
             if (HasComponent<T>())
             {
-                var idx = ComponentTypeInfo<T>.TypeIndex;
-                var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_archetype, idx);
-                _owner.GetPool<T>().Remove(Id);
-                _archetype.RemoveEntity(this);
-                _archetype = newArchetype;
-                _archetype.AddEntity(this);
+                RemoveTransfer(idx);
+                world.GetPool<T>().Remove(Id);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T GetComponent<T>() where T : struct
         {
-            var pool = _owner.GetPool<T>();
+            var pool = world.GetPool<T>();
 
             if (HasComponent<T>())
             {
@@ -68,20 +81,62 @@ namespace KECS
             return ref pool.Empty();
         }
 
-        public void Destroy()
-        {
-            foreach (var idx in _archetype.Mask)
-            {
-                _owner.GetPool(idx).Remove(Id);
-            }
-            _archetype.RemoveEntity(this);
-            _archetype = _archetypeManager.Empty;
-            _owner.InternalEntityDestroy(Id);
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool HasComponent<T>() where T : struct
         {
-            return _archetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
+            return currentArchetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddTransfer(int index)
+        {
+            previousArchetype = currentArchetype;
+
+            var newArchetype = archetypeManager.FindOrCreateNextArchetype(currentArchetype, index);
+            currentArchetype = newArchetype;
+
+            previousArchetype.RemoveEntity(this);
+            currentArchetype.AddEntity(this);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RemoveTransfer(int index)
+        {
+            previousArchetype = currentArchetype;
+
+            var newArchetype = archetypeManager.FindOrCreatePriorArchetype(currentArchetype, index);
+            currentArchetype = newArchetype;
+
+            previousArchetype.RemoveEntity(this);
+            currentArchetype.AddEntity(this);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Destroy()
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            isDisposed = true;
+
+            foreach (var idx in currentArchetype.Mask)
+            {
+                world.GetPool(idx).Remove(Id);
+            }
+
+            currentArchetype.RemoveEntity(this);
+            world.InternalEntityDestroy(Id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Recycle()
+        {
+            isDisposed = false;
+            previousArchetype = null;
+            currentArchetype = archetypeManager.Empty;
+            currentArchetype.AddEntity(this);
         }
     }
 }

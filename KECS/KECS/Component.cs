@@ -14,12 +14,16 @@ namespace KECS
     {
         public static readonly int TypeIndex;
         public static readonly Type Type;
+        
+        private static object _locker = new object();
 
         static ComponentTypeInfo()
         {
-            TypeIndex = EcsTypeManager.ComponentTypesCount;
-            Interlocked.Increment(ref EcsTypeManager.ComponentTypesCount);
-            Type = typeof(T);
+            lock (_locker)
+            {
+                TypeIndex = EcsTypeManager.ComponentTypesCount++;
+                Type = typeof(T);
+            }
         }
     }
 }

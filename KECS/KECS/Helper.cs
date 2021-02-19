@@ -117,7 +117,7 @@ namespace KECS
         //     187751, 225307, 270371, 324449, 389357, 467237, 560689, 672827, 807403, 968897, 1162687, 1395263,
         //     1674319, 2009191, 2411033, 2893249, 3471899, 4166287, 4999559, 5999471, 7199369
         // };
-        private static readonly int[] primes = {3, 15, 63, 255, 1023, 4095, 16383, 65535, 262143, 1048575, 4194303};
+        private static readonly int[] Primes = {3, 15, 63, 255, 1023, 4095, 16383, 65535, 262143, 1048575, 4194303};
 
         public const int MaxPrimeArrayLength = 0x7FEFFFFD;
 
@@ -135,9 +135,9 @@ namespace KECS
 
         public static int GetPrime(int min)
         {
-            for (int index = 0, length = primes.Length; index < length; ++index)
+            for (int index = 0, length = Primes.Length; index < length; ++index)
             {
-                var prime = primes[index];
+                var prime = Primes[index];
                 if (prime >= min)
                 {
                     return prime;
@@ -150,24 +150,24 @@ namespace KECS
 
     internal sealed class IntDispenser
     {
-        private readonly ConcurrentStack<int> _freeInts;
+        private readonly ConcurrentStack<int> freeInts;
 
-        private int _lastInt;
+        private int lastInt;
 
-        public int LastInt => _lastInt;
+        public int LastInt => lastInt;
 
         public IntDispenser(int startInt)
         {
-            _freeInts = new ConcurrentStack<int>();
+            freeInts = new ConcurrentStack<int>();
 
-            _lastInt = startInt;
+            lastInt = startInt;
         }
 
         public int GetFreeInt()
         {
-            if (!_freeInts.TryPop(out int freeInt))
+            if (!freeInts.TryPop(out int freeInt))
             {
-                freeInt = Interlocked.Increment(ref _lastInt);
+                freeInt = Interlocked.Increment(ref lastInt);
             }
 
             return freeInt;
@@ -176,15 +176,15 @@ namespace KECS
         public int GetFreeInt(out bool isNew)
         {
             isNew = false;
-            if (!_freeInts.TryPop(out int freeInt))
+            if (!freeInts.TryPop(out int freeInt))
             {
                 isNew = true;
-                freeInt = Interlocked.Increment(ref _lastInt);
+                freeInt = Interlocked.Increment(ref lastInt);
             }
 
             return freeInt;
         }
 
-        public void ReleaseInt(int releasedInt) => _freeInts.Push(releasedInt);
+        public void ReleaseInt(int releasedInt) => freeInts.Push(releasedInt);
     }
 }

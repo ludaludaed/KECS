@@ -1,33 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace KECS
 {
     public class ArchetypeManager
     {
-        private readonly List<Archetype> _archetypes;
-        public Archetype Empty => _emptyArchetype;
-        private readonly Archetype _emptyArchetype;
-        private readonly World _owner;
-        
+        private readonly List<Archetype> archetypes;
+        public Archetype Empty => emptyArchetype;
+        private readonly Archetype emptyArchetype;
+        private readonly World world;
+        private readonly object locker = new object();
+
         public ArchetypeManager(World world)
         {
-            _owner = world;
-            _emptyArchetype = new Archetype(_owner, new BitMask(256));
-            _archetypes = new List<Archetype>() {_emptyArchetype};
+            this.world = world;
+            emptyArchetype = new Archetype(this.world, 0, new BitMask(256));
+            archetypes = new List<Archetype>(world.Config.ArchetypeCapacity) {emptyArchetype};
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FindArchetypes(Filter filter, int startId)
         {
-            for (int i = startId; i < _archetypes.Count; i++)
+            for (int i = startId; i < archetypes.Count; i++)
             {
-                CheckArchetype(_archetypes[i], filter);
+                CheckArchetype(archetypes[i], filter);
             }
 
-            filter.Version = _archetypes.Count;
+            filter.Version = archetypes.Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -38,7 +38,7 @@ namespace KECS
 
             if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
             {
-                filter.Archetypes.Add(archetype);
+                filter.AddArchetype(archetype);
             }
         }
 
@@ -46,29 +46,32 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Archetype InnerFindOrCreateArchetype(BitMask mask)
         {
-            Archetype curArchetype = _emptyArchetype;
-            var newMask = new BitMask(256);
-
-            foreach (var index in mask)
+            lock (locker)
             {
-                newMask.SetBit(index);
+                Archetype curArchetype = emptyArchetype;
+                var newMask = new BitMask(256);
 
-                Archetype nextArchetype = curArchetype.Next.GetValue(index);
-
-                if (nextArchetype == null)
+                foreach (var index in mask)
                 {
-                    nextArchetype = new Archetype(_owner, newMask);
+                    newMask.SetBit(index);
 
-                    nextArchetype.Prior.Add(index, curArchetype);
-                    curArchetype.Next.Add(index, nextArchetype);
+                    Archetype nextArchetype = curArchetype.Next.GetValue(index);
 
-                    _archetypes.Add(nextArchetype);
+                    if (nextArchetype == null)
+                    {
+                        nextArchetype = new Archetype(world, archetypes.Count, newMask);
+
+                        nextArchetype.Prior.Add(index, curArchetype);
+                        curArchetype.Next.Add(index, nextArchetype);
+
+                        archetypes.Add(nextArchetype);
+                    }
+
+                    curArchetype = nextArchetype;
                 }
 
-                curArchetype = nextArchetype;
+                return curArchetype;
             }
-
-            return curArchetype;
         }
 
 

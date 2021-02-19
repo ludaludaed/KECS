@@ -35,8 +35,8 @@ namespace KECS
     public sealed class Systems : IInitSystem, IDestroySystem, IRunSystem
     {
         public readonly World World;
-        readonly List<ISystem> _allSystems = new List<ISystem>();
-        readonly List<SystemsRunItem> _runSystems = new List<SystemsRunItem>();
+        readonly List<ISystem> allSystems = new List<ISystem>();
+        readonly List<SystemsRunItem> runSystems = new List<SystemsRunItem>();
 
 
         public Systems(World world)
@@ -46,10 +46,10 @@ namespace KECS
         
         public Systems Add(ISystem system, string namedRunSystem = null)
         {
-            _allSystems.Add(system);
+            allSystems.Add(system);
             if (system is IRunSystem)
             {
-                _runSystems.Add(new SystemsRunItem {Active = true, System = (IRunSystem) system});
+                runSystems.Add(new SystemsRunItem {Active = true, System = (IRunSystem) system});
             }
 
             return this;
@@ -59,38 +59,38 @@ namespace KECS
         
         public void SetRunSystemState(int idx, bool state)
         {
-            _runSystems[idx].Active = state;
+            runSystems[idx].Active = state;
         }
         
         public bool GetRunSystemState(int idx)
         {
-            return _runSystems[idx].Active;
+            return runSystems[idx].Active;
         }
         
         public List<ISystem> GetAllSystems()
         {
-            return _allSystems;
+            return allSystems;
         }
         
         public List<SystemsRunItem> GetRunSystems()
         {
-            return _runSystems;
+            return runSystems;
         }
 
         public void Init()
         {
-            for (int i = 0; i < _allSystems.Count; i++)
+            for (int i = 0; i < allSystems.Count; i++)
             {
-                var system = _allSystems[i];
+                var system = allSystems[i];
                 if (system is IPreInitSystem preInitSystem)
                 {
                     preInitSystem.PreInit();
                 }
             }
 
-            for (int i = 0; i < _allSystems.Count; i++)
+            for (int i = 0; i < allSystems.Count; i++)
             {
-                var system = _allSystems[i];
+                var system = allSystems[i];
                 if (system is IInitSystem initSystem)
                 {
                     initSystem.Init();
@@ -100,9 +100,9 @@ namespace KECS
         
         public void Run()
         {
-            for (int i = 0; i < _runSystems.Count; i++)
+            for (int i = 0; i < runSystems.Count; i++)
             {
-                var runItem = _runSystems[i];
+                var runItem = runSystems[i];
                 if (runItem.Active)
                 {
                     runItem.System.Run();
@@ -113,18 +113,18 @@ namespace KECS
         public void Destroy()
         {
             
-            for (var i = _allSystems.Count - 1; i >= 0; i--)
+            for (var i = allSystems.Count - 1; i >= 0; i--)
             {
-                var system = _allSystems[i];
+                var system = allSystems[i];
                 if (system is IDestroySystem destroySystem)
                 {
                     destroySystem.Destroy();
                 }
             }
             
-            for (var i = _allSystems.Count - 1; i >= 0; i--)
+            for (var i = allSystems.Count - 1; i >= 0; i--)
             {
-                var system = _allSystems[i];
+                var system = allSystems[i];
                 if (system is IPostDestroySystem postDestroySystem)
                 {
                     postDestroySystem.PostDestroy();

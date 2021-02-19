@@ -11,15 +11,15 @@ namespace KECS
         public BitMask Exclude;
         public int Version { get; set; }
 
-        public readonly List<Archetype> Archetypes = new List<Archetype>();
-        private readonly ArchetypeManager _archetypeManager;
-        private World _owner;
+        private readonly List<Archetype> archetypes = new List<Archetype>();
+        private readonly ArchetypeManager archetypeManager;
+        private World world;
 
         public Filter(World world, ArchetypeManager archetypeManager)
         {
-            _archetypeManager = archetypeManager;
+            this.archetypeManager = archetypeManager;
             Version = 0;
-            _owner = world;
+            this.world = world;
 
             Include = new BitMask(256);
             Exclude = new BitMask(256);
@@ -51,9 +51,14 @@ namespace KECS
             return this;
         }
 
+        public void AddArchetype(Archetype archetype)
+        {
+            archetypes.Add(archetype);
+        }
+
         public IEnumerator<Entity> GetEnumerator()
         {
-            _archetypeManager.FindArchetypes(this, Version);
+            archetypeManager.FindArchetypes(this, Version);
             return new EntityEnumerator(this);
         }
 
@@ -64,57 +69,57 @@ namespace KECS
 
         private struct EntityEnumerator : IEnumerator<Entity>
         {
-            private readonly List<Archetype> _archetypes;
-            private readonly int _archetypeCount;
+            private readonly List<Archetype> archetypes;
+            private readonly int archetypeCount;
 
-            private int _index;
-            private int _archetypeId;
+            private int index;
+            private int archetypeId;
 
-            private Entity _current;
+            private Entity current;
 
-            private SparseSet<Entity> _archetypeEntities;
+            private SparseSet<Entity> archetypeEntities;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal EntityEnumerator(Filter filter)
             {
-                _archetypes = filter.Archetypes;
-                _current = null;
+                archetypes = filter.archetypes;
+                current = null;
 
-                _archetypeId = 0;
-                _archetypeCount = _archetypes.Count;
-                _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-                _index = _archetypeEntities?.Count - 1 ?? 0;
+                archetypeId = 0;
+                archetypeCount = archetypes.Count;
+                archetypeEntities = archetypeCount == 0 ? null : archetypes[0].Entities;
+                index = archetypeEntities?.Count - 1 ?? 0;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
-                if (_archetypeCount == 1)
+                if (archetypeCount == 1)
                 {
-                    if (_index >= 0)
+                    if (index >= 0)
                     {
-                        _current = _archetypeEntities[_index--];
+                        current = archetypeEntities[index--];
                         return true;
                     }
 
                     return false;
                 }
 
-                if (_archetypeId < _archetypeCount)
+                if (archetypeId < archetypeCount)
                 {
-                    if (_index >= 0)
+                    if (index >= 0)
                     {
-                        _current = _archetypeEntities[_index--];
+                        current = archetypeEntities[index--];
                         return true;
                     }
 
-                    while (++_archetypeId < _archetypeCount)
+                    while (++archetypeId < archetypeCount)
                     {
-                        _archetypeEntities = _archetypes[_archetypeId].Entities;
-                        if (_archetypeEntities.Count > 0)
+                        archetypeEntities = archetypes[archetypeId].Entities;
+                        if (archetypeEntities.Count > 0)
                         {
-                            _index = _archetypeEntities.Count - 1;
-                            _current = _archetypeEntities[_index--];
+                            index = archetypeEntities.Count - 1;
+                            current = archetypeEntities[index--];
                             return true;
                         }
                     }
@@ -126,15 +131,15 @@ namespace KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Reset()
             {
-                _current = null;
-                _archetypeId = 0;
-                _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-                _index = _archetypeEntities?.Count - 1 ?? 0;
+                current = null;
+                archetypeId = 0;
+                archetypeEntities = archetypeCount == 0 ? null : archetypes[0].Entities;
+                index = archetypeEntities?.Count - 1 ?? 0;
             }
 
-            public Entity Current => _current;
+            public Entity Current => current;
 
-            object IEnumerator.Current => _current;
+            object IEnumerator.Current => current;
 
             public void Dispose()
             {
