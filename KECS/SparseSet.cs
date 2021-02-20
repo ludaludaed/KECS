@@ -14,6 +14,7 @@ namespace KECS
 
         public ref int this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 if (index < DenseCount)
@@ -21,7 +22,7 @@ namespace KECS
                     return ref Dense[index];
                 }
 
-                throw new Exception($"Out of range SparseSet index {index}");
+                throw new Exception($"|KECS| Out of range SparseSet {index}.");
             }
         }
 
@@ -64,7 +65,7 @@ namespace KECS
         {
             if (Get(sparseIdx) != None)
             {
-                throw new Exception($"cant set sparse idx {sparseIdx}: already present.");
+                throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
             }
 
             if (Dense.Length == DenseCount)
@@ -82,7 +83,7 @@ namespace KECS
         {
             if (Get(sparseIdx) == None)
             {
-                throw new Exception($"Cant unset sparse idx {sparseIdx}: not present.");
+                throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
             }
 
             var packedIdx = Sparse[sparseIdx];
@@ -122,6 +123,7 @@ namespace KECS
             Array.Resize(ref Dense, capacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator GetEnumerator()
         {
             return new Enumerator(this);
@@ -130,6 +132,14 @@ namespace KECS
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            DenseCount = 0;
+            Array.Clear(Dense, 0, Dense.Length);
+            Sparse.Fill(None);
         }
 
         private struct Enumerator : IEnumerator
@@ -179,6 +189,7 @@ namespace KECS
         private T[] _instances;
         private T _empty;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SparseSet(int denseCapacity, int sparseCapacity) : base(denseCapacity, sparseCapacity)
         {
             _instances = new T[denseCapacity];
@@ -187,6 +198,7 @@ namespace KECS
 
         public new ref T this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 if (index < DenseCount)
@@ -194,7 +206,7 @@ namespace KECS
                     return ref _instances[index];
                 }
 
-                throw new Exception($"Out of range SparseSet index {index}");
+                throw new Exception($"|KECS| Out of range SparseSet {index}.");
             }
         }
 
@@ -216,7 +228,7 @@ namespace KECS
         {
             if (Get(sparseIdx) != None)
             {
-                throw new Exception($"cant set sparse idx {sparseIdx}: already present.");
+                throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
             }
 
             if (Dense.Length == DenseCount)
@@ -229,21 +241,21 @@ namespace KECS
             _instances[DenseCount] = value;
             DenseCount++;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value)
         {
             if (Get(sparseIdx) == None)
             {
-                Add(sparseIdx,value);
+                Add(sparseIdx, value);
                 return;
             }
-            
+
             if (Dense.Length == DenseCount)
             {
                 EnsurePackedCapacity(DenseCount << 1);
             }
-            
+
             _instances[sparseIdx] = value;
         }
 
@@ -252,7 +264,7 @@ namespace KECS
         {
             if (Get(sparseIdx) == None)
             {
-                throw new Exception($"Cant unset sparse idx {sparseIdx}: not present.");
+                throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
             }
 
             var packedIdx = Sparse[sparseIdx];
@@ -275,11 +287,22 @@ namespace KECS
             Array.Resize(ref _instances, capacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public new void Clear()
+        {
+            DenseCount = 0;
+            Array.Clear(_instances, 0, _instances.Length);
+            Array.Clear(Dense, 0, Dense.Length);
+            Sparse.Fill(None);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new IEnumerator<T> GetEnumerator()
         {
             return new Enumerator(this);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

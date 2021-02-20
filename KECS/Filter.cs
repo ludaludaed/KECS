@@ -15,16 +15,17 @@ namespace KECS
         private ArchetypeManager _archetypeManager;
         private World _world;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter(World world, ArchetypeManager archetypeManager)
         {
-            this._archetypeManager = archetypeManager;
+            _archetypeManager = archetypeManager;
             Version = 0;
-            this._world = world;
-
+            _world = world;
             Include = new BitMask(256);
             Exclude = new BitMask(256);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter With<T>() where T : struct
         {
             int typeIdx = ComponentTypeInfo<T>.TypeIndex;
@@ -38,6 +39,7 @@ namespace KECS
             return this;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter WithOut<T>() where T : struct
         {
             int typeIdx = ComponentTypeInfo<T>.TypeIndex;
@@ -51,22 +53,26 @@ namespace KECS
             return this;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddArchetype(Archetype archetype)
         {
             _archetypes.Add(archetype);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<Entity> GetEnumerator()
         {
             _archetypeManager.FindArchetypes(this, Version);
             return new EntityEnumerator(this);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             Version = 0;
@@ -95,7 +101,13 @@ namespace KECS
                 _archetypeId = 0;
                 _archetypeCount = _archetypes.Count;
                 _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-                _index = _archetypeEntities?.Count - 1 ?? 0;
+
+                for (int i = 0; i < _archetypes.Count; i++)
+                {
+                    _archetypes[i].Lock();
+                }
+
+                _index = 0;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,9 +115,9 @@ namespace KECS
             {
                 if (_archetypeCount == 1)
                 {
-                    if (_index >= 0)
+                    if (_index < _archetypes[_archetypeId].Count)
                     {
-                        Current = _archetypeEntities[_index--];
+                        Current = _archetypeEntities[_index++];
                         return true;
                     }
 
@@ -114,9 +126,9 @@ namespace KECS
 
                 if (_archetypeId < _archetypeCount)
                 {
-                    if (_index >= 0)
+                    if (_index < _archetypes[_archetypeId].Count)
                     {
-                        Current = _archetypeEntities[_index--];
+                        Current = _archetypeEntities[_index++];
                         return true;
                     }
 
@@ -125,8 +137,8 @@ namespace KECS
                         _archetypeEntities = _archetypes[_archetypeId].Entities;
                         if (_archetypeEntities.Count > 0)
                         {
-                            _index = _archetypeEntities.Count - 1;
-                            Current = _archetypeEntities[_index--];
+                            _index = 0;
+                            Current = _archetypeEntities[_index++];
                             return true;
                         }
                     }
@@ -141,7 +153,12 @@ namespace KECS
                 Current = null;
                 _archetypeId = 0;
                 _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-                _index = _archetypeEntities?.Count - 1 ?? 0;
+                _index = 0;
+                
+                for (int i = 0; i < _archetypes.Count; i++)
+                {
+                    _archetypes[i].Unlock();
+                }
             }
 
             public Entity Current { get; private set; }
@@ -150,6 +167,10 @@ namespace KECS
 
             public void Dispose()
             {
+                for (int i = 0; i < _archetypes.Count; i++)
+                {
+                    _archetypes[i].Unlock();
+                }
             }
         }
     }

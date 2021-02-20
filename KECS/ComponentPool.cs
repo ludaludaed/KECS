@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace KECS
 {
@@ -25,38 +26,40 @@ namespace KECS
             _components = new SparseSet<T>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId)
         {
             return ref _components.GetValue(entityId);
         }
 
-        public void Add(int entityId)
-        {
-            _components.Add(entityId);
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int entityId, T value)
         {
             _components.Add(entityId, value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int entityId)
         {
             _components.Remove(entityId);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int entityId, T value)
         {
             _components.Set(entityId, value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureLength(int capacity)
         {
             _components.EnsureSparseCapacity(capacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
+            _components.Clear();
             _components = null;
         }
     }

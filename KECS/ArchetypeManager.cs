@@ -6,28 +6,28 @@ namespace KECS
 {
     public class ArchetypeManager
     {
-        public readonly List<Archetype> Archetypes;
-        public Archetype Empty { get; }
+        private List<Archetype> _archetypes;
+        public Archetype Empty { get; private set; }
+        private World _world;
+        private object _locker = new object();
 
-        private readonly World _world;
-        private readonly object _locker = new object();
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArchetypeManager(World world)
         {
-            this._world = world;
+            _world = world;
             Empty = new Archetype(this._world, 0, new BitMask(256));
-            Archetypes = new List<Archetype>(world.Config.ArchetypeCapacity) {Empty};
+            _archetypes = new List<Archetype>(world.Config.ArchetypeCapacity) {Empty};
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FindArchetypes(Filter filter, int startId)
         {
-            for (int i = startId; i < Archetypes.Count; i++)
+            for (int i = startId; i < _archetypes.Count; i++)
             {
-                CheckArchetype(Archetypes[i], filter);
+                CheckArchetype(_archetypes[i], filter);
             }
 
-            filter.Version = Archetypes.Count;
+            filter.Version = _archetypes.Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,12 +59,12 @@ namespace KECS
 
                     if (nextArchetype == null)
                     {
-                        nextArchetype = new Archetype(_world, Archetypes.Count, newMask);
+                        nextArchetype = new Archetype(_world, _archetypes.Count, newMask);
 
                         nextArchetype.Prior.Add(index, curArchetype);
                         curArchetype.Next.Add(index, nextArchetype);
 
-                        Archetypes.Add(nextArchetype);
+                        _archetypes.Add(nextArchetype);
                     }
 
                     curArchetype = nextArchetype;
@@ -100,6 +100,19 @@ namespace KECS
             mask.SetBit(addIndex);
 
             return InnerFindOrCreateArchetype(mask);
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < _archetypes.Count; i++)
+            {
+                _archetypes[i].Dispose();
+            }
+            _archetypes.Clear();
+            _archetypes = null;
+            _world = null;
+            _locker = null;
+            Empty = null;
         }
     }
 }

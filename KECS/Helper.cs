@@ -120,7 +120,8 @@ namespace KECS
         private static readonly int[] Primes = {3, 15, 63, 255, 1023, 4095, 16383, 65535, 262143, 1048575, 4194303};
 
         public const int MaxPrimeArrayLength = 0x7FEFFFFD;
-
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ExpandPrime(int oldSize)
         {
             int newSize = 2 * oldSize;
@@ -133,6 +134,7 @@ namespace KECS
             return GetPrime(newSize);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetPrime(int min)
         {
             for (int index = 0, length = Primes.Length; index < length; ++index)
@@ -150,19 +152,20 @@ namespace KECS
 
     internal sealed class IntDispenser
     {
-        private readonly ConcurrentStack<int> _freeInts;
-
+        private ConcurrentStack<int> _freeInts;
         private int _lastInt;
-
         public int LastInt => _lastInt;
+        private readonly int _startInt;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IntDispenser(int startInt = -1)
         {
             _freeInts = new ConcurrentStack<int>();
-
+            _startInt = startInt;
             _lastInt = startInt;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFreeInt()
         {
             if (!_freeInts.TryPop(out int freeInt))
@@ -173,6 +176,22 @@ namespace KECS
             return freeInt;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseInt(int releasedInt) => _freeInts.Push(releasedInt);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            _freeInts.Clear();
+            _freeInts = null;
+            _lastInt = _startInt;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            _freeInts.Clear();
+            _lastInt = _startInt;
+        }
     }
 }

@@ -7,29 +7,30 @@ namespace KECS
     public interface ISystem
     {
     }
-    
+
     public interface IPreInitSystem : ISystem
     {
         void PreInit();
     }
-    
+
     public interface IInitSystem : ISystem
     {
         void Init();
     }
+
     public interface IPostDestroySystem : ISystem
     {
         void PostDestroy();
     }
-    
+
     public interface IDestroySystem : ISystem
     {
         void Destroy();
     }
-    
+
     public interface IRunSystem : ISystem
     {
-        void Run();
+        void Run(float dt);
     }
 
     public sealed class Systems : IInitSystem, IDestroySystem, IRunSystem
@@ -43,7 +44,7 @@ namespace KECS
         {
             World = world;
         }
-        
+
         public Systems Add(ISystem system, string namedRunSystem = null)
         {
             _allSystems.Add(system);
@@ -55,23 +56,22 @@ namespace KECS
             return this;
         }
 
-        
-        
+
         public void SetRunSystemState(int idx, bool state)
         {
             _runSystems[idx].Active = state;
         }
-        
+
         public bool GetRunSystemState(int idx)
         {
             return _runSystems[idx].Active;
         }
-        
+
         public List<ISystem> GetAllSystems()
         {
             return _allSystems;
         }
-        
+
         public List<SystemsRunItem> GetRunSystems()
         {
             return _runSystems;
@@ -97,19 +97,19 @@ namespace KECS
                 }
             }
         }
-        
-        public void Run()
+
+        public void Run(float dt)
         {
             for (int i = 0; i < _runSystems.Count; i++)
             {
                 var runItem = _runSystems[i];
                 if (runItem.Active)
                 {
-                    runItem.System.Run();
+                    runItem.System.Run(dt);
                 }
             }
         }
-        
+
         public void Destroy()
         {
             for (var i = _allSystems.Count - 1; i >= 0; i--)
@@ -120,7 +120,7 @@ namespace KECS
                     destroySystem.Destroy();
                 }
             }
-            
+
             for (var i = _allSystems.Count - 1; i >= 0; i--)
             {
                 var system = _allSystems[i];

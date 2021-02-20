@@ -9,11 +9,11 @@ namespace KECS
         private World _world;
         private ArchetypeManager _archetypeManager;
         private Archetype _currentArchetype;
-        private Archetype _previousArchetype;
         public bool IsAlive { get; private set; }
 
         public int Id { get; private set; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity(World world, ArchetypeManager archetypeManager, int internalId)
         {
             this._world = world;
@@ -26,18 +26,25 @@ namespace KECS
         {
             _currentArchetype = this._archetypeManager.Empty;
             _currentArchetype.AddEntity(this);
-            _previousArchetype = null;
             IsAlive = true;
         }
 
         public override string ToString()
         {
-            return $"Entity_{Id}";
+            string result = string.Empty;
+
+            foreach (var item in _currentArchetype.Mask)
+            {
+                result += item;
+            }
+
+            return $"Entity_{Id} {result}";
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T AddComponent<T>(T value = default) where T : struct
         {
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to add component an already destroyed entity {ToString()}.");
             var pool = _world.GetPool<T>();
             var idx = ComponentTypeInfo<T>.TypeIndex;
             if (!HasComponent<T>())
@@ -53,6 +60,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T SetComponent<T>(T value) where T : struct
         {
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to set component an already destroyed entity {ToString()}.");
             var pool = _world.GetPool<T>();
             var idx = ComponentTypeInfo<T>.TypeIndex;
             pool.Set(Id, value);
@@ -68,7 +76,10 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveComponent<T>() where T : struct
         {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to remove component an already destroyed entity {ToString()}.");
+
+                var idx = ComponentTypeInfo<T>.TypeIndex;
+
             if (HasComponent<T>())
             {
                 GotoPriorArchetype(idx);
@@ -79,6 +90,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T GetComponent<T>() where T : struct
         {
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to get component an already destroyed entity {ToString()}.");
             var pool = _world.GetPool<T>();
 
             if (HasComponent<T>())
@@ -92,54 +104,38 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool HasComponent<T>() where T : struct
         {
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to check component an already destroyed entity {ToString()}.");
             return _currentArchetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoNextArchetype(int index)
         {
-            _previousArchetype = _currentArchetype;
-
+            _currentArchetype.RemoveEntity(this);
             var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
-
-            _previousArchetype.RemoveEntity(this);
             _currentArchetype.AddEntity(this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoPriorArchetype(int index)
         {
-            _previousArchetype = _currentArchetype;
-
+            _currentArchetype.RemoveEntity(this);
             var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
-
-            _previousArchetype.RemoveEntity(this);
             _currentArchetype.AddEntity(this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Destroy()
         {
-            if (!IsAlive)
-            {
-                return;
-            }
-
-            InternalDestroy();
+            if (!IsAlive) throw new Exception($"|KECS| You are trying to destroy an already destroyed entity {ToString()}.");
+            RemoveComponents();
+            _currentArchetype.RemoveEntity(this);
+            _world.RecycleEntity(Id);
             IsAlive = false;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void InternalDestroy()
-        {
-            RemoveComponents();
-            _currentArchetype.RemoveEntity(this);
-            _previousArchetype = null;
-            _world.RecycleEntity(Id);
-        }
-        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveComponents()
         {
@@ -150,15 +146,13 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
+        internal void Dispose()
         {
             RemoveComponents();
             Id = -1;
-            _previousArchetype = null;
             _archetypeManager = null;
             IsAlive = false;
             _currentArchetype = null;
-            _previousArchetype = null;
             _world = null;
         }
     }
