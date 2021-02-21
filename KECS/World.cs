@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
-    public static class WorldsGroup
+    public static class Worlds
     {
         private static object _lockObject;
         private static IntDispenser _freeWorldsIds;
@@ -18,13 +18,13 @@ namespace KECS
                 lock (_lockObject)
                 {
                     if (_worlds[0] != null) return _worlds[0];
-                    return CreateWorld();
+                    return Create();
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static WorldsGroup()
+        static Worlds()
         {
             _lockObject = new object();
             _worlds = new World[2];
@@ -32,7 +32,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World CreateWorld(WorldConfig config = default)
+        public static World Create(WorldConfig config = default)
         {
             lock (_lockObject)
             {
@@ -90,7 +90,7 @@ namespace KECS
             {
                 foreach (var item in _worlds)
                 {
-                    item?.Dispose();
+                    item?.Destroy();
                 }
 
                 _freeWorldsIds.Dispose();
@@ -207,7 +207,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
+        public void Destroy()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
             foreach (var item in _filters)
@@ -235,7 +235,7 @@ namespace KECS
             _entities = null;
             _archetypeManager = null;
             _isAlive = false;
-            WorldsGroup.Destroy(_worldId);
+            Worlds.Destroy(_worldId);
         }
 
         public override string ToString()

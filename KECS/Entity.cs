@@ -85,6 +85,11 @@ namespace KECS
                 GotoPriorArchetype(idx);
                 _world.GetPool<T>().Remove(Id);
             }
+
+            if (_currentArchetype == _archetypeManager.Empty)
+            {
+                Destroy();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

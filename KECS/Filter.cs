@@ -154,11 +154,6 @@ namespace KECS
                 _archetypeId = 0;
                 _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
                 _index = 0;
-                
-                for (int i = 0; i < _archetypes.Count; i++)
-                {
-                    _archetypes[i].Unlock();
-                }
             }
 
             public Entity Current { get; private set; }
