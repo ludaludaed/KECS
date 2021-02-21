@@ -10,7 +10,7 @@ namespace KECS
         public int Count => Entities.Count;
         public int Id { get; private set; }
 
-        private DelayedOp[] _delayedOps;
+        private DelayedChange[] _delayedChanges;
         private int _delayedOpsCount;
 
         public SparseSet<Entity> Entities;
@@ -28,7 +28,7 @@ namespace KECS
             Id = id;
             _lockCount = 0;
 
-            _delayedOps = new DelayedOp[64];
+            _delayedChanges = new DelayedChange[64];
             Next = new SparseSet<Archetype>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
             Prior = new SparseSet<Archetype>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
 
@@ -47,7 +47,7 @@ namespace KECS
             {
                 for (int i = 0; i < _delayedOpsCount; i++)
                 {
-                    ref var op = ref _delayedOps[i];
+                    ref var op = ref _delayedChanges[i];
                     if (op.isAdd)
                     {
                         AddEntity(op.entity);
@@ -62,15 +62,15 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool AddDelayedOp(Entity entity, bool isAdd)
+        private bool AddDelayedChange(Entity entity, bool isAdd)
         {
             if (_lockCount <= 0)
             {
                 return false;
             }
 
-            ArrayExtension.EnsureLength(ref _delayedOps, _delayedOpsCount);
-            ref var op = ref _delayedOps[_delayedOpsCount++];
+            ArrayExtension.EnsureLength(ref _delayedChanges, _delayedOpsCount);
+            ref var op = ref _delayedChanges[_delayedOpsCount++];
             op.entity = entity;
             op.isAdd = isAdd;
             return true;
@@ -79,7 +79,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddEntity(Entity entity)
         {
-            if (AddDelayedOp(entity, true))
+            if (AddDelayedChange(entity, true))
             {
                 return;
             }
@@ -90,7 +90,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveEntity(Entity entity)
         {
-            if (AddDelayedOp(entity, false))
+            if (AddDelayedChange(entity, false))
             {
                 return;
             }
@@ -110,7 +110,7 @@ namespace KECS
             return GetEnumerator();
         }
         
-        private struct DelayedOp
+        private struct DelayedChange
         {
             public bool isAdd;
             public Entity entity;
@@ -126,7 +126,7 @@ namespace KECS
             Entities = null;
             Next = null;
             Prior = null;
-            _delayedOps = null;
+            _delayedChanges = null;
             _lockCount = 0;
             _delayedOpsCount = 0;
             Id = -1;

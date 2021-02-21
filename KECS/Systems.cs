@@ -6,6 +6,7 @@ namespace KECS
 {
     public interface ISystem
     {
+        World World { get; set; }
     }
 
     public interface IPreInitSystem : ISystem
@@ -33,16 +34,16 @@ namespace KECS
         void Run(float dt);
     }
 
-    public sealed class Systems : IInitSystem, IDestroySystem, IRunSystem
+    public sealed class Systems
     {
-        public readonly World World;
         readonly List<ISystem> _allSystems = new List<ISystem>();
         readonly List<SystemsRunItem> _runSystems = new List<SystemsRunItem>();
+        private World _world;
 
 
         public Systems(World world)
         {
-            World = world;
+            _world = world;
         }
 
         public Systems Add(ISystem system, string namedRunSystem = null)
@@ -53,6 +54,7 @@ namespace KECS
                 _runSystems.Add(new SystemsRunItem {Active = true, System = (IRunSystem) system});
             }
 
+            system.World = _world;
             return this;
         }
 
@@ -75,6 +77,11 @@ namespace KECS
         public List<SystemsRunItem> GetRunSystems()
         {
             return _runSystems;
+        }
+
+        public Systems OneFrame<T>() where T : struct
+        {
+            return Add(new RemoveOneFrame<T>());
         }
 
         public void Init()
@@ -128,6 +135,25 @@ namespace KECS
                 {
                     postDestroySystem.PostDestroy();
                 }
+            }
+        }
+    }
+
+    sealed class RemoveOneFrame<T> : IRunSystem, IInitSystem where T : struct
+    {
+        private Filter _filter;
+        public World World { get; set; }
+
+        public void Init()
+        {
+            _filter = World.Filter.With<T>();
+        }
+
+        public void Run(float dt)
+        {
+            foreach (var item in _filter)
+            {
+                item.RemoveComponent<T>();
             }
         }
     }

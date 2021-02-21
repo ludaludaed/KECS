@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
-    public static class Worlds
+    public static class WorldsGroup
     {
         private static object _lockObject;
         private static IntDispenser _freeWorldsIds;
@@ -24,7 +24,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static Worlds()
+        static WorldsGroup()
         {
             _lockObject = new object();
             _worlds = new World[2];
@@ -47,7 +47,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WorldConfig CheckConfig(WorldConfig config)
         {
-            WorldConfig resultConfig = new WorldConfig
+            return new WorldConfig
             {
                 ArchetypeCapacity = config.ArchetypeCapacity > 0
                     ? config.ArchetypeCapacity
@@ -62,8 +62,6 @@ namespace KECS
                     ? config.TypeCapacity
                     : WorldConfig.DefaultTypeCapacity
             };
-
-            return resultConfig;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,7 +82,7 @@ namespace KECS
                 _freeWorldsIds.ReleaseInt(worldId);
             }
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dispose()
         {
@@ -94,6 +92,7 @@ namespace KECS
                 {
                     item?.Dispose();
                 }
+
                 _freeWorldsIds.Dispose();
                 _worlds = null;
                 _freeWorldsIds = null;
@@ -142,7 +141,7 @@ namespace KECS
             {
                 EnsureEntitiesCapacity(newEntityId << 1);
             }
-            
+
             _entities[newEntityId] ??= new Entity(this, _archetypeManager, newEntityId);
             _entities[newEntityId].Initialize();
             Count++;
@@ -156,13 +155,14 @@ namespace KECS
             _freeIds.ReleaseInt(id);
             Count--;
         }
-        
+
         public Filter Filter
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create filter.");
+                if (!_isAlive)
+                    throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create filter.");
                 var filter = new Filter(this, _archetypeManager);
                 _filters.Add(filter);
                 return filter;
@@ -224,7 +224,7 @@ namespace KECS
             {
                 pool?.Dispose();
             }
-            
+
             _archetypeManager.Dispose();
             _filters.Clear();
             _pools.Clear();
@@ -235,7 +235,7 @@ namespace KECS
             _entities = null;
             _archetypeManager = null;
             _isAlive = false;
-            Worlds.Destroy(_worldId);
+            WorldsGroup.Destroy(_worldId);
         }
 
         public override string ToString()
