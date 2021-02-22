@@ -4,14 +4,14 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
-    public interface IComponentPool : IDisposable
+    internal interface IComponentPool : IDisposable
     {
         public void Remove(int entityId);
         public void EnsureLength(int capacity);
     }
 
 
-    public sealed class ComponentPool<T> : IComponentPool where T : struct
+    internal sealed class ComponentPool<T> : IComponentPool where T : struct
     {
         private SparseSet<T> _components;
         private int Length => _components.Count;

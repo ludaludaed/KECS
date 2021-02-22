@@ -90,7 +90,7 @@ namespace KECS
             {
                 foreach (var item in _worlds)
                 {
-                    item?.Destroy();
+                    item?.Dispose();
                 }
 
                 _freeWorldsIds.Dispose();
@@ -112,13 +112,13 @@ namespace KECS
         public int Count { get; private set; }
 
         private int _worldId;
-        public int WorldId => _worldId;
-        public readonly WorldConfig Config;
+        internal int WorldId => _worldId;
+        internal readonly WorldConfig Config;
         private bool _isAlive;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public World(int worldId, WorldConfig config)
+        internal World(int worldId, WorldConfig config)
         {
             _isAlive = true;
             _worldId = worldId;
@@ -149,7 +149,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RecycleEntity(int id)
+        internal void RecycleEntity(int id)
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot recycle entity.");
             _freeIds.ReleaseInt(id);
@@ -184,7 +184,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ComponentPool<T> GetPool<T>() where T : struct
+        internal ComponentPool<T> GetPool<T>() where T : struct
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get pool.");
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -199,7 +199,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IComponentPool GetPool(int idx)
+        internal IComponentPool GetPool(int idx)
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get pool.");
             var pool = _pools.GetValue(idx);
@@ -207,7 +207,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Destroy()
+        public void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
             foreach (var item in _filters)

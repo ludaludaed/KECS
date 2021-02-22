@@ -4,183 +4,187 @@ using System.Reflection;
 
 namespace KECS
 {
-    public interface ISystem
+    public interface IInitializer
     {
         World World { get; set; }
+        void Initialize();
     }
 
-    public interface IPreInitSystem : ISystem
+    public interface ISystem : IInitializer
     {
-        void PreInit();
+        void Update(float deltaTime);
     }
 
-    public interface IInitSystem : ISystem
+    public interface IFixedSystem : ISystem
     {
-        void OnAwake();
     }
 
-    public interface IPostDestroySystem : ISystem
-    {
-        void PostDestroy();
-    }
-
-    public interface IDestroySystem : ISystem
-    {
-        void Destroy();
-    }
-
-    public interface IUpdateSystem : ISystem
-    {
-        void OnUpdate(float dt);
-    }
-    
-    public interface IFixedSystem : IUpdateSystem
-    {
-    }
-    public interface ILateSystem : IUpdateSystem
+    public interface ILateSystem : ISystem
     {
     }
 
     public sealed class Systems
     {
-        private readonly List<ISystem> _allSystems = new List<ISystem>();
-        private readonly List<UpdatableItem> _updateSystems = new List<UpdatableItem>();
-        private readonly List<UpdatableItem> _fixedSystems = new List<UpdatableItem>();
-        private readonly List<UpdatableItem> _lateSystems = new List<UpdatableItem>();
-        private readonly World _world;
+        private readonly Dictionary<int, SystemData> _systems;
 
-        private struct UpdatableItem
-        {
-            public IUpdateSystem Update;
-            public bool IsEnable;
-        }
+        private readonly List<SystemData> _updates;
+        private readonly List<SystemData> _fixedUpdates;
+        private readonly List<SystemData> _lateUpdates;
+
+        private readonly List<IInitializer> _initializers;
+
+        private readonly World _world;
+        private bool _initialized;
 
         public Systems(World world)
         {
             _world = world;
+            _initialized = false;
+            _systems = new Dictionary<int, SystemData>();
+            _initializers = new List<IInitializer>();
+            _updates = new List<SystemData>();
+            _fixedUpdates = new List<SystemData>();
+            _lateUpdates = new List<SystemData>();
         }
 
-        public Systems Add(ISystem system)
+        public Systems AddSystem<T>() where T : IInitializer, new()
         {
-            _allSystems.Add(system);
-            
-            if (system is IUpdateSystem updateSystem)
+            var obj = new T();
+            return AddSystem(obj);
+        }
+
+        private Systems AddSystem<T>(T systemValue) where T : IInitializer
+        {
+            if (_initialized)
             {
-                _updateSystems.Add(new UpdatableItem(){Update = updateSystem, IsEnable = true});
-            }
-            if (system is IFixedSystem fixedSystem)
-            {
-                _fixedSystems.Add(new UpdatableItem(){Update = fixedSystem, IsEnable = true});
-            }
-            if (system is ILateSystem lateSystem)
-            {
-                _lateSystems.Add(new UpdatableItem(){Update = lateSystem, IsEnable = true});
+                throw new Exception("|KECS| System cannot be added after initialization.");
             }
 
-            system.World = _world;
+            int hash = typeof(T).GetHashCode();
+
+            if (!_systems.ContainsKey(hash))
+            {
+                _initializers.Add(systemValue);
+                systemValue.World = _world;
+                if (systemValue is ISystem system)
+                {
+                    var systemData = new SystemData {IsEnable = true, UpdateImpl = system};
+                    var collection = _updates;
+
+                    if (systemValue is IFixedSystem fixedSystem)
+                    {
+                        systemData.UpdateImpl = fixedSystem;
+                        collection = _fixedUpdates;
+                    }
+
+                    if (systemValue is ILateSystem lateSystem)
+                    {
+                        systemData.UpdateImpl = lateSystem;
+                        collection = _lateUpdates;
+                    }
+
+                    collection.Add(systemData);
+                    _systems.Add(hash, systemData);
+                }
+            }
+
+            return this;
+        }
+
+        public Systems DisableSystem<T>() where T : ISystem
+        {
+            int hash = typeof(T).GetHashCode();
+
+            if (_systems.TryGetValue(hash, out var systemValue))
+            {
+                systemValue.IsEnable = false;
+            }
+
+            return this;
+        }
+
+        public Systems EnableSystem<T>() where T : ISystem
+        {
+            int hash = typeof(T).GetHashCode();
+
+            if (_systems.TryGetValue(hash, out var systemValue))
+            {
+                systemValue.IsEnable = true;
+            }
+
             return this;
         }
 
         public Systems OneFrame<T>() where T : struct
         {
-            return Add(new RemoveOneFrame<T>());
+            return AddSystem(new RemoveOneFrame<T>());
         }
 
-        public void Awake()
+        public void Update(float deltaTime)
         {
-            for (int i = 0; i < _allSystems.Count; i++)
+            foreach (var update in _updates)
             {
-                var system = _allSystems[i];
-                if (system is IPreInitSystem preInitSystem)
-                {
-                    preInitSystem.PreInit();
-                }
-            }
-
-            for (int i = 0; i < _allSystems.Count; i++)
-            {
-                var system = _allSystems[i];
-                if (system is IInitSystem initSystem)
-                {
-                    initSystem.OnAwake();
-                }
-            }
-        }
-
-        public void Update(float dt)
-        {
-            for (int i = 0; i < _updateSystems.Count; i++)
-            {
-                var update = _updateSystems[i];
                 if (update.IsEnable)
                 {
-                    update.Update.OnUpdate(dt);
-                }
-                
-            }
-        }
-        
-        public void FixedUpdate(float dt)
-        {
-            for (int i = 0; i < _fixedSystems.Count; i++)
-            {
-                var update = _fixedSystems[i];
-                if (update.IsEnable)
-                {
-                    update.Update.OnUpdate(dt);
-                }
-            }
-        }
-        
-        public void LateUpdate(float dt)
-        {
-            for (int i = 0; i < _fixedSystems.Count; i++)
-            {
-                var update = _lateSystems[i];
-                if (update.IsEnable)
-                {
-                    update.Update.OnUpdate(dt);
+                    update.UpdateImpl.Update(deltaTime);
                 }
             }
         }
 
-        public void Destroy()
+        public void FixedUpdate(float deltaTime)
         {
-            for (var i = _allSystems.Count - 1; i >= 0; i--)
+            foreach (var fixedUpdate in _fixedUpdates)
             {
-                var system = _allSystems[i];
-                if (system is IDestroySystem destroySystem)
+                if (fixedUpdate.IsEnable)
                 {
-                    destroySystem.Destroy();
+                    fixedUpdate.UpdateImpl.Update(deltaTime);
                 }
             }
+        }
 
-            for (var i = _allSystems.Count - 1; i >= 0; i--)
+        public void LateUpdate(float deltaTime)
+        {
+            foreach (var lateUpdate in _lateUpdates)
             {
-                var system = _allSystems[i];
-                if (system is IPostDestroySystem postDestroySystem)
+                if (lateUpdate.IsEnable)
                 {
-                    postDestroySystem.PostDestroy();
+                    lateUpdate.UpdateImpl.Update(deltaTime);
                 }
             }
+        }
+
+        public void Initialize()
+        {
+            _initialized = true;
+            foreach (var initializer in _initializers)
+            {
+                initializer.Initialize();
+            }
+        }
+
+        private class SystemData
+        {
+            public bool IsEnable;
+            public ISystem UpdateImpl;
         }
     }
 
-    internal sealed class RemoveOneFrame<T> : IUpdateSystem, IInitSystem where T : struct
+    internal class RemoveOneFrame<T> : ISystem where T : struct
     {
-        private Filter _filter;
         public World World { get; set; }
 
-        public void OnAwake()
+        private Filter _filter;
+
+        public void Initialize()
         {
             _filter = World.Filter.With<T>();
         }
 
-        public void OnUpdate(float dt)
+        public void Update(float deltaTime)
         {
-            foreach (var item in _filter)
+            foreach (var ent in _filter)
             {
-                item.RemoveComponent<T>();
+                ent.RemoveComponent<T>();
             }
         }
     }

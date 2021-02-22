@@ -5,24 +5,24 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
-    public class Archetype : IEnumerable<Entity>
+    internal class Archetype : IEnumerable<Entity>
     {
-        public int Count => Entities.Count;
-        public int Id { get; private set; }
+        internal int Count => Entities.Count;
+        internal int Id { get; private set; }
 
         private DelayedChange[] _delayedChanges;
         private int _delayedOpsCount;
 
-        public SparseSet<Entity> Entities;
-        public BitMask Mask { get; }
+        internal SparseSet<Entity> Entities;
+        internal BitMask Mask { get; }
 
-        public SparseSet<Archetype> Next;
-        public SparseSet<Archetype> Prior;
+        internal SparseSet<Archetype> Next;
+        internal SparseSet<Archetype> Prior;
 
         private int _lockCount;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Archetype(World world, int id, BitMask mask)
+        internal Archetype(World world, int id, BitMask mask)
         {
             Mask = mask;
             Id = id;
@@ -36,10 +36,10 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Lock() => _lockCount++;
+        internal void Lock() => _lockCount++;
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Unlock()
+        internal void Unlock()
         {
             _lockCount--;
 
@@ -77,7 +77,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddEntity(Entity entity)
+        internal void AddEntity(Entity entity)
         {
             if (AddDelayedChange(entity, true))
             {
@@ -88,7 +88,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveEntity(Entity entity)
+        internal void RemoveEntity(Entity entity)
         {
             if (AddDelayedChange(entity, false))
             {
@@ -117,7 +117,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
+        internal void Dispose()
         {
             Entities.Clear();
             Next.Clear();

@@ -9,12 +9,12 @@ namespace KECS
         private World _world;
         private ArchetypeManager _archetypeManager;
         private Archetype _currentArchetype;
-        public bool IsAlive { get; private set; }
+        internal bool IsAlive { get; private set; }
 
-        public int Id { get; private set; }
+        internal int Id { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Entity(World world, ArchetypeManager archetypeManager, int internalId)
+        internal Entity(World world, ArchetypeManager archetypeManager, int internalId)
         {
             this._world = world;
             Id = internalId;
@@ -22,7 +22,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize()
+        internal void Initialize()
         {
             _currentArchetype = this._archetypeManager.Empty;
             _currentArchetype.AddEntity(this);

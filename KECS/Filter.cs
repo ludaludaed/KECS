@@ -7,16 +7,16 @@ namespace KECS
 {
     public sealed class Filter : IEnumerable<Entity>
     {
-        public BitMask Include;
-        public BitMask Exclude;
-        public int Version { get; set; }
+        internal BitMask Include;
+        internal BitMask Exclude;
+        internal int Version { get; set; }
 
         private List<Archetype> _archetypes = new List<Archetype>();
         private ArchetypeManager _archetypeManager;
         private World _world;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter(World world, ArchetypeManager archetypeManager)
+        internal Filter(World world, ArchetypeManager archetypeManager)
         {
             _archetypeManager = archetypeManager;
             Version = 0;
@@ -54,7 +54,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddArchetype(Archetype archetype)
+        internal void AddArchetype(Archetype archetype)
         {
             _archetypes.Add(archetype);
         }
@@ -73,7 +73,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
+        internal void Dispose()
         {
             Version = 0;
             _archetypes.Clear();

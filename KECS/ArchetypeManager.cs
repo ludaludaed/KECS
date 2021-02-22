@@ -4,15 +4,15 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
-    public class ArchetypeManager
+    internal class ArchetypeManager
     {
         private List<Archetype> _archetypes;
-        public Archetype Empty { get; private set; }
+        internal Archetype Empty { get; private set; }
         private World _world;
         private object _locker = new object();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArchetypeManager(World world)
+        internal ArchetypeManager(World world)
         {
             _world = world;
             Empty = new Archetype(this._world, 0, new BitMask(256));
@@ -20,7 +20,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FindArchetypes(Filter filter, int startId)
+        internal void FindArchetypes(Filter filter, int startId)
         {
             for (int i = startId; i < _archetypes.Count; i++)
             {
@@ -76,7 +76,7 @@ namespace KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
+        internal Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
         {
             Archetype priorArchetype = archetype.Prior.GetValue(removeIndex);
             if (priorArchetype != null)
@@ -90,7 +90,7 @@ namespace KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
+        internal Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
         {
             Archetype nextArchetype = archetype.Next.GetValue(addIndex);
             if (nextArchetype != null)
@@ -102,7 +102,7 @@ namespace KECS
             return InnerFindOrCreateArchetype(mask);
         }
 
-        public void Dispose()
+        internal void Dispose()
         {
             for (int i = 0; i < _archetypes.Count; i++)
             {
