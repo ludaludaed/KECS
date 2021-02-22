@@ -122,7 +122,7 @@ namespace KECS
             return this;
         }
 
-        public Systems DisableSystem<T>() where T : IUpdate
+        public Systems DisableSystem<T>() where T : SystemBase
         {
             int hash = typeof(T).GetHashCode();
 
@@ -134,7 +134,7 @@ namespace KECS
             return this;
         }
 
-        public Systems EnableSystem<T>() where T : IUpdate
+        public Systems EnableSystem<T>() where T : SystemBase
         {
             int hash = typeof(T).GetHashCode();
 
@@ -237,14 +237,20 @@ namespace KECS
             
             _destroyed = true;
             
-            foreach (var initializer in _allSystems)
+            foreach (var destroy in _allSystems)
             {
-                initializer.Base.OnDestroy();
+                if (destroy.IsEnable)
+                {
+                    destroy.Base.OnDestroy();
+                }
             }
             
-            foreach (var initializer in _allSystems)
+            foreach (var postDestroy in _allSystems)
             {
-                initializer.Base.PostDestroy();
+                if (postDestroy.IsEnable)
+                {
+                    postDestroy.Base.PostDestroy();
+                }
             }
         }
 
