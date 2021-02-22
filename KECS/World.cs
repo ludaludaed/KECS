@@ -103,6 +103,7 @@ namespace KECS
                 if (_worldsIdx.TryGetValue(hashName, out int worldId))
                 {
                     _worldsIdx.Remove(hashName);
+                    _worlds[worldId].Dispose();
                     _worlds[worldId] = null;
                     _freeWorldsIds.ReleaseInt(worldId);
                     return;
@@ -113,7 +114,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Dispose()
+        public static void DestroyAll()
         {
             lock (_lockObject)
             {
@@ -121,13 +122,11 @@ namespace KECS
                 {
                     item?.Dispose();
                 }
+                
+                Array.Clear(_worlds,0,_worlds.Length);
 
                 _worldsIdx.Clear();
-                _freeWorldsIds.Dispose();
-                _worlds = null;
-                _freeWorldsIds = null;
-                _lockObject = null;
-                _worldsIdx = null;
+                _freeWorldsIds.Clear();
             }
         }
     }
@@ -150,6 +149,7 @@ namespace KECS
         public string Name => _name;
 
         private bool _isAlive;
+        public bool IsAlive => _isAlive;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -243,7 +243,7 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
+        internal void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
             foreach (var item in _filters)
@@ -271,6 +271,11 @@ namespace KECS
             _entities = null;
             _archetypeManager = null;
             _isAlive = false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Destroy()
+        {
             Worlds.Destroy(_name);
         }
 
