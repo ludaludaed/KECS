@@ -25,7 +25,7 @@ namespace KECS
 
     public sealed class Systems
     {
-        private readonly Dictionary<int, SystemData> _systems;
+        private Dictionary<int, SystemData> _systems;
 
         private readonly List<SystemData> _updates;
         private readonly List<SystemData> _fixedUpdates;
@@ -166,6 +166,15 @@ namespace KECS
         {
             public bool IsEnable;
             public ISystem UpdateImpl;
+        }
+
+        public void Dispose()
+        {
+            _systems.Clear();
+            _initializers.Clear();
+            _updates.Clear();
+            _fixedUpdates.Clear();
+            _lateUpdates.Clear();
         }
     }
 
