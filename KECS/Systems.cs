@@ -4,56 +4,85 @@ using System.Reflection;
 
 namespace KECS
 {
-    public interface IInitializer
-    {
-        World World { get; set; }
-        void Initialize();
-    }
-
-    public interface ISystem : IInitializer
+    public interface IUpdate
     {
         void Update(float deltaTime);
     }
 
-    public interface IFixedSystem : ISystem
+    public interface IFixedUpdate : IUpdate
     {
     }
 
-    public interface ILateSystem : ISystem
+    public interface ILateUpdate : IUpdate
     {
     }
 
-    public sealed class Systems
+    public abstract class SystemBase : IDisposable
     {
-        private Dictionary<int, SystemData> _systems;
+        protected World world;
+        protected Systems systems;
+        public abstract void Initialize();
+
+        internal void StartUp(World world, Systems systems)
+        {
+            this.world = world;
+            this.systems = systems;
+            OnLaunch();
+        }
+        public virtual void OnLaunch()
+        {
+        }
+
+        public virtual void OnDestroy()
+        {
+        }
+        
+        public virtual void PostDestroy()
+        {
+        }
+
+        public void Dispose() => OnDestroy();
+    }
+
+    internal sealed class SystemData
+    {
+        public bool IsEnable;
+        public SystemBase Base;
+        public IUpdate UpdateImpl;
+    }
+
+    public sealed class Systems : IDisposable
+    {
+        private readonly Dictionary<int, SystemData> _systems;
 
         private readonly List<SystemData> _updates;
         private readonly List<SystemData> _fixedUpdates;
         private readonly List<SystemData> _lateUpdates;
-
-        private readonly List<IInitializer> _initializers;
+        private readonly List<SystemData> _allSystems;
 
         private readonly World _world;
         private bool _initialized;
+        private bool _destroyed;
 
         public Systems(World world)
         {
             _world = world;
             _initialized = false;
+            _destroyed = false;
             _systems = new Dictionary<int, SystemData>();
-            _initializers = new List<IInitializer>();
+            _allSystems = new List<SystemData>();
             _updates = new List<SystemData>();
             _fixedUpdates = new List<SystemData>();
             _lateUpdates = new List<SystemData>();
         }
 
-        public Systems AddSystem<T>() where T : IInitializer, new()
+        public Systems AddSystem<T>() where T : SystemBase, new()
         {
             var obj = new T();
             return AddSystem(obj);
         }
 
-        private Systems AddSystem<T>(T systemValue) where T : IInitializer
+        private Systems AddSystem<T>(T systemValue) where T : SystemBase
         {
             if (_initialized)
             {
@@ -64,20 +93,22 @@ namespace KECS
 
             if (!_systems.ContainsKey(hash))
             {
-                _initializers.Add(systemValue);
-                systemValue.World = _world;
-                if (systemValue is ISystem system)
+                var systemData = new SystemData {IsEnable = true, Base = systemValue};
+                _allSystems.Add(systemData);
+                systemValue.StartUp(_world, this);
+
+                if (systemValue is IUpdate system)
                 {
-                    var systemData = new SystemData {IsEnable = true, UpdateImpl = system};
+                    systemData.UpdateImpl = system;
                     var collection = _updates;
 
-                    if (systemValue is IFixedSystem fixedSystem)
+                    if (systemValue is IFixedUpdate fixedSystem)
                     {
                         systemData.UpdateImpl = fixedSystem;
                         collection = _fixedUpdates;
                     }
 
-                    if (systemValue is ILateSystem lateSystem)
+                    if (systemValue is ILateUpdate lateSystem)
                     {
                         systemData.UpdateImpl = lateSystem;
                         collection = _lateUpdates;
@@ -91,7 +122,7 @@ namespace KECS
             return this;
         }
 
-        public Systems DisableSystem<T>() where T : ISystem
+        public Systems DisableSystem<T>() where T : IUpdate
         {
             int hash = typeof(T).GetHashCode();
 
@@ -103,7 +134,7 @@ namespace KECS
             return this;
         }
 
-        public Systems EnableSystem<T>() where T : ISystem
+        public Systems EnableSystem<T>() where T : IUpdate
         {
             int hash = typeof(T).GetHashCode();
 
@@ -122,71 +153,118 @@ namespace KECS
 
         public void Update(float deltaTime)
         {
+            if (!_initialized)
+            {
+                throw new Exception("|KECS| Systems haven't initialized yet.");
+            }
+
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+            }
+
             foreach (var update in _updates)
             {
                 if (update.IsEnable)
                 {
-                    update.UpdateImpl.Update(deltaTime);
+                    update.UpdateImpl?.Update(deltaTime);
                 }
             }
         }
 
         public void FixedUpdate(float deltaTime)
         {
+            if (!_initialized)
+            {
+                throw new Exception("|KECS| Systems haven't initialized yet.");
+            }
+
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+            }
+
             foreach (var fixedUpdate in _fixedUpdates)
             {
                 if (fixedUpdate.IsEnable)
                 {
-                    fixedUpdate.UpdateImpl.Update(deltaTime);
+                    fixedUpdate.UpdateImpl?.Update(deltaTime);
                 }
             }
         }
 
         public void LateUpdate(float deltaTime)
         {
+            if (!_initialized)
+            {
+                throw new Exception("|KECS| Systems haven't initialized yet.");
+            }
+
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+            }
+
             foreach (var lateUpdate in _lateUpdates)
             {
                 if (lateUpdate.IsEnable)
                 {
-                    lateUpdate.UpdateImpl.Update(deltaTime);
+                    lateUpdate.UpdateImpl?.Update(deltaTime);
                 }
             }
         }
 
         public void Initialize()
         {
-            _initialized = true;
-            foreach (var initializer in _initializers)
+            if (_destroyed)
             {
-                initializer.Initialize();
+                throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
+            }
+
+            _initialized = true;
+            foreach (var initializer in _allSystems)
+            {
+                initializer.Base.Initialize();
             }
         }
 
-        private class SystemData
+        public void Destroy()
         {
-            public bool IsEnable;
-            public ISystem UpdateImpl;
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
+            }
+            
+            _destroyed = true;
+            
+            foreach (var initializer in _allSystems)
+            {
+                initializer.Base.OnDestroy();
+            }
+            
+            foreach (var initializer in _allSystems)
+            {
+                initializer.Base.PostDestroy();
+            }
         }
 
         public void Dispose()
         {
             _systems.Clear();
-            _initializers.Clear();
+            _allSystems.Clear();
             _updates.Clear();
             _fixedUpdates.Clear();
             _lateUpdates.Clear();
         }
     }
 
-    internal class RemoveOneFrame<T> : ISystem where T : struct
+    internal class RemoveOneFrame<T> : SystemBase, ILateUpdate where T : struct
     {
-        public World World { get; set; }
-
         private Filter _filter;
 
-        public void Initialize()
+        public override void Initialize()
         {
-            _filter = World.Filter.With<T>();
+            _filter = world.Filter.With<T>();
         }
 
         public void Update(float deltaTime)

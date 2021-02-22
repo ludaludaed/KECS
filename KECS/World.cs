@@ -6,9 +6,11 @@ namespace KECS
 {
     public static class Worlds
     {
+        private const string DEFAULT_WORLD_NAME = "DEFAULT";
         private static object _lockObject;
         private static IntDispenser _freeWorldsIds;
         private static World[] _worlds;
+        private static Dictionary<int, int> _worldsIdx;
 
         public static World Default
         {
@@ -17,7 +19,12 @@ namespace KECS
             {
                 lock (_lockObject)
                 {
-                    if (_worlds[0] != null) return _worlds[0];
+                    int hashName = DEFAULT_WORLD_NAME.GetHashCode();
+                    if (_worldsIdx.TryGetValue(hashName, out var worldId))
+                    {
+                        return _worlds[worldId];
+                    }
+
                     return Create();
                 }
             }
@@ -29,17 +36,25 @@ namespace KECS
             _lockObject = new object();
             _worlds = new World[2];
             _freeWorldsIds = new IntDispenser();
+            _worldsIdx = new Dictionary<int, int>(32);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Create(WorldConfig config = default)
+        public static World Create(string name = DEFAULT_WORLD_NAME, WorldConfig config = default)
         {
             lock (_lockObject)
             {
+                int hashName = name.GetHashCode();
+                if (_worldsIdx.ContainsKey(hashName))
+                {
+                    throw new Exception("|KECS| A world with that name already exists.");
+                }
+
                 int worldId = _freeWorldsIds.GetFreeInt();
                 ArrayExtension.EnsureLength(ref _worlds, worldId);
-                var newWorld = new World(worldId, CheckConfig(config));
+                var newWorld = new World(worldId, CheckConfig(config), name);
                 _worlds[worldId] = newWorld;
+                _worldsIdx.Add(hashName, worldId);
                 return newWorld;
             }
         }
@@ -65,21 +80,35 @@ namespace KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Get(int worldId)
+        public static World Get(string name)
         {
+            int hashName = name.GetHashCode();
             lock (_lockObject)
             {
-                return _worlds[worldId];
+                if (_worldsIdx.TryGetValue(hashName, out int worldId))
+                {
+                    return _worlds[worldId];
+                }
+
+                throw new Exception("|KECS| No world with that name was found.");
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Destroy(int worldId)
+        public static void Destroy(string name)
         {
+            int hashName = name.GetHashCode();
             lock (_lockObject)
             {
-                _worlds[worldId] = null;
-                _freeWorldsIds.ReleaseInt(worldId);
+                if (_worldsIdx.TryGetValue(hashName, out int worldId))
+                {
+                    _worldsIdx.Remove(hashName);
+                    _worlds[worldId] = null;
+                    _freeWorldsIds.ReleaseInt(worldId);
+                    return;
+                }
+
+                throw new Exception("|KECS| A world with that name has not been found. Unable to delete.");
             }
         }
 
@@ -93,10 +122,12 @@ namespace KECS
                     item?.Dispose();
                 }
 
+                _worldsIdx.Clear();
                 _freeWorldsIds.Dispose();
                 _worlds = null;
                 _freeWorldsIds = null;
                 _lockObject = null;
+                _worldsIdx = null;
             }
         }
     }
@@ -112,14 +143,19 @@ namespace KECS
         public int Count { get; private set; }
 
         private int _worldId;
-        internal int WorldId => _worldId;
+        private string _name;
         internal readonly WorldConfig Config;
+
+        internal int WorldId => _worldId;
+        public string Name => _name;
+
         private bool _isAlive;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal World(int worldId, WorldConfig config)
+        internal World(int worldId, WorldConfig config, string name)
         {
+            _name = name;
             _isAlive = true;
             _worldId = worldId;
             Config = config;
@@ -235,7 +271,7 @@ namespace KECS
             _entities = null;
             _archetypeManager = null;
             _isAlive = false;
-            Worlds.Destroy(_worldId);
+            Worlds.Destroy(_name);
         }
 
         public override string ToString()
