@@ -4,29 +4,21 @@ using System.Reflection;
 
 namespace KECS
 {
-    public interface IUpdate
+    public interface IRunSystem
     {
-        void Update(float deltaTime);
-    }
-
-    public interface IFixedUpdate : IUpdate
-    {
-    }
-
-    public interface ILateUpdate : IUpdate
-    {
+        void Run(float deltaTime);
     }
 
     public abstract class SystemBase : IDisposable
     {
-        protected World world;
-        protected Systems systems;
+        protected World World;
+        protected Systems MySystemsGroup;
         public abstract void Initialize();
 
         internal void StartUp(World world, Systems systems)
         {
-            this.world = world;
-            this.systems = systems;
+            World = world;
+            MySystemsGroup = systems;
             OnLaunch();
         }
         public virtual void OnLaunch()
@@ -48,16 +40,14 @@ namespace KECS
     {
         public bool IsEnable;
         public SystemBase Base;
-        public IUpdate UpdateImpl;
+        public IRunSystem runSystemImpl;
     }
 
     public sealed class Systems : IDisposable
     {
         private readonly Dictionary<int, SystemData> _systems;
 
-        private readonly List<SystemData> _updates;
-        private readonly List<SystemData> _fixedUpdates;
-        private readonly List<SystemData> _lateUpdates;
+        private readonly List<SystemData> _runSystems;
         private readonly List<SystemData> _allSystems;
 
         private readonly World _world;
@@ -71,18 +61,16 @@ namespace KECS
             _destroyed = false;
             _systems = new Dictionary<int, SystemData>();
             _allSystems = new List<SystemData>();
-            _updates = new List<SystemData>();
-            _fixedUpdates = new List<SystemData>();
-            _lateUpdates = new List<SystemData>();
+            _runSystems = new List<SystemData>();
         }
 
-        public Systems AddSystem<T>() where T : SystemBase, new()
+        public Systems Add<T>() where T : SystemBase, new()
         {
             var obj = new T();
-            return AddSystem(obj);
+            return Add(obj);
         }
 
-        private Systems AddSystem<T>(T systemValue) where T : SystemBase
+        private Systems Add<T>(T systemValue) where T : SystemBase
         {
             if (_initialized)
             {
@@ -97,24 +85,10 @@ namespace KECS
                 _allSystems.Add(systemData);
                 systemValue.StartUp(_world, this);
 
-                if (systemValue is IUpdate system)
+                if (systemValue is IRunSystem system)
                 {
-                    systemData.UpdateImpl = system;
-                    var collection = _updates;
-
-                    if (systemValue is IFixedUpdate fixedSystem)
-                    {
-                        systemData.UpdateImpl = fixedSystem;
-                        collection = _fixedUpdates;
-                    }
-
-                    if (systemValue is ILateUpdate lateSystem)
-                    {
-                        systemData.UpdateImpl = lateSystem;
-                        collection = _lateUpdates;
-                    }
-
-                    collection.Add(systemData);
+                    systemData.runSystemImpl = system;
+                    _runSystems.Add(systemData);
                     _systems.Add(hash, systemData);
                 }
             }
@@ -122,7 +96,7 @@ namespace KECS
             return this;
         }
 
-        public Systems DisableSystem<T>() where T : SystemBase
+        public Systems Disable<T>() where T : SystemBase
         {
             int hash = typeof(T).GetHashCode();
 
@@ -134,7 +108,7 @@ namespace KECS
             return this;
         }
 
-        public Systems EnableSystem<T>() where T : SystemBase
+        public Systems Enable<T>() where T : SystemBase
         {
             int hash = typeof(T).GetHashCode();
 
@@ -148,10 +122,10 @@ namespace KECS
 
         public Systems OneFrame<T>() where T : struct
         {
-            return AddSystem(new RemoveOneFrame<T>());
+            return Add(new RemoveOneFrame<T>());
         }
 
-        public void Update(float deltaTime)
+        public void Run(float deltaTime)
         {
             if (!_initialized)
             {
@@ -163,53 +137,11 @@ namespace KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            foreach (var update in _updates)
+            foreach (var update in _runSystems)
             {
                 if (update.IsEnable)
                 {
-                    update.UpdateImpl?.Update(deltaTime);
-                }
-            }
-        }
-
-        public void FixedUpdate(float deltaTime)
-        {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
-            foreach (var fixedUpdate in _fixedUpdates)
-            {
-                if (fixedUpdate.IsEnable)
-                {
-                    fixedUpdate.UpdateImpl?.Update(deltaTime);
-                }
-            }
-        }
-
-        public void LateUpdate(float deltaTime)
-        {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
-            foreach (var lateUpdate in _lateUpdates)
-            {
-                if (lateUpdate.IsEnable)
-                {
-                    lateUpdate.UpdateImpl?.Update(deltaTime);
+                    update.runSystemImpl?.Run(deltaTime);
                 }
             }
         }
@@ -258,22 +190,20 @@ namespace KECS
         {
             _systems.Clear();
             _allSystems.Clear();
-            _updates.Clear();
-            _fixedUpdates.Clear();
-            _lateUpdates.Clear();
+            _runSystems.Clear();
         }
     }
 
-    internal class RemoveOneFrame<T> : SystemBase, ILateUpdate where T : struct
+    internal class RemoveOneFrame<T> : SystemBase, IRunSystem where T : struct
     {
         private Filter _filter;
 
         public override void Initialize()
         {
-            _filter = world.Filter.With<T>();
+            _filter = World.Filter.With<T>();
         }
 
-        public void Update(float deltaTime)
+        public void Run(float deltaTime)
         {
             foreach (var ent in _filter)
             {

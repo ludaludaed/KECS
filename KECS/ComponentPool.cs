@@ -4,6 +4,28 @@ using System.Runtime.CompilerServices;
 
 namespace KECS
 {
+    internal static class EcsTypeManager
+    {
+        internal static int ComponentTypesCount = 0;
+    }
+    
+    internal static class ComponentTypeInfo<T> where T : struct
+    {
+        internal static readonly int TypeIndex;
+        internal static readonly Type Type;
+        
+        private static object _lockObject = new object();
+
+        static ComponentTypeInfo()
+        {
+            lock (_lockObject)
+            {
+                TypeIndex = EcsTypeManager.ComponentTypesCount++;
+                Type = typeof(T);
+            }
+        }
+    }
+    
     internal interface IComponentPool : IDisposable
     {
         public void Remove(int entityId);

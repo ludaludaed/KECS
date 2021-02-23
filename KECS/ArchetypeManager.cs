@@ -9,7 +9,7 @@ namespace KECS
         private List<Archetype> _archetypes;
         internal Archetype Empty { get; private set; }
         private World _world;
-        private object _locker = new object();
+        private object _lockObject = new object();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ArchetypeManager(World world)
@@ -46,7 +46,7 @@ namespace KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Archetype InnerFindOrCreateArchetype(BitMask mask)
         {
-            lock (_locker)
+            lock (_lockObject)
             {
                 Archetype curArchetype = Empty;
                 var newMask = new BitMask(256);
@@ -111,7 +111,7 @@ namespace KECS
             _archetypes.Clear();
             _archetypes = null;
             _world = null;
-            _locker = null;
+            _lockObject = null;
             Empty = null;
         }
     }
