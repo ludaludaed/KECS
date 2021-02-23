@@ -2,7 +2,7 @@
     "name": "com.ludaludaed.ecs",
     "author": "ludaludaed",
     "displayName": "KECS",
-    "description": "KECS is a very simple and fast C # Entity Component System framework based framework.",
+    "description": "KECS is a simple and fast C# Entity Component System framework based structs.",
     "unity": "2019.1",
     "version": "2021.1.22",
     "keywords": [
