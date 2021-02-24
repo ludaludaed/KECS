@@ -1,18 +1,16 @@
 {
-    "name": "com.ludaludaed.ecs",
-    "author": "ludaludaed",
-    "displayName": "KECS",
-    "description": "KECS is a simple and fast C# Entity Component System framework based structs.",
-    "unity": "2019.1",
-    "version": "2021.1.22",
-    "keywords": [
-        "ecs",
-        "kecs",
-        "performance"
-    ],
-    "dependencies": {},
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ludaludaed/KECS.git"
-    }
+  "name": "com.ludaludaed.kecs",
+  "displayName": "KECS",
+  "description": "Fast and Simple ECS Framework for Unity Game Engine.",
+  "unity": "2019.3",
+  "version": "2020.8.0",
+  "keywords": [
+    "kecs",
+    "ecs"
+  ],
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludaludaed/KECS.git"
+  }
 }

@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\tagir\\Desktop\\KECS\\KECS\\KECS.csproj",
+      "projectUniqueName": "C:\\Users\\tagir\\Desktop\\Архив\\KECS\\KECS\\KECS.csproj",
       "projectName": "KECS",
-      "projectPath": "C:\\Users\\tagir\\Desktop\\KECS\\KECS\\KECS.csproj",
+      "projectPath": "C:\\Users\\tagir\\Desktop\\Архив\\KECS\\KECS\\KECS.csproj",
       "packagesPath": "C:\\Users\\tagir\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\tagir\\Desktop\\KECS\\KECS\\obj\\",
+      "outputPath": "C:\\Users\\tagir\\Desktop\\Архив\\KECS\\KECS\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\tagir\\AppData\\Roaming\\NuGet\\NuGet.Config",
