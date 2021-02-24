@@ -378,7 +378,7 @@ namespace Ludaludaed.KECS
         private Archetype _currentArchetype;
         public bool IsAlive { get; private set; }
 
-        internal int Id { get; private set; }
+        public int Id { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Entity(World world, ArchetypeManager archetypeManager, int internalId)
