@@ -1,9 +1,9 @@
 {
   "name": "com.ludaludaed.kecs",
   "displayName": "KECS",
-  "description": "\uD83E\uDDC1Fast and Simple ECS Framework for Unity Game Engine.",
+  "description": "KECS is a fast and easy C# Entity Component System framework for writing your own games.",
   "unity": "2019.3",
-  "version": "2020.8.0",
+  "version": "1.0.0",
   "keywords": [
     "kecs",
     "ecs"

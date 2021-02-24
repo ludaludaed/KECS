@@ -7,24 +7,23 @@ using System.Threading;
 
 namespace Ludaludaed.KECS
 {
-    
-    
-    
+
     //=============================================================================
     // WORLDS
     //=============================================================================
+
     
     
     public struct WorldConfig
     {
-        public int ComponentsCapacity;
-        public int EntitiesCapacity;
-        public int ArchetypeCapacity;
-        public int TypeCapacity;
-        public const int DefaultComponentsCapacity = 256;
-        public const int DefaultEntitiesCapacity = 256;
-        public const int DefaultArchetypeCapacity = 256;
-        public const int DefaultTypeCapacity = 256;
+        public int ENTITY_COMPONENTS_CAPACITY;
+        public int CACHE_ENTITIES_CAPACITY;
+        public int CACHE_ARCHETYPES_CAPACITY;
+        public int CACHE_COMPONENTS_CAPACITY;
+        public const int DEFAULT_ENTITY_COMPONENTS_CAPACITY = 256;
+        public const int DEFAULT_CACHE_ENTITIES_CAPACITY = 256;
+        public const int DEFAULT_CACHE_ARCHETYPES_CAPACITY = 256;
+        public const int DEFAULT_CACHE_COMPONENTS_CAPACITY = 256;
     }
     
     
@@ -100,18 +99,18 @@ namespace Ludaludaed.KECS
         {
             return new WorldConfig
             {
-                ArchetypeCapacity = config.ArchetypeCapacity > 0
-                    ? config.ArchetypeCapacity
-                    : WorldConfig.DefaultArchetypeCapacity,
-                EntitiesCapacity = config.EntitiesCapacity > 0
-                    ? config.EntitiesCapacity
-                    : WorldConfig.DefaultEntitiesCapacity,
-                ComponentsCapacity = config.ComponentsCapacity > 0
-                    ? config.ComponentsCapacity
-                    : WorldConfig.DefaultComponentsCapacity,
-                TypeCapacity = config.TypeCapacity > 0
-                    ? config.TypeCapacity
-                    : WorldConfig.DefaultTypeCapacity
+                CACHE_ARCHETYPES_CAPACITY = config.CACHE_ARCHETYPES_CAPACITY > 0
+                    ? config.CACHE_ARCHETYPES_CAPACITY
+                    : WorldConfig.DEFAULT_CACHE_ARCHETYPES_CAPACITY,
+                CACHE_ENTITIES_CAPACITY = config.CACHE_ENTITIES_CAPACITY > 0
+                    ? config.CACHE_ENTITIES_CAPACITY
+                    : WorldConfig.DEFAULT_CACHE_ENTITIES_CAPACITY,
+                ENTITY_COMPONENTS_CAPACITY = config.ENTITY_COMPONENTS_CAPACITY > 0
+                    ? config.ENTITY_COMPONENTS_CAPACITY
+                    : WorldConfig.DEFAULT_ENTITY_COMPONENTS_CAPACITY,
+                CACHE_COMPONENTS_CAPACITY = config.CACHE_COMPONENTS_CAPACITY > 0
+                    ? config.CACHE_COMPONENTS_CAPACITY
+                    : WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY
             };
         }
 
@@ -221,10 +220,10 @@ namespace Ludaludaed.KECS
             _isAlive = true;
             _worldId = worldId;
             Config = config;
-            _pools = new SparseSet<IComponentPool>(Config.TypeCapacity, Config.TypeCapacity);
+            _pools = new SparseSet<IComponentPool>(Config.CACHE_COMPONENTS_CAPACITY, Config.CACHE_COMPONENTS_CAPACITY);
             _filters = new List<Filter>();
             _freeIds = new IntDispenser();
-            _entities = new Entity[Config.EntitiesCapacity];
+            _entities = new Entity[Config.CACHE_ENTITIES_CAPACITY];
             _archetypeManager = new ArchetypeManager(this);
             Count = 0;
         }
@@ -575,7 +574,7 @@ namespace Ludaludaed.KECS
         {
             _world = world;
             Empty = new Archetype(this._world, 0, new BitMask(256));
-            _archetypes = new List<Archetype>(world.Config.ArchetypeCapacity) {Empty};
+            _archetypes = new List<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY) {Empty};
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -701,10 +700,10 @@ namespace Ludaludaed.KECS
             _lockCount = 0;
 
             _delayedChanges = new DelayedChange[64];
-            Next = new SparseSet<Archetype>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
-            Prior = new SparseSet<Archetype>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
+            Next = new SparseSet<Archetype>(world.Config.ENTITY_COMPONENTS_CAPACITY, world.Config.ENTITY_COMPONENTS_CAPACITY);
+            Prior = new SparseSet<Archetype>(world.Config.ENTITY_COMPONENTS_CAPACITY, world.Config.ENTITY_COMPONENTS_CAPACITY);
 
-            Entities = new SparseSet<Entity>(world.Config.EntitiesCapacity, world.Config.EntitiesCapacity);
+            Entities = new SparseSet<Entity>(world.Config.CACHE_ENTITIES_CAPACITY, world.Config.CACHE_ENTITIES_CAPACITY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1040,7 +1039,7 @@ namespace Ludaludaed.KECS
         public ComponentPool(World world)
         {
             _owner = world;
-            _components = new SparseSet<T>(world.Config.ComponentsCapacity, world.Config.ComponentsCapacity);
+            _components = new SparseSet<T>(world.Config.ENTITY_COMPONENTS_CAPACITY, world.Config.ENTITY_COMPONENTS_CAPACITY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
