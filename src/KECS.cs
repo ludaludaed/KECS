@@ -1219,7 +1219,7 @@ namespace Ludaludaed.KECS
                 }
             }
 
-            return null;
+            return this;
         }
 
         /// <summary>
