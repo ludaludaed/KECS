@@ -131,7 +131,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| No world with that name was found.");
             }
         }
-        
+
         /// <summary>
         /// Returns an existing world or creates a new one if it does not exist.
         /// </summary>
@@ -703,7 +703,7 @@ namespace Ludaludaed.KECS
     }
 
 
-    internal class Archetype : IEnumerable<Entity>
+    internal sealed class Archetype : IEnumerable<Entity>
     {
         internal int Count => Entities.Count;
         internal int Id { get; private set; }
@@ -727,10 +727,10 @@ namespace Ludaludaed.KECS
             _lockCount = 0;
 
             _delayedChanges = new DelayedChange[64];
-            Next = new SparseSet<Archetype>(world.Config.ENTITY_COMPONENTS_CAPACITY,
-                world.Config.ENTITY_COMPONENTS_CAPACITY);
-            Prior = new SparseSet<Archetype>(world.Config.ENTITY_COMPONENTS_CAPACITY,
-                world.Config.ENTITY_COMPONENTS_CAPACITY);
+            Next = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
+                world.Config.CACHE_COMPONENTS_CAPACITY);
+            Prior = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
+                world.Config.CACHE_COMPONENTS_CAPACITY);
 
             Entities = new SparseSet<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
                 world.Config.CACHE_ENTITIES_CAPACITY);
@@ -1474,7 +1474,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureSparseCapacity(int capacity)
         {
-            ArrayExtension.EnsureLength(ref Sparse,capacity,None);
+            ArrayExtension.EnsureLength(ref Sparse, capacity, None);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2033,3 +2033,21 @@ namespace Ludaludaed.KECS
         }
     }
 }
+
+#if ENABLE_IL2CPP
+namespace Unity.IL2CPP.CompilerServices {
+    enum Option {
+        NullChecks = 1,
+        ArrayBoundsChecks = 2
+    }
+
+    [AttributeUsage (AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property, Inherited =
+ false, AllowMultiple = true)]
+    class Il2CppSetOptionAttribute : Attribute {
+        public Option Option { get; private set; }
+        public object Value { get; private set; }
+
+        public Il2CppSetOptionAttribute (Option option, object value) { Option = option; Value = value; }
+    }
+}
+#endif
