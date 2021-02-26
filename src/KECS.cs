@@ -114,7 +114,7 @@ namespace Ludaludaed.KECS
         /// <summary>
         /// Returns the world by name.
         /// </summary>
-        /// <param name="name">World name</param>
+        /// <param name="name">World name.</param>
         /// <returns>World.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -129,6 +129,27 @@ namespace Ludaludaed.KECS
                 }
 
                 throw new Exception("|KECS| No world with that name was found.");
+            }
+        }
+        
+        /// <summary>
+        /// Returns an existing world or creates a new one if it does not exist.
+        /// </summary>
+        /// <param name="name">World name.</param>
+        /// <param name="config">World configuration.</param>
+        /// <returns>World.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static World GetOrCreate(string name, WorldConfig config = default)
+        {
+            int hashName = name.GetHashCode();
+            lock (_lockObject)
+            {
+                if (_worldsIdx.TryGetValue(hashName, out int worldId))
+                {
+                    return _worlds[worldId];
+                }
+
+                return Create(name, config);
             }
         }
 
@@ -1198,7 +1219,7 @@ namespace Ludaludaed.KECS
                 }
             }
 
-            return this;
+            return null;
         }
 
         /// <summary>
@@ -1453,14 +1474,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureSparseCapacity(int capacity)
         {
-            int start = Sparse.Length - 1;
-
-            Array.Resize(ref Sparse, capacity);
-
-            for (int i = start; i < Sparse.Length; ++i)
-            {
-                Sparse[i] = None;
-            }
+            ArrayExtension.EnsureLength(ref Sparse,capacity,None);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
