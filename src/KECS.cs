@@ -424,14 +424,14 @@ namespace Ludaludaed.KECS
         /// <returns>Component.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T AddComponent<T>(in T value = default) where T : struct
+        public ref T Add<T>(in T value = default) where T : struct
         {
             if (!IsAlive)
                 throw new Exception(
                     $"|KECS| You are trying to add component an already destroyed entity {ToString()}.");
             var pool = _world.GetPool<T>();
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (!HasComponent<T>())
+            if (!Has<T>())
             {
                 pool.Add(Id, value);
                 GotoNextArchetype(idx);
@@ -449,7 +449,7 @@ namespace Ludaludaed.KECS
         /// <returns>Component.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T SetComponent<T>(in T value) where T : struct
+        public ref T Set<T>(in T value) where T : struct
         {
             if (!IsAlive)
                 throw new Exception(
@@ -458,7 +458,7 @@ namespace Ludaludaed.KECS
             var idx = ComponentTypeInfo<T>.TypeIndex;
             pool.Set(Id, value);
 
-            if (!HasComponent<T>())
+            if (!Has<T>())
             {
                 GotoNextArchetype(idx);
             }
@@ -472,7 +472,7 @@ namespace Ludaludaed.KECS
         /// <typeparam name="T">Component type.</typeparam>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveComponent<T>() where T : struct
+        public void Remove<T>() where T : struct
         {
             if (!IsAlive)
                 throw new Exception(
@@ -480,7 +480,7 @@ namespace Ludaludaed.KECS
 
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (HasComponent<T>())
+            if (Has<T>())
             {
                 GotoPriorArchetype(idx);
                 _world.GetPool<T>().Remove(Id);
@@ -499,14 +499,14 @@ namespace Ludaludaed.KECS
         /// <returns>Component.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetComponent<T>() where T : struct
+        public ref T Get<T>() where T : struct
         {
             if (!IsAlive)
                 throw new Exception(
                     $"|KECS| You are trying to get component an already destroyed entity {ToString()}.");
             var pool = _world.GetPool<T>();
 
-            if (HasComponent<T>())
+            if (Has<T>())
             {
                 return ref pool.Get(Id);
             }
@@ -521,7 +521,7 @@ namespace Ludaludaed.KECS
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>() where T : struct
+        public bool Has<T>() where T : struct
         {
             if (!IsAlive)
                 throw new Exception(
@@ -1361,7 +1361,7 @@ namespace Ludaludaed.KECS
         {
             foreach (var ent in _filter)
             {
-                ent.RemoveComponent<T>();
+                ent.Remove<T>();
             }
         }
     }
