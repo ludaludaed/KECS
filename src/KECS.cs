@@ -590,9 +590,12 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveComponents()
         {
-            foreach (var idx in _currentArchetype.Mask)
+            if (IsAlive)
             {
-                _world.GetPool(idx).Remove(Id);
+                foreach (var idx in _currentArchetype.Mask)
+                {
+                    _world.GetPool(idx).Remove(Id);
+                }
             }
         }
 
@@ -602,9 +605,9 @@ namespace Ludaludaed.KECS
             RemoveComponents();
             Id = -1;
             _archetypeManager = null;
-            IsAlive = false;
             _currentArchetype = null;
             _world = null;
+            IsAlive = false;
         }
     }
 
