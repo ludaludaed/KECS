@@ -79,7 +79,7 @@ namespace Ludaludaed.KECS
                 int hashName = name.GetHashCode();
                 if (_worldsIdx.ContainsKey(hashName))
                 {
-                    throw new Exception("|KECS| A world with that name already exists.");
+                    throw new Exception($"|KECS| A world with {name} name already exists.");
                 }
 
                 int worldId = _freeWorldsIds.GetFreeInt();
@@ -128,7 +128,32 @@ namespace Ludaludaed.KECS
                     return _worlds[worldId];
                 }
 
-                throw new Exception("|KECS| No world with that name was found.");
+                throw new Exception($"|KECS| No world with {name} name was found.");
+            }
+        }
+        
+        /// <summary>
+        /// Returns the world by id.
+        /// </summary>
+        /// <param name="name">World id.</param>
+        /// <returns>World.</returns>
+        /// <exception cref="Exception"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static World GetById(int worldId)
+        {
+            lock (_lockObject)
+            {
+                if (_worlds.Length > worldId)
+                {
+                    var world = _worlds[worldId];
+                    if (world == null)
+                    {
+                        throw new Exception($"|KECS| World with {worldId} id is null.");
+                    }
+                    return world;
+                }
+
+                throw new Exception($"|KECS| No world with {worldId} id was found.");
             }
         }
 
@@ -173,7 +198,7 @@ namespace Ludaludaed.KECS
                     return;
                 }
 
-                throw new Exception("|KECS| A world with that name has not been found. Unable to delete.");
+                throw new Exception($"|KECS| A world with {name} name has not been found. Unable to delete.");
             }
         }
 
@@ -222,7 +247,7 @@ namespace Ludaludaed.KECS
         private string _name;
         internal readonly WorldConfig Config;
 
-        internal int WorldId => _worldId;
+        public int WorldId => _worldId;
         public string Name => _name;
 
         private bool _isAlive;
@@ -338,14 +363,14 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
-            foreach (var item in _filters)
+            foreach (var filter in _filters)
             {
-                item?.Dispose();
+                filter?.Dispose();
             }
 
-            foreach (var item in _entities)
+            foreach (var entity in _entities)
             {
-                item?.Dispose();
+                entity?.Dispose();
             }
 
             foreach (var pool in _pools)
