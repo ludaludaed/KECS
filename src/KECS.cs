@@ -11,6 +11,31 @@ namespace Ludaludaed.KECS
     // WORLDS
     //=============================================================================
 
+#if DEBUG
+    public interface IWorldDebugListener
+    {
+        void OnEntityCreated(Entity entity);
+        void OnEntityDestroyed(Entity entity);
+        void OnArchetypeCreated(Archetype archetype);
+        void OnComponentListChanged(Entity entity);
+        void OnWorldDestroyed(World world);
+    }
+
+    public interface ISystemsDebugListener
+    {
+        void OnSystemsDestroyed(Systems systems);
+    }
+
+#endif
+
+    public struct WorldInfo
+    {
+        public int ActiveEntities;
+        public int ReservedEntities;
+        public int Archetypes;
+        public int Components;
+    }
+
 
     public struct WorldConfig
     {
@@ -131,7 +156,7 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| No world with {name} name was found.");
             }
         }
-        
+
         /// <summary>
         /// Returns the world by id.
         /// </summary>
@@ -150,6 +175,7 @@ namespace Ludaludaed.KECS
                     {
                         throw new Exception($"|KECS| World with {worldId} id is null.");
                     }
+
                     return world;
                 }
 
@@ -231,12 +257,14 @@ namespace Ludaludaed.KECS
 
     public sealed class World
     {
-        private SparseSet<IComponentPool> _pools;
         private List<Filter> _filters;
         private ArchetypeManager _archetypeManager;
 
         private IntDispenser _freeIds;
         private Entity[] _entities;
+
+        private SparseSet<IComponentPool> _pools;
+        private int _componentsTypesCount = 0;
 
         /// <summary>
         /// Count of entities.
@@ -252,6 +280,41 @@ namespace Ludaludaed.KECS
 
         private bool _isAlive;
         public bool IsAlive => _isAlive;
+
+#if DEBUG
+        internal readonly List<IWorldDebugListener> DebugListeners = new List<IWorldDebugListener>();
+
+        public void AddDebugListener(IWorldDebugListener listener)
+        {
+            if (listener == null)
+            {
+                throw new Exception("Listener is null.");
+            }
+
+            DebugListeners.Add(listener);
+        }
+
+        public void RemoveDebugListener(IWorldDebugListener listener)
+        {
+            if (listener == null)
+            {
+                throw new Exception("Listener is null.");
+            }
+
+            DebugListeners.Remove(listener);
+        }
+#endif
+
+        public WorldInfo GetInfo()
+        {
+            return new WorldInfo()
+            {
+                ActiveEntities = Count,
+                ReservedEntities = _freeIds.Count,
+                Archetypes = _archetypeManager.Count,
+                Components = _componentsTypesCount
+            };
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -294,6 +357,13 @@ namespace Ludaludaed.KECS
 
             _entities[newEntityId].Initialize();
             Count++;
+#if DEBUG
+            foreach (var listener in DebugListeners)
+            {
+                listener.OnEntityCreated(_entities[newEntityId]);
+            }
+#endif
+
             return _entities[newEntityId];
         }
 
@@ -303,6 +373,12 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot recycle entity.");
             _freeIds.ReleaseInt(id);
             Count--;
+#if DEBUG
+            foreach (var listener in DebugListeners)
+            {
+                listener.OnEntityDestroyed(_entities[id]);
+            }
+#endif
         }
 
         /// <summary>
@@ -346,6 +422,7 @@ namespace Ludaludaed.KECS
             {
                 var pool = new ComponentPool<T>(this);
                 _pools.Add(idx, pool);
+                _componentsTypesCount++;
             }
 
             return (ComponentPool<T>) _pools.GetValue(idx);
@@ -397,6 +474,13 @@ namespace Ludaludaed.KECS
         public void Destroy()
         {
             Worlds.Destroy(_name);
+
+#if DEBUG
+            foreach (var listener in DebugListeners)
+            {
+                listener.OnWorldDestroyed(this);
+            }
+#endif
         }
 
         public override string ToString()
@@ -561,6 +645,13 @@ namespace Ludaludaed.KECS
             var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
             _currentArchetype.AddEntity(this);
+
+#if DEBUG
+            foreach (var listener in _world.DebugListeners)
+            {
+                listener.OnComponentListChanged(this);
+            }
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -570,6 +661,12 @@ namespace Ludaludaed.KECS
             var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
             _currentArchetype.AddEntity(this);
+#if DEBUG
+            foreach (var listener in _world.DebugListeners)
+            {
+                listener.OnComponentListChanged(this);
+            }
+#endif
         }
 
         /// <summary>
@@ -623,6 +720,8 @@ namespace Ludaludaed.KECS
         internal Archetype Empty { get; private set; }
         private World _world;
         private object _lockObject = new object();
+
+        internal int Count => _archetypes.Count;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ArchetypeManager(World world)
@@ -731,7 +830,7 @@ namespace Ludaludaed.KECS
     }
 
 
-    internal sealed class Archetype : IEnumerable<Entity>
+    public sealed class Archetype : IEnumerable<Entity>
     {
         internal int Count => Entities.Count;
         internal int Id { get; private set; }
@@ -762,6 +861,13 @@ namespace Ludaludaed.KECS
 
             Entities = new SparseSet<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
                 world.Config.CACHE_ENTITIES_CAPACITY);
+
+#if DEBUG
+            foreach (var listener in world.DebugListeners)
+            {
+                listener.OnArchetypeCreated(this);
+            }
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -844,6 +950,20 @@ namespace Ludaludaed.KECS
         {
             public bool isAdd;
             public Entity entity;
+        }
+
+        public override string ToString()
+        {
+            string result = "Archetype < ";
+
+            foreach (var idx in Mask)
+            {
+                result += $"{EcsTypeManager.ComponentsTypes[idx].Name} ";
+            }
+
+            result += ">";
+
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1053,6 +1173,7 @@ namespace Ludaludaed.KECS
     internal static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
     }
 
 
@@ -1069,6 +1190,8 @@ namespace Ludaludaed.KECS
             {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
+                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
+                EcsTypeManager.ComponentsTypes[TypeIndex] = Type;
             }
         }
     }
@@ -1212,6 +1335,30 @@ namespace Ludaludaed.KECS
             _allSystems = new List<SystemData>();
             _runSystems = new List<SystemData>();
         }
+
+#if DEBUG
+        private readonly List<ISystemsDebugListener> _debugListeners = new List<ISystemsDebugListener>(4);
+
+        public void AddDebugListener(ISystemsDebugListener listener)
+        {
+            if (listener == null)
+            {
+                throw new Exception("listener is null");
+            }
+
+            _debugListeners.Add(listener);
+        }
+
+        public void RemoveDebugListener(ISystemsDebugListener listener)
+        {
+            if (listener == null)
+            {
+                throw new Exception("listener is null");
+            }
+
+            _debugListeners.Remove(listener);
+        }
+#endif
 
         /// <summary>
         /// Adding a new system.
@@ -1366,6 +1513,12 @@ namespace Ludaludaed.KECS
                     postDestroy.Base.PostDestroy();
                 }
             }
+#if DEBUG
+            foreach (var listener in _debugListeners)
+            {
+                listener.OnSystemsDestroyed(this);
+            }
+#endif
         }
 
         public void Dispose()
@@ -1753,6 +1906,7 @@ namespace Ludaludaed.KECS
         private int _lastInt;
         public int LastInt => _lastInt;
         private readonly int _startInt;
+        public int Count => _freeInts.Count;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IntDispenser(int startInt = -1)
