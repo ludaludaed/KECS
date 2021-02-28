@@ -20,14 +20,17 @@ namespace Ludaludaed.KECS
         void OnComponentListChanged(Entity entity);
         void OnWorldDestroyed(World world);
     }
+    
+    
 
     public interface ISystemsDebugListener
     {
         void OnSystemsDestroyed(Systems systems);
     }
-
 #endif
 
+    
+    
     public struct WorldInfo
     {
         public int ActiveEntities;
@@ -37,6 +40,7 @@ namespace Ludaludaed.KECS
     }
 
 
+    
     public struct WorldConfig
     {
         public int ENTITY_COMPONENTS_CAPACITY;
@@ -49,6 +53,7 @@ namespace Ludaludaed.KECS
         public const int DEFAULT_CACHE_COMPONENTS_CAPACITY = 256;
     }
 
+    
 
     public static class Worlds
     {
@@ -79,6 +84,7 @@ namespace Ludaludaed.KECS
                 }
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static Worlds()
@@ -88,6 +94,7 @@ namespace Ludaludaed.KECS
             _freeWorldsIds = new IntDispenser();
             _worldsIdx = new Dictionary<int, int>(32);
         }
+        
 
         /// <summary>
         /// Create new world.
@@ -115,6 +122,7 @@ namespace Ludaludaed.KECS
                 return newWorld;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WorldConfig CheckConfig(WorldConfig config)
@@ -136,6 +144,7 @@ namespace Ludaludaed.KECS
             };
         }
 
+        
         /// <summary>
         /// Returns the world by name.
         /// </summary>
@@ -157,6 +166,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         /// <summary>
         /// Returns the world by id.
         /// </summary>
@@ -183,6 +193,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         /// <summary>
         /// Returns an existing world or creates a new one if it does not exist.
         /// </summary>
@@ -204,6 +215,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         /// <summary>
         /// Destroy the world by name.
         /// </summary>
@@ -227,6 +239,7 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| A world with {name} name has not been found. Unable to delete.");
             }
         }
+        
 
         /// <summary>
         /// Destroys all worlds.
@@ -331,6 +344,7 @@ namespace Ludaludaed.KECS
             _archetypeManager = new ArchetypeManager(this);
             Count = 0;
         }
+        
 
         /// <summary>
         /// Entity creation.
@@ -358,14 +372,15 @@ namespace Ludaludaed.KECS
             _entities[newEntityId].Initialize();
             Count++;
 #if DEBUG
-            foreach (var listener in _debugListeners)
+            for (int i = 0; i < _debugListeners.Count; i++)
             {
-                listener.OnEntityCreated(_entities[newEntityId]);
+                _debugListeners[i].OnEntityCreated(_entities[newEntityId]);
             }
 #endif
 
             return _entities[newEntityId];
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RecycleEntity(int id)
@@ -374,32 +389,35 @@ namespace Ludaludaed.KECS
             _freeIds.ReleaseInt(id);
             Count--;
 #if DEBUG
-            foreach (var listener in _debugListeners)
+            for (int i = 0; i < _debugListeners.Count; i++)
             {
-                listener.OnEntityDestroyed(_entities[id]);
-            }
-#endif
-        }
-
-        internal void EntityArchetypeChanged(int id)
-        {
-#if DEBUG
-            foreach (var listener in _debugListeners)
-            {
-                listener.OnComponentListChanged(_entities[id]);
+                _debugListeners[i].OnEntityDestroyed(_entities[id]);
             }
 #endif
         }
         
-        internal void ArchetypeCreated(Archetype archetype)
+
+        internal void EntityArchetypeChanged(int id)
         {
 #if DEBUG
-            foreach (var listener in _debugListeners)
+            for (int i = 0; i < _debugListeners.Count; i++)
             {
-                listener.OnArchetypeCreated(archetype);
+                _debugListeners[i].OnComponentListChanged(_entities[id]);
             }
 #endif
         }
+        
+        
+        internal void ArchetypeCreated(Archetype archetype)
+        {
+#if DEBUG
+            for (int i = 0; i < _debugListeners.Count; i++)
+            {
+                _debugListeners[i].OnArchetypeCreated(archetype);
+            }
+#endif
+        }
+        
 
         /// <summary>
         /// Empty filter.
@@ -417,6 +435,7 @@ namespace Ludaludaed.KECS
                 return filter;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureEntitiesCapacity(int capacity)
@@ -431,6 +450,7 @@ namespace Ludaludaed.KECS
                 }
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ComponentPool<T> GetPool<T>() where T : struct
@@ -448,6 +468,7 @@ namespace Ludaludaed.KECS
             return (ComponentPool<T>) _pools.GetValue(idx);
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal IComponentPool GetPool(int idx)
         {
@@ -455,6 +476,7 @@ namespace Ludaludaed.KECS
             var pool = _pools.GetValue(idx);
             return pool;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
@@ -502,6 +524,7 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
+        
 
         public override string ToString()
         {
@@ -532,6 +555,7 @@ namespace Ludaludaed.KECS
             Id = internalId;
             this._archetypeManager = archetypeManager;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Initialize()
@@ -540,11 +564,13 @@ namespace Ludaludaed.KECS
             _currentArchetype.AddEntity(this);
             IsAlive = true;
         }
+        
 
         public override string ToString()
         {
             return $"Entity_{Id}";
         }
+        
 
         /// <summary>
         /// Adding a component to an entity.
@@ -570,6 +596,7 @@ namespace Ludaludaed.KECS
 
             return ref pool.Get(Id);
         }
+        
 
         /// <summary>
         /// Sets an instance of a component to an entity. If it is not on the entity adds it.
@@ -595,6 +622,7 @@ namespace Ludaludaed.KECS
 
             return ref pool.Get(Id);
         }
+        
 
         /// <summary>
         /// Removes a component from an entity.
@@ -621,6 +649,7 @@ namespace Ludaludaed.KECS
                 Destroy();
             }
         }
+        
 
         /// <summary>
         /// Returns a component from an entity.
@@ -643,6 +672,7 @@ namespace Ludaludaed.KECS
 
             throw new Exception($"|KECS| This entity ({ToString()}) has no such component.");
         }
+        
 
         /// <summary>
         /// Checks if the entity has a component.
@@ -658,6 +688,7 @@ namespace Ludaludaed.KECS
                     $"|KECS| You are trying to check component an already destroyed entity {ToString()}.");
             return _currentArchetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoNextArchetype(int index)
@@ -668,6 +699,7 @@ namespace Ludaludaed.KECS
             _currentArchetype.AddEntity(this);
             _world.EntityArchetypeChanged(Id);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoPriorArchetype(int index)
@@ -678,6 +710,7 @@ namespace Ludaludaed.KECS
             _currentArchetype.AddEntity(this);
             _world.EntityArchetypeChanged(Id);
         }
+        
 
         /// <summary>
         /// Destroys the entity.
@@ -693,6 +726,7 @@ namespace Ludaludaed.KECS
             _world.RecycleEntity(Id);
             IsAlive = false;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveComponents()
@@ -705,6 +739,7 @@ namespace Ludaludaed.KECS
                 }
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
@@ -740,6 +775,7 @@ namespace Ludaludaed.KECS
             Empty = new Archetype(this._world, 0, new BitMask(256));
             _archetypes = new List<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY) {Empty};
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FindArchetypes(Filter filter, int startId)
@@ -751,6 +787,7 @@ namespace Ludaludaed.KECS
 
             filter.Version = _archetypes.Count;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CheckArchetype(Archetype archetype, Filter filter)
@@ -823,6 +860,7 @@ namespace Ludaludaed.KECS
 
             return InnerFindOrCreateArchetype(mask);
         }
+        
 
         internal void Dispose()
         {
@@ -857,6 +895,7 @@ namespace Ludaludaed.KECS
         public Type[] TypesCache;
 
         private int _lockCount;
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype(World world, int id, BitMask mask)
@@ -883,9 +922,11 @@ namespace Ludaludaed.KECS
             }
             world.ArchetypeCreated(this);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Lock() => _lockCount++;
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Unlock()
@@ -910,6 +951,7 @@ namespace Ludaludaed.KECS
                 _delayedOpsCount = 0;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool AddDelayedChange(Entity entity, bool isAdd)
@@ -925,6 +967,7 @@ namespace Ludaludaed.KECS
             op.IsAdd = isAdd;
             return true;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddEntity(Entity entity)
@@ -936,6 +979,7 @@ namespace Ludaludaed.KECS
 
             Entities.Add(entity.Id, entity);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RemoveEntity(Entity entity)
@@ -947,18 +991,21 @@ namespace Ludaludaed.KECS
 
             Entities.Remove(entity.Id);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<Entity> GetEnumerator()
         {
             return Entities.GetEnumerator();
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
+        
 
         private struct DelayedChange
         {
@@ -966,6 +1013,7 @@ namespace Ludaludaed.KECS
             public Entity Entity;
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
         {
@@ -1011,6 +1059,7 @@ namespace Ludaludaed.KECS
             Include = new BitMask(256);
             Exclude = new BitMask(256);
         }
+        
 
         /// <summary>
         /// Include component.
@@ -1030,6 +1079,7 @@ namespace Ludaludaed.KECS
             Include.SetBit(typeIdx);
             return this;
         }
+        
 
         /// <summary>
         /// Exclude component.
@@ -1049,12 +1099,14 @@ namespace Ludaludaed.KECS
             Exclude.SetBit(typeIdx);
             return this;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddArchetype(Archetype archetype)
         {
             _archetypes.Add(archetype);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<Entity> GetEnumerator()
@@ -1063,12 +1115,14 @@ namespace Ludaludaed.KECS
             return new EntityEnumerator(this);
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
         {
@@ -1079,6 +1133,7 @@ namespace Ludaludaed.KECS
             _archetypeManager = null;
         }
 
+        
         private struct EntityEnumerator : IEnumerator<Entity>
         {
             private readonly List<Archetype> _archetypes;
@@ -1144,6 +1199,7 @@ namespace Ludaludaed.KECS
                 return false;
             }
 
+            
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Reset()
             {
@@ -1153,10 +1209,13 @@ namespace Ludaludaed.KECS
                 _index = 0;
             }
 
+            
             public Entity Current { get; private set; }
 
+            
             object IEnumerator.Current => Current;
 
+            
             public void Dispose()
             {
                 for (int i = 0; i < _archetypes.Count; i++)
@@ -1186,6 +1245,7 @@ namespace Ludaludaed.KECS
         internal static readonly Type Type;
 
         private static object _lockObject = new object();
+        
 
         static ComponentTypeInfo()
         {
@@ -1215,6 +1275,7 @@ namespace Ludaludaed.KECS
         private World _owner;
 
         public ref T Empty() => ref _empty;
+        
 
         public ComponentPool(World world)
         {
@@ -1222,36 +1283,42 @@ namespace Ludaludaed.KECS
             _components = new SparseSet<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
                 world.Config.ENTITY_COMPONENTS_CAPACITY);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId)
         {
             return ref _components.GetValue(entityId);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int entityId, in T value)
         {
             _components.Add(entityId, value);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int entityId)
         {
             _components.Remove(entityId);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int entityId, in T value)
         {
             _components.Set(entityId, value);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureLength(int capacity)
         {
             _components.EnsureSparseCapacity(capacity);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -1284,6 +1351,7 @@ namespace Ludaludaed.KECS
         protected Systems MySystemsGroup;
         public abstract void Initialize();
 
+        
         internal void StartUp(World world, Systems systems)
         {
             World = world;
@@ -1291,18 +1359,22 @@ namespace Ludaludaed.KECS
             OnLaunch();
         }
 
+        
         public virtual void OnLaunch()
         {
         }
 
+        
         public virtual void OnDestroy()
         {
         }
 
+        
         public virtual void PostDestroy()
         {
         }
 
+        
         public void Dispose() => OnDestroy();
     }
 
@@ -1326,8 +1398,10 @@ namespace Ludaludaed.KECS
         private bool _initialized;
         private bool _destroyed;
 
+        
         public string Name { get; private set; }
 
+        
         public Systems(World world, string name = "DEFAULT_SYSTEMS")
         {
             Name = name;
@@ -1342,6 +1416,7 @@ namespace Ludaludaed.KECS
 #if DEBUG
         private readonly List<ISystemsDebugListener> _debugListeners = new List<ISystemsDebugListener>(4);
 
+        
         public void AddDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null)
@@ -1352,6 +1427,7 @@ namespace Ludaludaed.KECS
             _debugListeners.Add(listener);
         }
 
+        
         public void RemoveDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null)
@@ -1363,6 +1439,7 @@ namespace Ludaludaed.KECS
         }
 #endif
 
+        
         /// <summary>
         /// Adding a new system.
         /// </summary>
@@ -1374,6 +1451,7 @@ namespace Ludaludaed.KECS
             return Add(obj);
         }
 
+        
         private Systems Add<T>(T systemValue) where T : SystemBase
         {
             if (_initialized)
@@ -1400,6 +1478,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
+        
         /// <summary>
         /// Disable the system.
         /// </summary>
@@ -1417,6 +1496,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
+        
         /// <summary>
         /// Enable the system.
         /// </summary>
@@ -1434,6 +1514,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
+        
         /// <summary>
         /// Building a cleaning system for one frame (event) components.
         /// </summary>
@@ -1444,6 +1525,7 @@ namespace Ludaludaed.KECS
             return Add(new RemoveOneFrame<T>());
         }
 
+        
         /// <summary>
         /// Iterates all IRunSystem systems.
         /// </summary>
@@ -1470,6 +1552,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         /// <summary>
         /// Initialize all systems.
         /// </summary>
@@ -1488,6 +1571,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         /// <summary>
         /// Destroy all systems.
         /// </summary>
@@ -1524,6 +1608,7 @@ namespace Ludaludaed.KECS
 #endif
         }
 
+        
         public void Dispose()
         {
             _systems.Clear();
@@ -1536,11 +1621,13 @@ namespace Ludaludaed.KECS
     {
         private Filter _filter;
 
+        
         public override void Initialize()
         {
             _filter = World.Filter.With<T>();
         }
 
+        
         public void Run(float deltaTime)
         {
             foreach (var ent in _filter)
@@ -1563,6 +1650,7 @@ namespace Ludaludaed.KECS
         protected int DenseCount;
         protected int[] Sparse;
 
+        
         public ref int this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1577,6 +1665,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         public SparseSet(int denseCapacity, int sparseCapacity)
         {
             Dense = new int[denseCapacity];
@@ -1590,6 +1679,7 @@ namespace Ludaludaed.KECS
             DenseCount = 0;
         }
 
+        
         public int Count
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1611,6 +1701,7 @@ namespace Ludaludaed.KECS
             return None;
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int sparseIdx)
         {
@@ -1629,6 +1720,7 @@ namespace Ludaludaed.KECS
             DenseCount++;
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int sparseIdx)
         {
@@ -1648,6 +1740,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int sparseIdx)
         {
@@ -1655,29 +1748,34 @@ namespace Ludaludaed.KECS
             return Sparse[sparseIdx] != None;
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureSparseCapacity(int capacity)
         {
             ArrayExtension.EnsureLength(ref Sparse, capacity, None);
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void EnsurePackedCapacity(int capacity)
         {
             Array.Resize(ref Dense, capacity);
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator GetEnumerator()
         {
             return new Enumerator(this);
         }
 
+        
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
@@ -1686,11 +1784,13 @@ namespace Ludaludaed.KECS
             Sparse.Fill(None);
         }
 
+        
         private struct Enumerator : IEnumerator
         {
             private int _count;
             private int _index;
             private SparseSet _sparseSet;
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Enumerator(SparseSet sparseSet)
@@ -1700,6 +1800,7 @@ namespace Ludaludaed.KECS
                 _index = 0;
                 Current = default;
             }
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Reset()
@@ -1709,9 +1810,14 @@ namespace Ludaludaed.KECS
                 _sparseSet = null;
                 Current = default;
             }
+            
 
             object IEnumerator.Current => Current;
+            
+            
             public int Current { get; private set; }
+            
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
@@ -1720,6 +1826,7 @@ namespace Ludaludaed.KECS
                 Current = _sparseSet.Dense[_index++];
                 return true;
             }
+            
 
             public void Dispose()
             {
@@ -1732,6 +1839,7 @@ namespace Ludaludaed.KECS
     {
         private T[] _instances;
         private T _empty;
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SparseSet(int denseCapacity, int sparseCapacity) : base(denseCapacity, sparseCapacity)
@@ -1739,6 +1847,7 @@ namespace Ludaludaed.KECS
             _instances = new T[denseCapacity];
             _empty = default;
         }
+        
 
         public new ref T this[int index]
         {
@@ -1753,6 +1862,7 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| Out of range SparseSet {index}.");
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T GetValue(int sparseIdx)
@@ -1760,12 +1870,14 @@ namespace Ludaludaed.KECS
             var packedIdx = Get(sparseIdx);
             return ref packedIdx != None ? ref _instances[packedIdx] : ref _empty;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new void Add(int sparseIdx)
         {
             Add(sparseIdx, _empty);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int sparseIdx, T value)
@@ -1785,6 +1897,7 @@ namespace Ludaludaed.KECS
             _instances[DenseCount] = value;
             DenseCount++;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value)
@@ -1802,6 +1915,7 @@ namespace Ludaludaed.KECS
 
             _instances[sparseIdx] = value;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new void Remove(int sparseIdx)
@@ -1823,6 +1937,7 @@ namespace Ludaludaed.KECS
                 Sparse[lastSparseIdx] = packedIdx;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void EnsurePackedCapacity(int capacity)
@@ -1830,6 +1945,7 @@ namespace Ludaludaed.KECS
             base.EnsurePackedCapacity(capacity);
             Array.Resize(ref _instances, capacity);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new void Clear()
@@ -1839,18 +1955,21 @@ namespace Ludaludaed.KECS
             Array.Clear(Dense, 0, Dense.Length);
             Sparse.Fill(None);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new IEnumerator<T> GetEnumerator()
         {
             return new Enumerator(this);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
+        
 
         private struct Enumerator : IEnumerator<T>
         {
@@ -1866,6 +1985,7 @@ namespace Ludaludaed.KECS
                 _index = 0;
                 Current = default;
             }
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Reset()
@@ -1875,9 +1995,13 @@ namespace Ludaludaed.KECS
                 _sparseSet = null;
                 Current = default;
             }
+            
 
             object IEnumerator.Current => Current;
+            
+            
             public T Current { get; private set; }
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
@@ -1890,6 +2014,7 @@ namespace Ludaludaed.KECS
 
                 return false;
             }
+            
 
             public void Dispose()
             {
@@ -1910,6 +2035,7 @@ namespace Ludaludaed.KECS
         public int LastInt => _lastInt;
         private readonly int _startInt;
         public int Count => _freeInts.Count;
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IntDispenser(int startInt = -1)
@@ -1918,6 +2044,7 @@ namespace Ludaludaed.KECS
             _startInt = startInt;
             _lastInt = startInt;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFreeInt()
@@ -1929,9 +2056,11 @@ namespace Ludaludaed.KECS
 
             return freeInt;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseInt(int releasedInt) => _freeInts.Push(releasedInt);
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -1940,6 +2069,7 @@ namespace Ludaludaed.KECS
             _freeInts = null;
             _lastInt = _startInt;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -1973,6 +2103,7 @@ namespace Ludaludaed.KECS
 
     public static class ListExtensions
     {
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemoveAtFast<T>(this IList<T> list, int index)
         {
@@ -1981,6 +2112,7 @@ namespace Ludaludaed.KECS
             list.RemoveAt(count - 1);
         }
 
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemoveFast<T>(this IList<T> list, T item)
         {
@@ -2006,6 +2138,7 @@ namespace Ludaludaed.KECS
 
             Array.Resize(ref array, newLength);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fill<T>(this T[] array, in T value, int start = 0)
@@ -2015,6 +2148,7 @@ namespace Ludaludaed.KECS
                 array[i] = value;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EnsureLength<T>(ref T[] array, int index)
@@ -2024,6 +2158,7 @@ namespace Ludaludaed.KECS
                 InnerEnsureLength(ref array, index);
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue)
@@ -2036,6 +2171,7 @@ namespace Ludaludaed.KECS
                 array.Fill(defaultValue, oldLength);
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOf<T>(T[] array, T value, EqualityComparer<T> comparer)
@@ -2064,7 +2200,9 @@ namespace Ludaludaed.KECS
         private readonly ulong[] _chunks;
         private readonly int _capacity;
 
+        
         public int Count { get; private set; }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BitMask(int capacity = 0)
@@ -2079,6 +2217,7 @@ namespace Ludaludaed.KECS
             Count = 0;
             _chunks = new ulong[newSize];
         }
+        
 
         public BitMask(in BitMask copy)
         {
@@ -2098,6 +2237,7 @@ namespace Ludaludaed.KECS
                 SetBit(item);
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetBit(int index)
@@ -2109,6 +2249,7 @@ namespace Ludaludaed.KECS
             _chunks[chunk] = newV;
             Count++;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearBit(int index)
@@ -2120,12 +2261,14 @@ namespace Ludaludaed.KECS
             _chunks[chunk] = newV;
             Count--;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool GetBit(int idx)
         {
             return (_chunks[idx / ChunkCapacity] & (1UL << (idx % ChunkCapacity))) != 0;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(BitMask bitMask)
@@ -2140,6 +2283,7 @@ namespace Ludaludaed.KECS
 
             return true;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Intersects(BitMask bitMask)
@@ -2154,6 +2298,7 @@ namespace Ludaludaed.KECS
 
             return false;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -2163,6 +2308,7 @@ namespace Ludaludaed.KECS
                 _chunks[i] = 0;
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Merge(BitMask include)
@@ -2172,12 +2318,14 @@ namespace Ludaludaed.KECS
                 _chunks[i] |= include._chunks[i];
             }
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Enumerator GetEnumerator()
         {
             return new Enumerator(this);
         }
+        
 
         public ref struct Enumerator
         {
@@ -2185,6 +2333,7 @@ namespace Ludaludaed.KECS
             private readonly int _count;
             private int _index;
             private int _returned;
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Enumerator(BitMask bitMask)
@@ -2194,6 +2343,7 @@ namespace Ludaludaed.KECS
                 _index = -1;
                 _returned = 0;
             }
+            
 
             public int Current
             {
@@ -2209,6 +2359,7 @@ namespace Ludaludaed.KECS
                     }
                 }
             }
+            
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
