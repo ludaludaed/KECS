@@ -282,7 +282,7 @@ namespace Ludaludaed.KECS
         public bool IsAlive => _isAlive;
 
 #if DEBUG
-        internal readonly List<IWorldDebugListener> DebugListeners = new List<IWorldDebugListener>();
+        private readonly List<IWorldDebugListener> _debugListeners = new List<IWorldDebugListener>();
 
         public void AddDebugListener(IWorldDebugListener listener)
         {
@@ -291,7 +291,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("Listener is null.");
             }
 
-            DebugListeners.Add(listener);
+            _debugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(IWorldDebugListener listener)
@@ -301,7 +301,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("Listener is null.");
             }
 
-            DebugListeners.Remove(listener);
+            _debugListeners.Remove(listener);
         }
 #endif
 
@@ -358,7 +358,7 @@ namespace Ludaludaed.KECS
             _entities[newEntityId].Initialize();
             Count++;
 #if DEBUG
-            foreach (var listener in DebugListeners)
+            foreach (var listener in _debugListeners)
             {
                 listener.OnEntityCreated(_entities[newEntityId]);
             }
@@ -374,9 +374,29 @@ namespace Ludaludaed.KECS
             _freeIds.ReleaseInt(id);
             Count--;
 #if DEBUG
-            foreach (var listener in DebugListeners)
+            foreach (var listener in _debugListeners)
             {
                 listener.OnEntityDestroyed(_entities[id]);
+            }
+#endif
+        }
+
+        internal void EntityArchetypeChanged(int id)
+        {
+#if DEBUG
+            foreach (var listener in _debugListeners)
+            {
+                listener.OnComponentListChanged(_entities[id]);
+            }
+#endif
+        }
+        
+        internal void ArchetypeCreated(Archetype archetype)
+        {
+#if DEBUG
+            foreach (var listener in _debugListeners)
+            {
+                listener.OnArchetypeCreated(archetype);
             }
 #endif
         }
@@ -476,9 +496,9 @@ namespace Ludaludaed.KECS
             Worlds.Destroy(_name);
 
 #if DEBUG
-            foreach (var listener in DebugListeners)
+            for (int i = 0; i < _debugListeners.Count; i++)
             {
-                listener.OnWorldDestroyed(this);
+                _debugListeners[i].OnWorldDestroyed(this);
             }
 #endif
         }
@@ -646,13 +666,7 @@ namespace Ludaludaed.KECS
             var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
             _currentArchetype.AddEntity(this);
-
-#if DEBUG
-            foreach (var listener in _world.DebugListeners)
-            {
-                listener.OnComponentListChanged(this);
-            }
-#endif
+            _world.EntityArchetypeChanged(Id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -662,12 +676,7 @@ namespace Ludaludaed.KECS
             var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_currentArchetype, index);
             _currentArchetype = newArchetype;
             _currentArchetype.AddEntity(this);
-#if DEBUG
-            foreach (var listener in _world.DebugListeners)
-            {
-                listener.OnComponentListChanged(this);
-            }
-#endif
+            _world.EntityArchetypeChanged(Id);
         }
 
         /// <summary>
@@ -872,13 +881,7 @@ namespace Ludaludaed.KECS
             {
                 TypesCache[counter++] = EcsTypeManager.ComponentsTypes[idx];
             }
-
-#if DEBUG
-            foreach (var listener in world.DebugListeners)
-            {
-                listener.OnArchetypeCreated(this);
-            }
-#endif
+            world.ArchetypeCreated(this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1514,9 +1517,9 @@ namespace Ludaludaed.KECS
                 }
             }
 #if DEBUG
-            foreach (var listener in _debugListeners)
+            for (int i = 0; i < _debugListeners.Count; i++)
             {
-                listener.OnSystemsDestroyed(this);
+                _debugListeners[i].OnSystemsDestroyed(this);
             }
 #endif
         }
