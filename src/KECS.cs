@@ -501,6 +501,7 @@ namespace Ludaludaed.KECS
         private ArchetypeManager _archetypeManager;
         private Archetype _currentArchetype;
         public bool IsAlive { get; private set; }
+        public Archetype Archetype => _currentArchetype;
 
         public int Id { get; private set; }
 
@@ -844,6 +845,8 @@ namespace Ludaludaed.KECS
         internal SparseSet<Archetype> Next;
         internal SparseSet<Archetype> Prior;
 
+        public Type[] TypesCache;
+
         private int _lockCount;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -861,6 +864,14 @@ namespace Ludaludaed.KECS
 
             Entities = new SparseSet<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
                 world.Config.CACHE_ENTITIES_CAPACITY);
+
+            TypesCache = new Type[mask.Count];
+            
+            int counter = 0;
+            foreach (var idx in mask)
+            {
+                TypesCache[counter++] = EcsTypeManager.ComponentsTypes[idx];
+            }
 
 #if DEBUG
             foreach (var listener in world.DebugListeners)
@@ -883,13 +894,13 @@ namespace Ludaludaed.KECS
                 for (int i = 0; i < _delayedOpsCount; i++)
                 {
                     ref var op = ref _delayedChanges[i];
-                    if (op.isAdd)
+                    if (op.IsAdd)
                     {
-                        AddEntity(op.entity);
+                        AddEntity(op.Entity);
                     }
                     else
                     {
-                        RemoveEntity(op.entity);
+                        RemoveEntity(op.Entity);
                     }
                 }
 
@@ -907,8 +918,8 @@ namespace Ludaludaed.KECS
 
             ArrayExtension.EnsureLength(ref _delayedChanges, _delayedOpsCount);
             ref var op = ref _delayedChanges[_delayedOpsCount++];
-            op.entity = entity;
-            op.isAdd = isAdd;
+            op.Entity = entity;
+            op.IsAdd = isAdd;
             return true;
         }
 
@@ -948,22 +959,8 @@ namespace Ludaludaed.KECS
 
         private struct DelayedChange
         {
-            public bool isAdd;
-            public Entity entity;
-        }
-
-        public override string ToString()
-        {
-            string result = "Archetype < ";
-
-            foreach (var idx in Mask)
-            {
-                result += $"{EcsTypeManager.ComponentsTypes[idx].Name} ";
-            }
-
-            result += ">";
-
-            return result;
+            public bool IsAdd;
+            public Entity Entity;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -972,6 +969,9 @@ namespace Ludaludaed.KECS
             Entities.Clear();
             Next.Clear();
             Prior.Clear();
+            
+            Array.Clear(TypesCache,0,TypesCache.Length);
+            TypesCache = null;
 
             Entities = null;
             Next = null;
