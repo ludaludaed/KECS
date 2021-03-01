@@ -273,7 +273,8 @@ namespace Ludaludaed.KECS
             _data = new Dictionary<int, object>();
         }
 
-        internal T Add<T>(T data)
+
+        internal T Add<T>(T data) where T : class
         {
             int hash = typeof(T).GetHashCode();
             if (!_data.ContainsKey(hash))
@@ -284,6 +285,7 @@ namespace Ludaludaed.KECS
 
             throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
         }
+
 
         internal T Get<T>() where T : class
         {
@@ -296,6 +298,7 @@ namespace Ludaludaed.KECS
 
             throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
         }
+
 
         internal void Dispose()
         {
@@ -320,8 +323,6 @@ namespace Ludaludaed.KECS
 
         private SparseSet<IComponentPool> _pools;
         private int _componentsTypesCount = 0;
-
-        private SharedData _sharedData;
 
         /// <summary>
         /// Count of entities.
@@ -377,7 +378,6 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal World(int worldId, WorldConfig config, string name)
         {
-            _sharedData = new SharedData();
             _name = name;
             _isAlive = true;
             _worldId = worldId;
@@ -471,31 +471,6 @@ namespace Ludaludaed.KECS
         }
 
 
-        /// <summary>
-        /// Add shared data for world.
-        /// </summary>
-        /// <param name="data">Data.</param>
-        /// <typeparam name="T">Type of shared data.</typeparam>
-        /// <returns></returns>
-        public T AddShared<T>(T data) where T : class
-        {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot add shared data.");
-            return _sharedData.Add(data);
-        }
-
-
-        /// <summary>
-        /// Get shared data of world.
-        /// </summary>
-        /// <typeparam name="T">Type of shared data.</typeparam>
-        /// <returns></returns>
-        public T GetShared<T>() where T : class
-        {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get shared data.");
-            return _sharedData.Get<T>();
-        }
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureEntitiesCapacity(int capacity)
         {
@@ -560,8 +535,6 @@ namespace Ludaludaed.KECS
             _filters.Clear();
             _pools.Clear();
             _freeIds.Dispose();
-            _sharedData.Dispose();
-            _sharedData = null;
             _pools = null;
             _filters = null;
             _freeIds = null;
@@ -1455,15 +1428,15 @@ namespace Ludaludaed.KECS
     /// </summary>
     public abstract class SystemBase : IDisposable
     {
-        protected World World;
-        protected Systems Systems;
+        protected World world;
+        protected Systems systems;
         public abstract void Initialize();
 
 
         internal void StartUp(World world, Systems systems)
         {
-            World = world;
-            Systems = systems;
+            this.world = world;
+            this.systems = systems;
             OnLaunch();
         }
 
@@ -1505,6 +1478,8 @@ namespace Ludaludaed.KECS
         private readonly List<SystemData> _allSystems;
         private readonly List<SystemData> _onlyBaseSystems;
 
+        private SharedData _sharedData;
+
         private readonly World _world;
         private bool _initialized;
         private bool _destroyed;
@@ -1519,6 +1494,7 @@ namespace Ludaludaed.KECS
             _world = world;
             _initialized = false;
             _destroyed = false;
+            _sharedData = new SharedData();
             _systems = new Dictionary<int, SystemData>();
             _allSystems = new List<SystemData>();
             _updateSystems = new List<SystemData>();
@@ -1552,6 +1528,43 @@ namespace Ludaludaed.KECS
             _debugListeners.Remove(listener);
         }
 #endif
+        /// <summary>
+        /// Add shared data for world.
+        /// </summary>
+        /// <param name="data">Data.</param>
+        /// <typeparam name="T">Type of shared data.</typeparam>
+        /// <returns></returns>
+        public T AddShared<T>(T data) where T : class
+        {
+            if (_initialized)
+            {
+                throw new Exception($"|KECS| Systems was initialized. You cannot add shared data.");
+            }
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot add shared data.");
+            }
+            return _sharedData.Add(data);
+        }
+
+
+        /// <summary>
+        /// Get shared data of world.
+        /// </summary>
+        /// <typeparam name="T">Type of shared data.</typeparam>
+        /// <returns></returns>
+        public T GetShared<T>() where T : class
+        {
+            if (!_initialized)
+            {
+                throw new Exception($"|KECS| Systems haven't initialized yet. You cannot get shared data.");
+            }
+            if (_destroyed)
+            {
+                throw new Exception("|KECS| The systems were destroyed. You cannot get shared data.");
+            }
+            return _sharedData.Get<T>();
+        }
 
         /// <summary>
         /// Returns all run systems.
@@ -1857,7 +1870,7 @@ namespace Ludaludaed.KECS
 
         public override void Initialize()
         {
-            _filter = World.Filter.With<T>();
+            _filter = world.Filter.With<T>();
         }
 
 
