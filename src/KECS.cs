@@ -367,7 +367,7 @@ namespace Ludaludaed.KECS
             _entities[newEntityId].Initialize();
             Count++;
 #if DEBUG
-            for (int i = 0; i < _debugListeners.Count; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnEntityCreated(_entities[newEntityId]);
             }
@@ -384,7 +384,7 @@ namespace Ludaludaed.KECS
             _freeIds.ReleaseInt(id);
             Count--;
 #if DEBUG
-            for (int i = 0; i < _debugListeners.Count; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnEntityDestroyed(_entities[id]);
             }
@@ -395,7 +395,7 @@ namespace Ludaludaed.KECS
         internal void ArchetypeCreated(Archetype archetype)
         {
 #if DEBUG
-            for (int i = 0; i < _debugListeners.Count; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnArchetypeCreated(archetype);
             }
@@ -428,7 +428,7 @@ namespace Ludaludaed.KECS
             {
                 var newCapacity = EcsMath.Pot(capacity);
                 Array.Resize(ref _entities, newCapacity);
-                for (int i = 0; i < _pools.Count; i++)
+                for (int i = 0, lenght = _pools.Count; i < lenght; i++)
                 {
                     _pools[i].EnsureLength(newCapacity);
                 }
@@ -502,7 +502,7 @@ namespace Ludaludaed.KECS
             Worlds.Destroy(_name);
 
 #if DEBUG
-            for (int i = 0; i < _debugListeners.Count; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnWorldDestroyed(this);
             }
@@ -788,7 +788,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FindArchetypes(Filter filter, int startId)
         {
-            for (int i = startId; i < _archetypes.Count; i++)
+            for (int i = startId, lenght = _archetypes.Count; i < lenght; i++)
             {
                 CheckArchetype(_archetypes[i], filter);
             }
@@ -872,7 +872,7 @@ namespace Ludaludaed.KECS
 
         internal void Dispose()
         {
-            for (int i = 0; i < _archetypes.Count; i++)
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 _archetypes[i].Dispose();
             }
@@ -1169,7 +1169,7 @@ namespace Ludaludaed.KECS
                 _archetypeCount = _archetypes.Count;
                 _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
 
-                for (int i = 0; i < _archetypes.Count; i++)
+                for (int i = 0; i < _archetypeCount; i++)
                 {
                     _archetypes[i].Lock();
                 }
@@ -1233,7 +1233,7 @@ namespace Ludaludaed.KECS
 
             public void Dispose()
             {
-                for (int i = 0; i < _archetypes.Count; i++)
+                for (int i = 0; i < _archetypeCount; i++)
                 {
                     _archetypes[i].Unlock();
                 }
@@ -1754,7 +1754,7 @@ namespace Ludaludaed.KECS
                 }
             }
 #if DEBUG
-            for (int i = 0; i < _debugListeners.Count; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnSystemsDestroyed(this);
             }
@@ -2296,7 +2296,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fill<T>(this T[] array, in T value, int start = 0)
         {
-            for (int i = start; i < array.Length; ++i)
+            for (int i = start, lenght = array.Length; i < lenght; ++i)
             {
                 array[i] = value;
             }
@@ -2426,7 +2426,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(BitMask bitMask)
         {
-            for (var i = 0; i < _chunks.Length; i++)
+            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 if ((_chunks[i] & bitMask._chunks[i]) != bitMask._chunks[i])
                 {
@@ -2441,7 +2441,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Intersects(BitMask bitMask)
         {
-            for (var i = 0; i < _chunks.Length; i++)
+            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 if ((_chunks[i] & bitMask._chunks[i]) != 0)
                 {
@@ -2456,7 +2456,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            for (var i = 0; i < _chunks.Length; i++)
+            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 _chunks[i] = 0;
             }
@@ -2466,7 +2466,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Merge(BitMask include)
         {
-            for (var i = 0; i < _chunks.Length; i++)
+            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 _chunks[i] |= include._chunks[i];
             }
