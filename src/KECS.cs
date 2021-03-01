@@ -257,19 +257,17 @@ namespace Ludaludaed.KECS
             }
         }
     }
-    
 
-    
+
     //=============================================================================
     // SHARED DATA
     //=============================================================================
 
 
-    
     internal class SharedData
     {
         private Dictionary<int, object> _data;
-        
+
         internal SharedData()
         {
             _data = new Dictionary<int, object>();
@@ -298,16 +296,20 @@ namespace Ludaludaed.KECS
 
             throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
         }
+
+        internal void Dispose()
+        {
+            _data.Clear();
+            _data = null;
+        }
     }
 
-    
 
     //=============================================================================
     // WORLD
     //=============================================================================
 
 
-    
     public sealed class World
     {
         private List<Filter> _filters;
@@ -558,6 +560,8 @@ namespace Ludaludaed.KECS
             _filters.Clear();
             _pools.Clear();
             _freeIds.Dispose();
+            _sharedData.Dispose();
+            _sharedData = null;
             _pools = null;
             _filters = null;
             _freeIds = null;
@@ -1452,14 +1456,14 @@ namespace Ludaludaed.KECS
     public abstract class SystemBase : IDisposable
     {
         protected World World;
-        protected Systems MySystemsGroup;
+        protected Systems Systems;
         public abstract void Initialize();
 
 
         internal void StartUp(World world, Systems systems)
         {
             World = world;
-            MySystemsGroup = systems;
+            Systems = systems;
             OnLaunch();
         }
 
