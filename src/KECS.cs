@@ -1860,6 +1860,8 @@ namespace Ludaludaed.KECS
             _updateSystems.Clear();
             _fixedSystems.Clear();
             _lateSystems.Clear();
+            _sharedData.Dispose();
+            _sharedData = null;
         }
     }
 
