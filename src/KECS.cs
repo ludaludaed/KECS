@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -256,13 +257,57 @@ namespace Ludaludaed.KECS
             }
         }
     }
+    
 
+    
+    //=============================================================================
+    // SHARED DATA
+    //=============================================================================
+
+
+    
+    internal class SharedData
+    {
+        private Dictionary<int, object> _data;
+        
+        internal SharedData()
+        {
+            _data = new Dictionary<int, object>();
+        }
+
+        internal T Add<T>(T data)
+        {
+            int hash = typeof(T).GetHashCode();
+            if (!_data.ContainsKey(hash))
+            {
+                _data.Add(hash, data);
+                return data;
+            }
+
+            throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
+        }
+
+        internal T Get<T>() where T : class
+        {
+            int hash = typeof(T).GetHashCode();
+
+            if (_data.TryGetValue(hash, out var data))
+            {
+                return data as T;
+            }
+
+            throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
+        }
+    }
+
+    
 
     //=============================================================================
     // WORLD
     //=============================================================================
 
 
+    
     public sealed class World
     {
         private List<Filter> _filters;
@@ -273,6 +318,8 @@ namespace Ludaludaed.KECS
 
         private SparseSet<IComponentPool> _pools;
         private int _componentsTypesCount = 0;
+
+        private SharedData _sharedData;
 
         /// <summary>
         /// Count of entities.
@@ -328,6 +375,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal World(int worldId, WorldConfig config, string name)
         {
+            _sharedData = new SharedData();
             _name = name;
             _isAlive = true;
             _worldId = worldId;
@@ -418,6 +466,31 @@ namespace Ludaludaed.KECS
                 _filters.Add(filter);
                 return filter;
             }
+        }
+
+
+        /// <summary>
+        /// Add shared data for world.
+        /// </summary>
+        /// <param name="data">Data.</param>
+        /// <typeparam name="T">Type of shared data.</typeparam>
+        /// <returns></returns>
+        public T AddShared<T>(T data) where T : class
+        {
+            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot add shared data.");
+            return _sharedData.Add(data);
+        }
+
+
+        /// <summary>
+        /// Get shared data of world.
+        /// </summary>
+        /// <typeparam name="T">Type of shared data.</typeparam>
+        /// <returns></returns>
+        public T GetShared<T>() where T : class
+        {
+            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get shared data.");
+            return _sharedData.Get<T>();
         }
 
 
@@ -1484,12 +1557,12 @@ namespace Ludaludaed.KECS
         {
             return _updateSystems;
         }
-        
+
         public List<SystemData> GetFixedUpdateSystems()
         {
             return _fixedSystems;
         }
-        
+
         public List<SystemData> GetLateUpdateSystems()
         {
             return _lateSystems;
@@ -1526,7 +1599,7 @@ namespace Ludaludaed.KECS
                 var systemData = new SystemData {IsEnable = true, Base = systemValue};
                 _allSystems.Add(systemData);
                 systemValue.StartUp(_world, this);
-                
+
                 if (systemValue is IUpdate system)
                 {
                     var collection = _updateSystems;
@@ -1537,7 +1610,7 @@ namespace Ludaludaed.KECS
                         collection = _fixedSystems;
                         impl = fixedSystem;
                     }
-                    
+
                     if (systemValue is ILateUpdate lateSystem)
                     {
                         collection = _lateSystems;
@@ -1551,6 +1624,7 @@ namespace Ludaludaed.KECS
                 {
                     _onlyBaseSystems.Add(systemData);
                 }
+
                 _systems.Add(hash, systemData);
             }
 
@@ -1584,8 +1658,8 @@ namespace Ludaludaed.KECS
 
             return this;
         }
-        
-        
+
+
         /// <summary>
         /// Enable the system.
         /// </summary>
@@ -1650,8 +1724,8 @@ namespace Ludaludaed.KECS
                 }
             }
         }
-        
-        
+
+
         /// <summary>
         /// Iterates all IFixedUpdate systems.
         /// </summary>
@@ -1677,8 +1751,8 @@ namespace Ludaludaed.KECS
                 }
             }
         }
-        
-        
+
+
         /// <summary>
         /// Iterates all IUpdate systems.
         /// </summary>
