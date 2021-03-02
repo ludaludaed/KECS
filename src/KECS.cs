@@ -272,8 +272,7 @@ namespace Ludaludaed.KECS
         {
             _data = new Dictionary<int, object>();
         }
-
-
+        
         internal T Add<T>(T data) where T : class
         {
             int hash = typeof(T).GetHashCode();
@@ -1918,12 +1917,7 @@ namespace Ludaludaed.KECS
         {
             Dense = new int[denseCapacity];
             Sparse = new int[sparseCapacity];
-
-            for (int i = 0; i < sparseCapacity; i++)
-            {
-                Sparse[i] = None;
-            }
-
+            Sparse.Fill(None);
             DenseCount = 0;
         }
 
