@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -321,12 +320,8 @@ namespace Ludaludaed.KECS
         private Entity[] _entities;
 
         private SparseSet<IComponentPool> _pools;
-        private int _componentsTypesCount = 0;
-
-        /// <summary>
-        /// Count of entities.
-        /// </summary>
-        public int Count { get; private set; }
+        private int _componentsTypesCount;
+        private int _countOfEntities;
 
         private int _worldId;
         private string _name;
@@ -366,7 +361,7 @@ namespace Ludaludaed.KECS
         {
             return new WorldInfo()
             {
-                ActiveEntities = Count,
+                ActiveEntities = _countOfEntities,
                 ReservedEntities = _freeIds.Count,
                 Archetypes = _archetypeManager.Count,
                 Components = _componentsTypesCount
@@ -386,7 +381,7 @@ namespace Ludaludaed.KECS
             _freeIds = new IntDispenser();
             _entities = new Entity[Config.CACHE_ENTITIES_CAPACITY];
             _archetypeManager = new ArchetypeManager(this);
-            Count = 0;
+            _countOfEntities = 0;
         }
 
 
@@ -401,7 +396,7 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create entity.");
             int newEntityId = _freeIds.GetFreeInt();
 
-            if (_entities.Length == Count)
+            if (_entities.Length == _countOfEntities)
             {
                 EnsureEntitiesCapacity(newEntityId << 1);
             }
@@ -413,16 +408,16 @@ namespace Ludaludaed.KECS
                 _entities[newEntityId] = entity;
             }
 
-            _entities[newEntityId].Initialize();
-            Count++;
+            entity.Initialize();
+            _countOfEntities++;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
-                _debugListeners[i].OnEntityCreated(_entities[newEntityId]);
+                _debugListeners[i].OnEntityCreated(entity);
             }
 #endif
 
-            return _entities[newEntityId];
+            return entity;
         }
 
 
@@ -431,7 +426,7 @@ namespace Ludaludaed.KECS
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot recycle entity.");
             _freeIds.ReleaseInt(id);
-            Count--;
+            _countOfEntities--;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
@@ -714,7 +709,7 @@ namespace Ludaludaed.KECS
                 return ref pool.Get(Id);
             }
 
-            throw new Exception($"|KECS| This entity ({ToString()}) has no such component.");
+            return ref pool.Empty;
         }
 
 
@@ -791,19 +786,15 @@ namespace Ludaludaed.KECS
             if (IsAlive)
             {
                 var itemsCount = Archetype.Mask.Count;
-
                 if (components == null || components.Length < itemsCount)
                 {
                     components = new object[itemsCount];
                 }
-
                 int counter = 0;
-
                 foreach (var idx in _currentArchetype.Mask)
                 {
                     components[counter++] = _world.GetPool(idx).GetObject(Id);
                 }
-
                 return itemsCount;
             }
 
@@ -843,7 +834,7 @@ namespace Ludaludaed.KECS
         internal ArchetypeManager(World world)
         {
             _world = world;
-            Empty = new Archetype(this._world, 0, new BitMask(256));
+            Empty = new Archetype(this._world, 0, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY));
             _archetypes = new List<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY) {Empty};
         }
 
@@ -879,7 +870,7 @@ namespace Ludaludaed.KECS
             lock (_lockObject)
             {
                 Archetype curArchetype = Empty;
-                var newMask = new BitMask(256);
+                var newMask = new BitMask(_world.Config.CACHE_COMPONENTS_CAPACITY);
 
                 foreach (var index in mask)
                 {
@@ -1134,8 +1125,8 @@ namespace Ludaludaed.KECS
             _archetypeManager = archetypeManager;
             Version = 0;
             _world = world;
-            Include = new BitMask(256);
-            Exclude = new BitMask(256);
+            Include = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
+            Exclude = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
         }
 
 
@@ -1351,6 +1342,7 @@ namespace Ludaludaed.KECS
         private SparseSet<T> _components;
         private int Length => _components.Count;
         private World _owner;
+        internal ref T Empty => ref _components.Empty;
 
 
         public ComponentPool(World world)
@@ -1538,7 +1530,7 @@ namespace Ludaludaed.KECS
         }
 #endif
         /// <summary>
-        /// Add shared data for world.
+        /// Add shared data for systems.
         /// </summary>
         /// <param name="data">Data.</param>
         /// <typeparam name="T">Type of shared data.</typeparam>
@@ -1560,7 +1552,7 @@ namespace Ludaludaed.KECS
 
 
         /// <summary>
-        /// Get shared data of world.
+        /// Get shared data of systems.
         /// </summary>
         /// <typeparam name="T">Type of shared data.</typeparam>
         /// <returns></returns>
@@ -1961,7 +1953,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int sparseIdx)
         {
-            if (Get(sparseIdx) != None)
+            if (Contains(sparseIdx))
             {
                 throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
             }
@@ -1980,7 +1972,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int sparseIdx)
         {
-            if (Get(sparseIdx) == None)
+            if (!Contains(sparseIdx))
             {
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
             }
@@ -2051,7 +2043,7 @@ namespace Ludaludaed.KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Enumerator(SparseSet sparseSet)
             {
-                this._sparseSet = sparseSet;
+                _sparseSet = sparseSet;
                 _count = sparseSet.Count;
                 _index = 0;
                 Current = default;
@@ -2094,6 +2086,7 @@ namespace Ludaludaed.KECS
     {
         private T[] _instances;
         private T _empty;
+        public ref T Empty => ref _empty;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2137,7 +2130,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(int sparseIdx, T value)
         {
-            if (Get(sparseIdx) != None)
+            if (Contains(sparseIdx))
             {
                 throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
             }
@@ -2157,7 +2150,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value)
         {
-            if (Get(sparseIdx) == None)
+            if (!Contains(sparseIdx))
             {
                 Add(sparseIdx, value);
                 return;
@@ -2175,7 +2168,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public new void Remove(int sparseIdx)
         {
-            if (Get(sparseIdx) == None)
+            if (!Contains(sparseIdx))
             {
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
             }
@@ -2435,7 +2428,7 @@ namespace Ludaludaed.KECS
 
     public struct BitMask
     {
-        private const int ChunkCapacity = sizeof(ulong) * 8;
+        private const int CHUNK_CAPACITY = sizeof(ulong) * 8;
         private readonly ulong[] _chunks;
         private readonly int _capacity;
 
@@ -2447,8 +2440,8 @@ namespace Ludaludaed.KECS
         public BitMask(int capacity = 0)
         {
             this._capacity = capacity;
-            var newSize = capacity / ChunkCapacity;
-            if (capacity % ChunkCapacity != 0)
+            var newSize = capacity / CHUNK_CAPACITY;
+            if (capacity % CHUNK_CAPACITY != 0)
             {
                 newSize++;
             }
@@ -2461,8 +2454,8 @@ namespace Ludaludaed.KECS
         public BitMask(in BitMask copy)
         {
             this._capacity = copy._capacity;
-            var newSize = _capacity / ChunkCapacity;
-            if (_capacity % ChunkCapacity != 0)
+            var newSize = _capacity / CHUNK_CAPACITY;
+            if (_capacity % CHUNK_CAPACITY != 0)
             {
                 newSize++;
             }
@@ -2481,9 +2474,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetBit(int index)
         {
-            var chunk = index / ChunkCapacity;
+            var chunk = index / CHUNK_CAPACITY;
             var oldValue = _chunks[chunk];
-            var newValue = oldValue | (1UL << (index % ChunkCapacity));
+            var newValue = oldValue | (1UL << (index % CHUNK_CAPACITY));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
             Count++;
@@ -2493,9 +2486,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearBit(int index)
         {
-            var chunk = index / ChunkCapacity;
+            var chunk = index / CHUNK_CAPACITY;
             var oldValue = _chunks[chunk];
-            var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
+            var newValue = oldValue & ~(1UL << (index % CHUNK_CAPACITY));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
             Count--;
@@ -2503,9 +2496,9 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool GetBit(int idx)
+        public bool GetBit(int index)
         {
-            return (_chunks[idx / ChunkCapacity] & (1UL << (idx % ChunkCapacity))) != 0;
+            return (_chunks[index / CHUNK_CAPACITY] & (1UL << (index % CHUNK_CAPACITY))) != 0;
         }
 
 
