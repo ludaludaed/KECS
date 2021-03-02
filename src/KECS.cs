@@ -272,7 +272,7 @@ namespace Ludaludaed.KECS
         {
             _data = new Dictionary<int, object>();
         }
-        
+
         internal T Add<T>(T data) where T : class
         {
             int hash = typeof(T).GetHashCode();
@@ -561,7 +561,7 @@ namespace Ludaludaed.KECS
 
         public override string ToString()
         {
-            return $"World - {_worldId} entities count: {Count}";
+            return $"World - {_worldId} <{Name}>";
         }
     }
 
@@ -616,8 +616,11 @@ namespace Ludaludaed.KECS
         public ref T Add<T>(in T value = default) where T : struct
         {
             if (!IsAlive)
+            {
                 throw new Exception(
                     $"|KECS| You are trying to add component an already destroyed entity {ToString()}.");
+            }
+
             var pool = _world.GetPool<T>();
             var idx = ComponentTypeInfo<T>.TypeIndex;
             if (!Has<T>())
@@ -642,8 +645,11 @@ namespace Ludaludaed.KECS
         public ref T Set<T>(in T value) where T : struct
         {
             if (!IsAlive)
+            {
                 throw new Exception(
                     $"|KECS| You are trying to set component an already destroyed entity {ToString()}.");
+            }
+
             var pool = _world.GetPool<T>();
             var idx = ComponentTypeInfo<T>.TypeIndex;
             pool.Set(Id, value);
@@ -666,8 +672,10 @@ namespace Ludaludaed.KECS
         public void Remove<T>() where T : struct
         {
             if (!IsAlive)
+            {
                 throw new Exception(
                     $"|KECS| You are trying to remove component an already destroyed entity {ToString()}.");
+            }
 
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
@@ -694,8 +702,11 @@ namespace Ludaludaed.KECS
         public ref T Get<T>() where T : struct
         {
             if (!IsAlive)
+            {
                 throw new Exception(
                     $"|KECS| You are trying to get component an already destroyed entity {ToString()}.");
+            }
+
             var pool = _world.GetPool<T>();
 
             if (Has<T>())
@@ -717,8 +728,11 @@ namespace Ludaludaed.KECS
         public bool Has<T>() where T : struct
         {
             if (!IsAlive)
+            {
                 throw new Exception(
                     $"|KECS| You are trying to check component an already destroyed entity {ToString()}.");
+            }
+
             return _currentArchetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
         }
 
@@ -860,7 +874,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Archetype InnerFindOrCreateArchetype(BitMask mask)
+        private Archetype FindOrCreateArchetype(BitMask mask)
         {
             lock (_lockObject)
             {
@@ -901,7 +915,7 @@ namespace Ludaludaed.KECS
             var mask = new BitMask(archetype.Mask);
             mask.ClearBit(removeIndex);
 
-            return InnerFindOrCreateArchetype(mask);
+            return FindOrCreateArchetype(mask);
         }
 
 
@@ -915,7 +929,7 @@ namespace Ludaludaed.KECS
             var mask = new BitMask(archetype.Mask);
             mask.SetBit(addIndex);
 
-            return InnerFindOrCreateArchetype(mask);
+            return FindOrCreateArchetype(mask);
         }
 
 
@@ -1328,7 +1342,6 @@ namespace Ludaludaed.KECS
     {
         void Remove(int entityId);
         void EnsureLength(int capacity);
-
         object GetObject(int entityId);
     }
 
@@ -1337,10 +1350,7 @@ namespace Ludaludaed.KECS
     {
         private SparseSet<T> _components;
         private int Length => _components.Count;
-        private T _empty;
         private World _owner;
-
-        public ref T Empty() => ref _empty;
 
 
         public ComponentPool(World world)
@@ -1510,7 +1520,7 @@ namespace Ludaludaed.KECS
         {
             if (listener == null)
             {
-                throw new Exception("listener is null");
+                throw new Exception("|KECS| Listener is null.");
             }
 
             _debugListeners.Add(listener);
@@ -1521,7 +1531,7 @@ namespace Ludaludaed.KECS
         {
             if (listener == null)
             {
-                throw new Exception("listener is null");
+                throw new Exception("|KECS| Listener is null.");
             }
 
             _debugListeners.Remove(listener);
@@ -1539,10 +1549,12 @@ namespace Ludaludaed.KECS
             {
                 throw new Exception($"|KECS| Systems was initialized. You cannot add shared data.");
             }
+
             if (_destroyed)
             {
                 throw new Exception("|KECS| The systems were destroyed. You cannot add shared data.");
             }
+
             return _sharedData.Add(data);
         }
 
@@ -1558,10 +1570,12 @@ namespace Ludaludaed.KECS
             {
                 throw new Exception($"|KECS| Systems haven't initialized yet. You cannot get shared data.");
             }
+
             if (_destroyed)
             {
                 throw new Exception("|KECS| The systems were destroyed. You cannot get shared data.");
             }
+
             return _sharedData.Get<T>();
         }
 
@@ -2411,21 +2425,6 @@ namespace Ludaludaed.KECS
                 array.Fill(defaultValue, oldLength);
             }
         }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IndexOf<T>(T[] array, T value, EqualityComparer<T> comparer)
-        {
-            for (int i = 0, length = array.Length; i < length; ++i)
-            {
-                if (comparer.Equals(array[i], value))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
     }
 
 
@@ -2483,10 +2482,10 @@ namespace Ludaludaed.KECS
         public void SetBit(int index)
         {
             var chunk = index / ChunkCapacity;
-            var oldV = _chunks[chunk];
-            var newV = oldV | (1UL << (index % ChunkCapacity));
-            if (oldV == newV) return;
-            _chunks[chunk] = newV;
+            var oldValue = _chunks[chunk];
+            var newValue = oldValue | (1UL << (index % ChunkCapacity));
+            if (oldValue == newValue) return;
+            _chunks[chunk] = newValue;
             Count++;
         }
 
@@ -2495,10 +2494,10 @@ namespace Ludaludaed.KECS
         public void ClearBit(int index)
         {
             var chunk = index / ChunkCapacity;
-            var oldV = _chunks[chunk];
-            var newV = oldV & ~(1UL << (index % ChunkCapacity));
-            if (oldV == newV) return;
-            _chunks[chunk] = newV;
+            var oldValue = _chunks[chunk];
+            var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
+            if (oldValue == newValue) return;
+            _chunks[chunk] = newValue;
             Count--;
         }
 
@@ -2593,7 +2592,11 @@ namespace Ludaludaed.KECS
                     while (true)
                     {
                         _index++;
-                        if (!_bitMask.GetBit(_index)) continue;
+                        if (!_bitMask.GetBit(_index))
+                        {
+                            continue;
+                        }
+
                         _returned++;
                         return _index;
                     }
