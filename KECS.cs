@@ -1513,7 +1513,7 @@ namespace Ludaludaed.KECS
         }
 
 #if DEBUG
-        private readonly List<ISystemsDebugListener> _debugListeners = new List<ISystemsDebugListener>(4);
+        private readonly List<ISystemsDebugListener> _debugListeners = new List<ISystemsDebugListener>();
 
 
         public void AddDebugListener(ISystemsDebugListener listener)
