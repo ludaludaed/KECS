@@ -166,7 +166,7 @@ namespace Ludaludaed.KECS
         /// <summary>
         /// Returns the world by id.
         /// </summary>
-        /// <param name="name">World id.</param>
+        /// <param name="worldId">World id.</param>
         /// <returns>World.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
