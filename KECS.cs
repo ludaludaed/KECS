@@ -531,7 +531,6 @@ namespace Ludaludaed.KECS
             _freeIds.Dispose();
             _pools = null;
             _filters = null;
-            _freeIds = null;
             _entities = null;
             _archetypeManager = null;
             _isAlive = false;
@@ -790,11 +789,13 @@ namespace Ludaludaed.KECS
                 {
                     components = new object[itemsCount];
                 }
+
                 int counter = 0;
                 foreach (var idx in _currentArchetype.Mask)
                 {
                     components[counter++] = _world.GetPool(idx).GetObject(Id);
                 }
+
                 return itemsCount;
             }
 
@@ -1234,17 +1235,6 @@ namespace Ludaludaed.KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
-                if (_archetypeCount == 1)
-                {
-                    if (_index < _archetypes[_archetypeId].Count)
-                    {
-                        Current = _archetypeEntities[_index++];
-                        return true;
-                    }
-
-                    return false;
-                }
-
                 if (_archetypeId < _archetypeCount)
                 {
                     if (_index < _archetypes[_archetypeId].Count)
@@ -1252,7 +1242,7 @@ namespace Ludaludaed.KECS
                         Current = _archetypeEntities[_index++];
                         return true;
                     }
-
+                    
                     while (++_archetypeId < _archetypeCount)
                     {
                         _archetypeEntities = _archetypes[_archetypeId].Entities;
@@ -2276,7 +2266,7 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    internal sealed class IntDispenser
+    internal class IntDispenser : IDisposable
     {
         private ConcurrentStack<int> _freeInts;
         private int _lastInt;
@@ -2286,11 +2276,11 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IntDispenser(int startInt = -1)
+        public IntDispenser()
         {
             _freeInts = new ConcurrentStack<int>();
-            _startInt = startInt;
-            _lastInt = startInt;
+            _startInt = -1;
+            _lastInt = -1;
         }
 
 
