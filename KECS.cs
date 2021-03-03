@@ -569,9 +569,8 @@ namespace Ludaludaed.KECS
     {
         private World _world;
         private ArchetypeManager _archetypeManager;
-        private Archetype _currentArchetype;
+        private Archetype _archetype;
         public bool IsAlive { get; private set; }
-        public Archetype Archetype => _currentArchetype;
 
         public int Id { get; private set; }
 
@@ -587,8 +586,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Initialize()
         {
-            _currentArchetype = _archetypeManager.Empty;
-            _currentArchetype.AddEntity(this);
+            _archetype = _archetypeManager.Empty;
+            _archetype.AddEntity(this);
             IsAlive = true;
         }
 
@@ -679,7 +678,7 @@ namespace Ludaludaed.KECS
                 _world.GetPool<T>().Remove(Id);
             }
 
-            if (_currentArchetype == _archetypeManager.Empty)
+            if (_archetype == _archetypeManager.Empty)
             {
                 Destroy();
             }
@@ -727,27 +726,27 @@ namespace Ludaludaed.KECS
                     $"|KECS| You are trying to check component an already destroyed entity {ToString()}.");
             }
 
-            return _currentArchetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
+            return _archetype.Mask.GetBit(ComponentTypeInfo<T>.TypeIndex);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoNextArchetype(int index)
         {
-            _currentArchetype.RemoveEntity(this);
-            var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_currentArchetype, index);
-            _currentArchetype = newArchetype;
-            _currentArchetype.AddEntity(this);
+            _archetype.RemoveEntity(this);
+            var newArchetype = _archetypeManager.FindOrCreateNextArchetype(_archetype, index);
+            _archetype = newArchetype;
+            _archetype.AddEntity(this);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GotoPriorArchetype(int index)
         {
-            _currentArchetype.RemoveEntity(this);
-            var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_currentArchetype, index);
-            _currentArchetype = newArchetype;
-            _currentArchetype.AddEntity(this);
+            _archetype.RemoveEntity(this);
+            var newArchetype = _archetypeManager.FindOrCreatePriorArchetype(_archetype, index);
+            _archetype = newArchetype;
+            _archetype.AddEntity(this);
         }
 
 
@@ -761,7 +760,7 @@ namespace Ludaludaed.KECS
             if (!IsAlive)
                 throw new Exception($"|KECS| You are trying to destroy an already destroyed entity {ToString()}.");
             RemoveComponents();
-            _currentArchetype.RemoveEntity(this);
+            _archetype.RemoveEntity(this);
             _world.RecycleEntity(Id);
             IsAlive = false;
         }
@@ -772,7 +771,7 @@ namespace Ludaludaed.KECS
         {
             if (IsAlive)
             {
-                foreach (var idx in _currentArchetype.Mask)
+                foreach (var idx in _archetype.Mask)
                 {
                     _world.GetPool(idx).Remove(Id);
                 }
@@ -784,14 +783,14 @@ namespace Ludaludaed.KECS
         {
             if (IsAlive)
             {
-                var itemsCount = Archetype.Mask.Count;
+                var itemsCount = _archetype.Mask.Count;
                 if (components == null || components.Length < itemsCount)
                 {
                     components = new object[itemsCount];
                 }
 
                 int counter = 0;
-                foreach (var idx in _currentArchetype.Mask)
+                foreach (var idx in _archetype.Mask)
                 {
                     components[counter++] = _world.GetPool(idx).GetObject(Id);
                 }
@@ -810,7 +809,7 @@ namespace Ludaludaed.KECS
             RemoveComponents();
             Id = -1;
             _archetypeManager = null;
-            _currentArchetype = null;
+            _archetype = null;
             _world = null;
             IsAlive = false;
         }
@@ -824,7 +823,7 @@ namespace Ludaludaed.KECS
 
     internal class ArchetypeManager
     {
-        private List<Archetype> _archetypes;
+        private GrowList<Archetype> _archetypes;
         internal Archetype Empty { get; private set; }
         private World _world;
         private object _lockObject = new object();
@@ -836,7 +835,8 @@ namespace Ludaludaed.KECS
         {
             _world = world;
             Empty = new Archetype(this._world, 0, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY));
-            _archetypes = new List<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY) {Empty};
+            _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
+            _archetypes.Add(Empty);
         }
 
 
@@ -1116,7 +1116,7 @@ namespace Ludaludaed.KECS
         internal BitMask Exclude;
         internal int Version { get; set; }
 
-        private List<Archetype> _archetypes = new List<Archetype>();
+        private GrowList<Archetype> _archetypes;
         private ArchetypeManager _archetypeManager;
         private World _world;
 
@@ -1128,6 +1128,7 @@ namespace Ludaludaed.KECS
             _world = world;
             Include = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
             Exclude = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
+            _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
         }
 
 
@@ -1206,7 +1207,7 @@ namespace Ludaludaed.KECS
 
         private struct EntityEnumerator : IEnumerator<Entity>
         {
-            private readonly List<Archetype> _archetypes;
+            private readonly GrowList<Archetype> _archetypes;
             private readonly int _archetypeCount;
 
             private int _index;
@@ -2264,6 +2265,41 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // HELPER
     //=============================================================================
+    
+    
+    internal class GrowList<T>
+    {
+        private T[] _data;
+        internal int Count => _lenght;
+        private int _lenght;
+
+        internal ref T this[int index]
+        {
+            get
+            {
+                ArrayExtension.EnsureLength(ref _data, index);
+                return ref _data[index];
+            }
+        }
+
+        internal GrowList(int capacity)
+        {
+            _data = new T[capacity];
+            _lenght = 0;
+        }
+
+        internal void Add(in T value)
+        {
+            int index = _lenght++;
+            ArrayExtension.EnsureLength(ref _data, index);
+            _data[index] = value;
+        }
+
+        internal void Clear()
+        {
+            Array.Clear(_data,0,_data.Length);
+        }
+    }
 
 
     internal class IntDispenser : IDisposable
