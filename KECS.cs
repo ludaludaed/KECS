@@ -325,7 +325,7 @@ namespace Ludaludaed.KECS
 
         private int _worldId;
         private string _name;
-        internal readonly WorldConfig Config;
+        public readonly WorldConfig Config;
 
         public int WorldId => _worldId;
         public string Name => _name;
@@ -1242,7 +1242,7 @@ namespace Ludaludaed.KECS
                         Current = _archetypeEntities[_index++];
                         return true;
                     }
-                    
+
                     while (++_archetypeId < _archetypeCount)
                     {
                         _archetypeEntities = _archetypes[_archetypeId].Entities;
@@ -2368,10 +2368,12 @@ namespace Ludaludaed.KECS
         {
             int newLength = Math.Max(1, array.Length);
 
-            do
+            newLength <<= 1;
+
+            while (index >= newLength)
             {
-                newLength *= 2;
-            } while (index >= newLength);
+                newLength <<= 1;
+            }
 
             Array.Resize(ref array, newLength);
         }
