@@ -577,9 +577,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Entity(World world, ArchetypeManager archetypeManager, int internalId)
         {
-            this._world = world;
+            _world = world;
             Id = internalId;
-            this._archetypeManager = archetypeManager;
+            _archetypeManager = archetypeManager;
         }
 
 
