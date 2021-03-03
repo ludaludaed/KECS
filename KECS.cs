@@ -946,9 +946,6 @@ namespace Ludaludaed.KECS
         public int Count => Entities.Count;
         public int Id { get; private set; }
 
-        private DelayedChange[] _delayedChanges;
-        private int _delayedOpsCount;
-
         internal SparseSet<Entity> Entities;
         internal BitMask Mask { get; }
 
@@ -958,6 +955,8 @@ namespace Ludaludaed.KECS
         public Type[] TypesCache;
 
         private int _lockCount;
+        private DelayedChange[] _delayedChanges;
+        private int _delayedOpsCount;
 
 
         public override string ToString()
