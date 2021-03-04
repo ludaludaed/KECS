@@ -623,7 +623,9 @@ namespace Ludaludaed.KECS
             _filters.Clear();
             _pools.Clear();
             _freeIds.Dispose();
-            
+
+            _worldId = -1;
+            _name = null;
             _archetypes = null;
             _freeIds = null;
             _pools = null;
