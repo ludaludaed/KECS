@@ -824,19 +824,17 @@ namespace Ludaludaed.KECS
     internal class ArchetypeManager
     {
         private GrowList<Archetype> _archetypes;
-        internal Archetype Empty { get; private set; }
         private World _world;
         private object _lockObject = new object();
-
         internal int Count => _archetypes.Count;
+        internal Archetype Empty => _archetypes[0];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ArchetypeManager(World world)
         {
             _world = world;
-            Empty = new Archetype(this._world, 0, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY));
             _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
-            _archetypes.Add(Empty);
+            _archetypes.Add(new Archetype(_world, 0, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY)));
         }
 
 
@@ -936,7 +934,6 @@ namespace Ludaludaed.KECS
             _archetypes = null;
             _world = null;
             _lockObject = null;
-            Empty = null;
         }
     }
 
@@ -1237,7 +1234,7 @@ namespace Ludaludaed.KECS
             {
                 if (_archetypeId < _archetypeCount)
                 {
-                    if (_index < _archetypes[_archetypeId].Count)
+                    if (_index < _archetypeEntities.Count)
                     {
                         Current = _archetypeEntities[_index++];
                         return true;
