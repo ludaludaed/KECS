@@ -620,15 +620,16 @@ namespace Ludaludaed.KECS
             }
 
             _archetypes.Clear();
-            _archetypes = null;
-            _lockObject = null;
-            
             _filters.Clear();
             _pools.Clear();
             _freeIds.Dispose();
+            
+            _archetypes = null;
+            _freeIds = null;
             _pools = null;
             _filters = null;
             _entities = null;
+            _lockObject = null;
             _isAlive = false;
         }
 
@@ -916,12 +917,7 @@ namespace Ludaludaed.KECS
 
     public sealed class Archetype : IEnumerable<Entity>
     {
-        public int Count => Entities.Count;
-        public int Id { get; private set; }
-
         internal SparseSet<Entity> Entities;
-        internal BitMask Mask { get; }
-
         internal SparseSet<Archetype> Next;
         internal SparseSet<Archetype> Prior;
 
@@ -930,8 +926,11 @@ namespace Ludaludaed.KECS
         private int _lockCount;
         private DelayedChange[] _delayedChanges;
         private int _delayedOpsCount;
-
-
+        
+        public int Count => Entities.Count;
+        public int Id { get; private set; }
+        internal BitMask Mask { get; }
+        
         public override string ToString()
         {
             return $"Archetype_{Id}";
@@ -947,6 +946,7 @@ namespace Ludaludaed.KECS
 
             _delayedChanges = new DelayedChange[64];
             _delayedOpsCount = 0;
+            
             Next = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
                 world.Config.CACHE_COMPONENTS_CAPACITY);
             Prior = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
