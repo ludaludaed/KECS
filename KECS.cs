@@ -548,26 +548,12 @@ namespace Ludaludaed.KECS
 
         internal ref EntityData GetEntityData(Entity entity)
         {
-            if (entity.World != _world)
-            {
-                throw new Exception("invalid world.");
-            }
-
-            if (!_world.IsAlive)
-            {
-                throw new Exception("world already destroyed.");
-            }
-
+            if (entity.World != _world) throw new Exception("|KECS| Invalid world.");
+            if (!_world.IsAlive) throw new Exception("|KECS| World already destroyed.");
             if (entity.Id < 0 || entity.Id >= _entitiesCount)
-            {
-                throw new Exception("invalid entity.");
-            }
-
+                throw new Exception($"|KECS| Invalid entity {entity.ToString()}.");
             if (entity.Age != _entities[entity.Id].Age)
-            {
-                throw new Exception("entity was deleted.");
-            }
-
+                throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
             return ref _entities[entity.Id];
         }
 
@@ -600,15 +586,14 @@ namespace Ludaludaed.KECS
             {
                 entity.Age = entityData.Age;
             }
-
+            _archetypeManager.EmptyArchetype.AddEntity(entity);
+            _entitiesCount++;
 #if DEBUG
             for (int i = 0, lenght = _world.DebugListeners.Count; i < lenght; i++)
             {
                 _world.DebugListeners[i].OnEntityCreated(entity);
             }
 #endif
-            _archetypeManager.EmptyArchetype.AddEntity(entity);
-            _entitiesCount++;
             return entity;
         }
 
@@ -622,6 +607,7 @@ namespace Ludaludaed.KECS
             {
                 entityData.Age = 1;
             }
+
             _freeIds.ReleaseInt(entity.Id);
             _entitiesCount--;
 #if DEBUG
