@@ -418,6 +418,28 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
+        
+        
+        internal void EntityCreated(Entity entity)
+        {
+#if DEBUG
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            {
+                DebugListeners[i].OnEntityCreated(entity);
+            }
+#endif
+        }
+        
+        
+        internal void EntityDestroyed(Entity entity)
+        {
+#if DEBUG
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            {
+                DebugListeners[i].OnEntityDestroyed(entity);
+            }
+#endif
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -589,12 +611,7 @@ namespace Ludaludaed.KECS
 
             _archetypeManager.EmptyArchetype.AddEntity(entity);
             _entitiesCount++;
-#if DEBUG
-            for (int i = 0, lenght = _world.DebugListeners.Count; i < lenght; i++)
-            {
-                _world.DebugListeners[i].OnEntityCreated(entity);
-            }
-#endif
+            _world.EntityCreated(entity);
             return entity;
         }
 
@@ -611,12 +628,7 @@ namespace Ludaludaed.KECS
 
             _freeIds.ReleaseInt(entity.Id);
             _entitiesCount--;
-#if DEBUG
-            for (int i = 0, lenght = _world.DebugListeners.Count; i < lenght; i++)
-            {
-                _world.DebugListeners[i].OnEntityDestroyed(entity);
-            }
-#endif
+            _world.EntityDestroyed(entity);
         }
 
 
