@@ -586,6 +586,7 @@ namespace Ludaludaed.KECS
             {
                 entity.Age = entityData.Age;
             }
+
             _archetypeManager.EmptyArchetype.AddEntity(entity);
             _entitiesCount++;
 #if DEBUG
@@ -657,7 +658,7 @@ namespace Ludaludaed.KECS
 
         public override string ToString()
         {
-            return $"Entity_{Id}";
+            return $"Entity_ID-{Id}:AGE-{Age}";
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -738,7 +739,7 @@ namespace Ludaludaed.KECS
                 GotoPriorArchetype(ref entityData, in entity, idx);
                 pool.Remove(entity.Id);
             }
-
+            
             if (entityData.Archetype.Mask.Count == 0)
             {
                 entity.Destroy();
