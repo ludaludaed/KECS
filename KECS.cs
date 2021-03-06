@@ -350,7 +350,7 @@ namespace Ludaludaed.KECS
 
 
 #if DEBUG
-        public readonly List<IWorldDebugListener> DebugListeners = new List<IWorldDebugListener>();
+        private readonly List<IWorldDebugListener> _debugListeners = new List<IWorldDebugListener>();
 
         public void AddDebugListener(IWorldDebugListener listener)
         {
@@ -359,7 +359,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("Listener is null.");
             }
 
-            DebugListeners.Add(listener);
+            _debugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(IWorldDebugListener listener)
@@ -369,7 +369,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("Listener is null.");
             }
 
-            DebugListeners.Remove(listener);
+            _debugListeners.Remove(listener);
         }
 #endif
 
@@ -412,9 +412,9 @@ namespace Ludaludaed.KECS
         internal void ArchetypeCreated(Archetype archetype)
         {
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
-                DebugListeners[i].OnArchetypeCreated(archetype);
+                _debugListeners[i].OnArchetypeCreated(archetype);
             }
 #endif
         }
@@ -423,9 +423,9 @@ namespace Ludaludaed.KECS
         internal void EntityCreated(Entity entity)
         {
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
-                DebugListeners[i].OnEntityCreated(entity);
+                _debugListeners[i].OnEntityCreated(entity);
             }
 #endif
         }
@@ -434,9 +434,9 @@ namespace Ludaludaed.KECS
         internal void EntityDestroyed(Entity entity)
         {
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
-                DebugListeners[i].OnEntityDestroyed(entity);
+                _debugListeners[i].OnEntityDestroyed(entity);
             }
 #endif
         }
@@ -516,9 +516,9 @@ namespace Ludaludaed.KECS
             Worlds.Destroy(_name);
 
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
-                DebugListeners[i].OnWorldDestroyed(this);
+                _debugListeners[i].OnWorldDestroyed(this);
             }
 #endif
         }
