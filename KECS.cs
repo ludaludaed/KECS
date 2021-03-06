@@ -418,8 +418,8 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
-        
-        
+
+
         internal void EntityCreated(Entity entity)
         {
 #if DEBUG
@@ -429,8 +429,8 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
-        
-        
+
+
         internal void EntityDestroyed(Entity entity)
         {
 #if DEBUG
@@ -559,7 +559,7 @@ namespace Ludaludaed.KECS
 
         public bool IsAlive(in Entity entity)
         {
-            if (entity.World != _world ||  !_world.IsAlive)
+            if (entity.World != _world || !_world.IsAlive)
             {
                 return false;
             }
@@ -749,7 +749,7 @@ namespace Ludaludaed.KECS
                 GotoPriorArchetype(ref entityData, in entity, idx);
                 pool.Remove(entity.Id);
             }
-            
+
             if (entityData.Archetype.Mask.Count == 0)
             {
                 entity.Destroy();
@@ -777,6 +777,26 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.EntityManager.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
+        }
+
+        public static int GetObjects(in this Entity entity, ref object[] objects)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            var mask = entityData.Archetype.Mask;
+            var lenght = mask.Count;
+            if (objects == null || objects.Length < lenght)
+            {
+                objects = new object[lenght];
+            }
+
+            int counter = 0;
+            foreach (var idx in mask)
+            {
+                objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
+            }
+
+            return lenght;
         }
 
         private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
