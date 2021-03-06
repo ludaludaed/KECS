@@ -559,7 +559,7 @@ namespace Ludaludaed.KECS
 
         public bool IsAlive(in Entity entity)
         {
-            if (entity.World != _world || entity.Id < 0 || entity.Id >= _entitiesCount || !_world.IsAlive)
+            if (entity.World != _world ||  !_world.IsAlive)
             {
                 return false;
             }
@@ -572,8 +572,6 @@ namespace Ludaludaed.KECS
         {
             if (entity.World != _world) throw new Exception("|KECS| Invalid world.");
             if (!_world.IsAlive) throw new Exception("|KECS| World already destroyed.");
-            if (entity.Id < 0 || entity.Id >= _entitiesCount)
-                throw new Exception($"|KECS| Invalid entity {entity.ToString()}.");
             if (entity.Age != _entities[entity.Id].Age)
                 throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
             return ref _entities[entity.Id];
