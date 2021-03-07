@@ -795,6 +795,25 @@ namespace Ludaludaed.KECS
             return entityData.Archetype.Mask.GetBit(idx);
         }
 
+        public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            var mask = entityData.Archetype.Mask;
+            var lenght = mask.Count;
+            if (typeIndexes == null || typeIndexes.Length < lenght)
+            {
+                typeIndexes = new int[lenght];
+            }
+            
+            int counter = 0;
+            foreach (var idx in mask)
+            {
+                typeIndexes[counter++] = idx;
+            }
+            return lenght;
+        }
+
         public static int GetComponentsValues(in this Entity entity, ref object[] objects)
         {
             var world = entity.World;
