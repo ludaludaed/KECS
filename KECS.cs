@@ -756,15 +756,15 @@ namespace Ludaludaed.KECS
             }
         }
 
-        public static void Remove(in this Entity entity, int idx)
+        public static void Remove(in this Entity entity, int typeIdx)
         {
             var world = entity.World;
             ref var entityData = ref world.EntityManager.GetEntityData(entity);
 
-            if (entityData.Archetype.Mask.GetBit(idx))
+            if (entityData.Archetype.Mask.GetBit(typeIdx))
             {
-                GotoPriorArchetype(ref entityData, in entity, idx);
-                world.GetPool(idx).Remove(entity.Id);
+                GotoPriorArchetype(ref entityData, in entity, typeIdx);
+                world.GetPool(typeIdx).Remove(entity.Id);
             }
 
             if (entityData.Archetype.Mask.Count == 0)
@@ -776,7 +776,6 @@ namespace Ludaludaed.KECS
         public static ref T Get<T>(in this Entity entity) where T : struct
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
 
             var pool = world.GetPool<T>();
 
