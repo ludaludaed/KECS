@@ -756,6 +756,23 @@ namespace Ludaludaed.KECS
             }
         }
 
+        public static void Remove(in this Entity entity, int idx)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+
+            if (entityData.Archetype.Mask.GetBit(idx))
+            {
+                GotoPriorArchetype(ref entityData, in entity, idx);
+                world.GetPool(idx).Remove(entity.Id);
+            }
+
+            if (entityData.Archetype.Mask.Count == 0)
+            {
+                entity.Destroy();
+            }
+        }
+
         public static ref T Get<T>(in this Entity entity) where T : struct
         {
             var world = entity.World;
@@ -779,7 +796,7 @@ namespace Ludaludaed.KECS
             return entityData.Archetype.Mask.GetBit(idx);
         }
 
-        public static int GetObjects(in this Entity entity, ref object[] objects)
+        public static int GetComponentsValues(in this Entity entity, ref object[] objects)
         {
             var world = entity.World;
             ref var entityData = ref world.EntityManager.GetEntityData(entity);
@@ -1305,10 +1322,15 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    internal static class EcsTypeManager
+    public static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
         public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
+
+        public static int GetIdx(Type type)
+        {
+            return Array.IndexOf(ComponentsTypes, type);
+        }
     }
 
 
