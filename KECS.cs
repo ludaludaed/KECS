@@ -315,9 +315,6 @@ namespace Ludaludaed.KECS
     {
         private List<Filter> _filters;
 
-        private SparseSet<IComponentPool> _pools;
-        private int _componentsTypesCount;
-
         private int _worldId;
         private string _name;
         private bool _isAlive;
@@ -329,6 +326,7 @@ namespace Ludaludaed.KECS
 
         internal EntityManager EntityManager;
         internal ArchetypeManager ArchetypeManager;
+        internal ComponentManager ComponentManager;
 
 
         /// <summary>
@@ -380,7 +378,7 @@ namespace Ludaludaed.KECS
                 ActiveEntities = EntityManager.ActiveEntities,
                 ReservedEntities = EntityManager.ReservedEntities,
                 Archetypes = ArchetypeManager.Count,
-                Components = _componentsTypesCount
+                Components = ComponentManager.Count
             };
         }
 
@@ -392,10 +390,10 @@ namespace Ludaludaed.KECS
             _isAlive = true;
             _worldId = worldId;
             Config = config;
-            _pools = new SparseSet<IComponentPool>(Config.CACHE_COMPONENTS_CAPACITY, Config.CACHE_COMPONENTS_CAPACITY);
             _filters = new List<Filter>();
             ArchetypeManager = new ArchetypeManager(this);
             EntityManager = new EntityManager(this);
+            ComponentManager = new ComponentManager(this);
         }
 
         /// <summary>
@@ -443,43 +441,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void EnsurePoolsCapacity(int capacity)
-        {
-            var newCapacity = EcsMath.Pot(capacity);
-            for (int i = 0, lenght = _pools.Count; i < lenght; i++)
-            {
-                _pools[i].EnsureLength(newCapacity);
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ComponentPool<T> GetPool<T>() where T : struct
-        {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get pool.");
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-
-            if (!_pools.Contains(idx))
-            {
-                var pool = new ComponentPool<T>(this);
-                _pools.Add(idx, pool);
-                _componentsTypesCount++;
-            }
-
-            return (ComponentPool<T>) _pools.GetValue(idx);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal IComponentPool GetPool(int idx)
-        {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot get pool.");
-            var pool = _pools.GetValue(idx);
-            return pool;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
@@ -487,24 +448,17 @@ namespace Ludaludaed.KECS
             {
                 filter?.Dispose();
             }
-
-            foreach (var pool in _pools)
-            {
-                pool?.Dispose();
-            }
-
-
+            
             _filters.Clear();
-            _pools.Clear();
 
             _worldId = -1;
             _name = null;
-            _pools = null;
             _filters = null;
             _isAlive = false;
 
             EntityManager.Dispose();
             ArchetypeManager.Dispose();
+            ComponentManager.Dispose();
         }
 
         /// <summary>
@@ -547,11 +501,13 @@ namespace Ludaludaed.KECS
 
         private World _world;
         private ArchetypeManager _archetypeManager;
+        private ComponentManager _componentManager;
 
         internal EntityManager(World world)
         {
             _world = world;
             _archetypeManager = world.ArchetypeManager;
+            _componentManager = world.ComponentManager;
             _entities = new EntityData[world.Config.CACHE_ENTITIES_CAPACITY];
             _freeIds = new IntDispenser();
         }
@@ -637,7 +593,7 @@ namespace Ludaludaed.KECS
             {
                 var newCapacity = EcsMath.Pot(capacity);
                 Array.Resize(ref _entities, newCapacity);
-                _world.EnsurePoolsCapacity(newCapacity);
+                _componentManager.EnsurePoolsCapacity(newCapacity);
             }
         }
 
@@ -726,7 +682,7 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.EntityManager.GetEntityData(entity);
 
-            var pool = world.GetPool<T>();
+            var pool = world.ComponentManager.GetPool<T>();
             pool.Set(entity.Id, value);
 
             if (!entity.Has<T>())
@@ -742,7 +698,7 @@ namespace Ludaludaed.KECS
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
             ref var entityData = ref world.EntityManager.GetEntityData(entity);
-            var pool = world.GetPool<T>();
+            var pool = world.ComponentManager.GetPool<T>();
 
             if (entity.Has<T>())
             {
@@ -764,7 +720,7 @@ namespace Ludaludaed.KECS
             if (entityData.Archetype.Mask.GetBit(typeIdx))
             {
                 GotoPriorArchetype(ref entityData, in entity, typeIdx);
-                world.GetPool(typeIdx).Remove(entity.Id);
+                world.ComponentManager.GetPool(typeIdx).Remove(entity.Id);
             }
 
             if (entityData.Archetype.Mask.Count == 0)
@@ -777,7 +733,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
 
-            var pool = world.GetPool<T>();
+            var pool = world.ComponentManager.GetPool<T>();
 
             if (entity.Has<T>())
             {
@@ -828,7 +784,7 @@ namespace Ludaludaed.KECS
             int counter = 0;
             foreach (var idx in mask)
             {
-                objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
+                objects[counter++] = world.ComponentManager.GetPool(idx).GetObject(entity.Id);
             }
 
             return lenght;
@@ -859,7 +815,7 @@ namespace Ludaludaed.KECS
 
             foreach (var comp in entityData.Archetype.Mask)
             {
-                world.GetPool(comp).Remove(entity.Id);
+                world.ComponentManager.GetPool(comp).Remove(entity.Id);
             }
 
             entityData.Archetype.RemoveEntity(entity);
@@ -1153,6 +1109,185 @@ namespace Ludaludaed.KECS
 
 
     //=============================================================================
+    // POOLS
+    //=============================================================================
+
+
+    public class ComponentManager : IDisposable
+    {
+        private SparseSet<IComponentPool> _pools;
+        private World _world;
+        private int _componentsTypesCount;
+
+        public int Count => _componentsTypesCount;
+
+        public ComponentManager(World world)
+        {
+            _world = world;
+            _pools = new SparseSet<IComponentPool>(world.Config.CACHE_COMPONENTS_CAPACITY,
+                world.Config.CACHE_COMPONENTS_CAPACITY);
+            _componentsTypesCount = 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void EnsurePoolsCapacity(int capacity)
+        {
+            var newCapacity = EcsMath.Pot(capacity);
+            for (int i = 0, lenght = _pools.Count; i < lenght; i++)
+            {
+                _pools[i].EnsureLength(newCapacity);
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ComponentPool<T> GetPool<T>() where T : struct
+        {
+            if (!_world.IsAlive) throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+
+            if (!_pools.Contains(idx))
+            {
+                var pool = new ComponentPool<T>(_world);
+                _pools.Add(idx, pool);
+                _componentsTypesCount++;
+            }
+
+            return (ComponentPool<T>) _pools.GetValue(idx);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal IComponentPool GetPool(int idx)
+        {
+            if (!_world.IsAlive) throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
+            var pool = _pools.GetValue(idx);
+            return pool;
+        }
+
+
+        public void Dispose()
+        {
+            _world = null;
+            _componentsTypesCount = 0;
+            foreach (var pool in _pools)
+            {
+                pool?.Dispose();
+            }
+            _pools.Clear();
+            _pools = null;
+        }
+    }
+
+
+    public static class EcsTypeManager
+    {
+        internal static int ComponentTypesCount = 0;
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
+
+        public static int GetIdx(Type type)
+        {
+            return Array.IndexOf(ComponentsTypes, type);
+        }
+    }
+
+
+    internal static class ComponentTypeInfo<T> where T : struct
+    {
+        internal static readonly int TypeIndex;
+        internal static readonly Type Type;
+
+        private static object _lockObject = new object();
+
+
+        static ComponentTypeInfo()
+        {
+            lock (_lockObject)
+            {
+                TypeIndex = EcsTypeManager.ComponentTypesCount++;
+                Type = typeof(T);
+                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
+                EcsTypeManager.ComponentsTypes[TypeIndex] = Type;
+            }
+        }
+    }
+
+
+    internal interface IComponentPool : IDisposable
+    {
+        void Remove(int entityId);
+        void EnsureLength(int capacity);
+        object GetObject(int entityId);
+    }
+
+
+    internal sealed class ComponentPool<T> : IComponentPool where T : struct
+    {
+        private SparseSet<T> _components;
+        private int Length => _components.Count;
+        private World _owner;
+        internal ref T Empty => ref _components.Empty;
+
+
+        public ComponentPool(World world)
+        {
+            _owner = world;
+            _components = new SparseSet<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
+                world.Config.ENTITY_COMPONENTS_CAPACITY);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T Get(int entityId)
+        {
+            return ref _components.GetValue(entityId);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public object GetObject(int entityId)
+        {
+            return _components.GetValue(entityId);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(int entityId, in T value)
+        {
+            _components.Add(entityId, value);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Remove(int entityId)
+        {
+            _components.Remove(entityId);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Set(int entityId, in T value)
+        {
+            _components.Set(entityId, value);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EnsureLength(int capacity)
+        {
+            _components.EnsureSparseCapacity(capacity);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            _components.Clear();
+            _components = null;
+        }
+    }
+    
+    
+    //=============================================================================
     // FILTER
     //=============================================================================
 
@@ -1331,118 +1466,6 @@ namespace Ludaludaed.KECS
                     _archetypes[i].Unlock();
                 }
             }
-        }
-    }
-
-
-    //=============================================================================
-    // POOLS
-    //=============================================================================
-
-
-    public static class EcsTypeManager
-    {
-        internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
-
-        public static int GetIdx(Type type)
-        {
-            return Array.IndexOf(ComponentsTypes, type);
-        }
-    }
-
-
-    internal static class ComponentTypeInfo<T> where T : struct
-    {
-        internal static readonly int TypeIndex;
-        internal static readonly Type Type;
-
-        private static object _lockObject = new object();
-
-
-        static ComponentTypeInfo()
-        {
-            lock (_lockObject)
-            {
-                TypeIndex = EcsTypeManager.ComponentTypesCount++;
-                Type = typeof(T);
-                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
-                EcsTypeManager.ComponentsTypes[TypeIndex] = Type;
-            }
-        }
-    }
-
-
-    internal interface IComponentPool : IDisposable
-    {
-        void Remove(int entityId);
-        void EnsureLength(int capacity);
-        object GetObject(int entityId);
-    }
-
-
-    internal sealed class ComponentPool<T> : IComponentPool where T : struct
-    {
-        private SparseSet<T> _components;
-        private int Length => _components.Count;
-        private World _owner;
-        internal ref T Empty => ref _components.Empty;
-
-
-        public ComponentPool(World world)
-        {
-            _owner = world;
-            _components = new SparseSet<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
-                world.Config.ENTITY_COMPONENTS_CAPACITY);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int entityId)
-        {
-            return ref _components.GetValue(entityId);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetObject(int entityId)
-        {
-            return _components.GetValue(entityId);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(int entityId, in T value)
-        {
-            _components.Add(entityId, value);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int entityId)
-        {
-            _components.Remove(entityId);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int entityId, in T value)
-        {
-            _components.Set(entityId, value);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EnsureLength(int capacity)
-        {
-            _components.EnsureSparseCapacity(capacity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            _components.Clear();
-            _components = null;
         }
     }
 
