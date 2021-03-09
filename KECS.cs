@@ -448,7 +448,7 @@ namespace Ludaludaed.KECS
             {
                 filter?.Dispose();
             }
-            
+
             _filters.Clear();
 
             _worldId = -1;
@@ -693,6 +693,20 @@ namespace Ludaludaed.KECS
             return ref pool.Get(entity.Id);
         }
 
+        public static void Set(in this Entity entity, object value, int typeIdx)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+
+            var pool = world.ComponentManager.GetPool(typeIdx);
+            pool.SetObject(entity.Id, value);
+
+            if (!entityData.Archetype.Mask.GetBit(typeIdx))
+            {
+                GotoNextArchetype(ref entityData, in entity, typeIdx);
+            }
+        }
+
         public static void Remove<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -761,12 +775,13 @@ namespace Ludaludaed.KECS
             {
                 typeIndexes = new int[lenght];
             }
-            
+
             int counter = 0;
             foreach (var idx in mask)
             {
                 typeIndexes[counter++] = idx;
             }
+
             return lenght;
         }
 
@@ -1128,7 +1143,7 @@ namespace Ludaludaed.KECS
                 world.Config.CACHE_COMPONENTS_CAPACITY);
             _componentsTypesCount = 0;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void EnsurePoolsCapacity(int capacity)
         {
@@ -1143,7 +1158,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ComponentPool<T> GetPool<T>() where T : struct
         {
-            if (!_world.IsAlive) throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
+            if (!_world.IsAlive)
+                throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
             if (!_pools.Contains(idx))
@@ -1160,7 +1176,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal IComponentPool GetPool(int idx)
         {
-            if (!_world.IsAlive) throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
+            if (!_world.IsAlive)
+                throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
             var pool = _pools.GetValue(idx);
             return pool;
         }
@@ -1174,6 +1191,7 @@ namespace Ludaludaed.KECS
             {
                 pool?.Dispose();
             }
+
             _pools.Clear();
             _pools = null;
         }
@@ -1218,6 +1236,7 @@ namespace Ludaludaed.KECS
         void Remove(int entityId);
         void EnsureLength(int capacity);
         object GetObject(int entityId);
+        void SetObject(int entityId, object value);
     }
 
 
@@ -1248,6 +1267,14 @@ namespace Ludaludaed.KECS
         public object GetObject(int entityId)
         {
             return _components.GetValue(entityId);
+        }
+
+        public void SetObject(int entityId, object value)
+        {
+            if (value is T component)
+            {
+                _components.Set(entityId, component);
+            }
         }
 
 
@@ -1285,8 +1312,8 @@ namespace Ludaludaed.KECS
             _components = null;
         }
     }
-    
-    
+
+
     //=============================================================================
     // FILTER
     //=============================================================================
