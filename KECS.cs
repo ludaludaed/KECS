@@ -1318,10 +1318,10 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // FILTER
     //=============================================================================
-    
+
 
     public delegate void ForEachArchetypeHandler(Archetype archetype);
-    
+
     public delegate void ForEachHandler(Entity entity);
 
     public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
@@ -1342,6 +1342,23 @@ namespace Ludaludaed.KECS
         where Y : struct
         where U : struct
         where I : struct;
+
+    public delegate void ForEachHandler<T, Y, U, I, O>(Entity entity, ref T comp0, ref Y comp1,
+        ref U comp2, ref I comp3, ref O comp4)
+        where T : struct
+        where Y : struct
+        where U : struct
+        where I : struct
+        where O : struct;
+
+    public delegate void ForEachHandler<T, Y, U, I, O, P>(Entity entity, ref T comp0, ref Y comp1,
+        ref U comp2, ref I comp3, ref O comp4, ref P comp5)
+        where T : struct
+        where Y : struct
+        where U : struct
+        where I : struct
+        where O : struct
+        where P : struct;
 
 
     public sealed class Filter
@@ -1421,7 +1438,7 @@ namespace Ludaludaed.KECS
         private void ForEach(ForEachArchetypeHandler handler)
         {
             _archetypeManager.FindArchetypes(this, Version);
-            
+
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 _archetypes[i].Lock();
@@ -1520,6 +1537,54 @@ namespace Ludaludaed.KECS
                     var entity = archetype.Entities[i];
                     handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id), ref poolU.Get(entity.Id),
                         ref poolI.Get(entity.Id));
+                }
+            });
+        }
+
+        public void ForEach<T, Y, U, I, O>(ForEachHandler<T, Y, U, I, O> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            var poolY = _componentManager.GetPool<Y>();
+            var poolU = _componentManager.GetPool<U>();
+            var poolI = _componentManager.GetPool<I>();
+            var poolO = _componentManager.GetPool<O>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id), ref poolU.Get(entity.Id),
+                        ref poolI.Get(entity.Id), ref poolO.Get(entity.Id));
+                }
+            });
+        }
+
+        public void ForEach<T, Y, U, I, O, P>(ForEachHandler<T, Y, U, I, O, P> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            var poolY = _componentManager.GetPool<Y>();
+            var poolU = _componentManager.GetPool<U>();
+            var poolI = _componentManager.GetPool<I>();
+            var poolO = _componentManager.GetPool<O>();
+            var poolP = _componentManager.GetPool<P>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id), ref poolU.Get(entity.Id),
+                        ref poolI.Get(entity.Id), ref poolO.Get(entity.Id), ref poolP.Get(entity.Id));
                 }
             });
         }
@@ -2015,10 +2080,7 @@ namespace Ludaludaed.KECS
 
         public void OnUpdate(float deltaTime)
         {
-            _filter.ForEach(entity =>
-            {
-                entity.Remove<T>();
-            });
+            _filter.ForEach(entity => { entity.Remove<T>(); });
         }
     }
 
