@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using UnityEngine;
 
 namespace Ludaludaed.KECS
 {
@@ -392,8 +393,8 @@ namespace Ludaludaed.KECS
             Config = config;
             _filters = new List<Filter>();
             ArchetypeManager = new ArchetypeManager(this);
-            EntityManager = new EntityManager(this);
             ComponentManager = new ComponentManager(this);
+            EntityManager = new EntityManager(this);
         }
 
         /// <summary>
@@ -1317,9 +1318,33 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // FILTER
     //=============================================================================
+    
+
+    public delegate void ForEachArchetypeHandler(Archetype archetype);
+    
+    public delegate void ForEachHandler(Entity entity);
+
+    public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
+        where T : struct;
+
+    public delegate void ForEachHandler<T, Y>(Entity entity, ref T comp0, ref Y comp1)
+        where T : struct
+        where Y : struct;
+
+    public delegate void ForEachHandler<T, Y, U>(Entity entity, ref T comp0, ref Y comp1, ref U comp2)
+        where T : struct
+        where Y : struct
+        where U : struct;
+
+    public delegate void ForEachHandler<T, Y, U, I>(Entity entity, ref T comp0, ref Y comp1,
+        ref U comp2, ref I comp3)
+        where T : struct
+        where Y : struct
+        where U : struct
+        where I : struct;
 
 
-    public sealed class Filter : IEnumerable<Entity>
+    public sealed class Filter
     {
         internal BitMask Include;
         internal BitMask Exclude;
@@ -1329,6 +1354,7 @@ namespace Ludaludaed.KECS
         private World _world;
         private ArchetypeManager _archetypeManager;
         private EntityManager _entityManager;
+        private ComponentManager _componentManager;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Filter(World world)
@@ -1341,6 +1367,7 @@ namespace Ludaludaed.KECS
 
             _archetypeManager = world.ArchetypeManager;
             _entityManager = world.EntityManager;
+            _componentManager = world.ComponentManager;
         }
 
 
@@ -1390,21 +1417,112 @@ namespace Ludaludaed.KECS
             _archetypes.Add(archetype);
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerator<Entity> GetEnumerator()
+        private void ForEach(ForEachArchetypeHandler handler)
         {
             _archetypeManager.FindArchetypes(this, Version);
-            return new EntityEnumerator(this);
-        }
+            
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
+            {
+                _archetypes[i].Lock();
+            }
 
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
+            {
+                if (_archetypes[i].Count > 0)
+                {
+                    handler(_archetypes[i]);
+                }
+            }
+
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
+            {
+                _archetypes[i].Unlock();
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        IEnumerator IEnumerable.GetEnumerator()
+        public void ForEach(ForEachHandler handler)
         {
-            return GetEnumerator();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    handler(archetype.Entities[i]);
+                }
+            });
         }
 
+
+        public void ForEach<T>(ForEachHandler<T> handler)
+            where T : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id));
+                }
+            });
+        }
+
+        public void ForEach<T, Y>(ForEachHandler<T, Y> handler)
+            where T : struct
+            where Y : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            var poolY = _componentManager.GetPool<Y>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id));
+                }
+            });
+        }
+
+        public void ForEach<T, Y, U>(ForEachHandler<T, Y, U> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            var poolY = _componentManager.GetPool<Y>();
+            var poolU = _componentManager.GetPool<U>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id), ref poolU.Get(entity.Id));
+                }
+            });
+        }
+
+
+        public void ForEach<T, Y, U, I>(ForEachHandler<T, Y, U, I> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+        {
+            var poolT = _componentManager.GetPool<T>();
+            var poolY = _componentManager.GetPool<Y>();
+            var poolU = _componentManager.GetPool<U>();
+            var poolI = _componentManager.GetPool<I>();
+            ForEach(archetype =>
+            {
+                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                {
+                    var entity = archetype.Entities[i];
+                    handler(entity, ref poolT.Get(entity.Id), ref poolY.Get(entity.Id), ref poolU.Get(entity.Id),
+                        ref poolI.Get(entity.Id));
+                }
+            });
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
@@ -1413,86 +1531,6 @@ namespace Ludaludaed.KECS
             _archetypes.Clear();
             _archetypes = null;
             _world = null;
-        }
-
-
-        private struct EntityEnumerator : IEnumerator<Entity>
-        {
-            private readonly GrowList<Archetype> _archetypes;
-            private readonly int _archetypeCount;
-
-            private int _index;
-            private int _archetypeId;
-
-            private SparseSet<Entity> _archetypeEntities;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal EntityEnumerator(Filter filter)
-            {
-                _archetypes = filter._archetypes;
-
-                _archetypeId = 0;
-                _archetypeCount = _archetypes.Count;
-                _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-
-                for (int i = 0; i < _archetypeCount; i++)
-                {
-                    _archetypes[i].Lock();
-                }
-
-                _index = 0;
-                Current = default;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                if (_archetypeId < _archetypeCount)
-                {
-                    if (_index < _archetypeEntities.Count)
-                    {
-                        Current = _archetypeEntities[_index++];
-                        return true;
-                    }
-
-                    while (++_archetypeId < _archetypeCount)
-                    {
-                        _archetypeEntities = _archetypes[_archetypeId].Entities;
-                        if (_archetypeEntities.Count > 0)
-                        {
-                            _index = 0;
-                            Current = _archetypeEntities[_index++];
-                            return true;
-                        }
-                    }
-                }
-
-                return false;
-            }
-
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Reset()
-            {
-                _archetypeId = 0;
-                _archetypeEntities = _archetypeCount == 0 ? null : _archetypes[0].Entities;
-                _index = 0;
-            }
-
-
-            public Entity Current { get; private set; }
-
-
-            object IEnumerator.Current => Current;
-
-
-            public void Dispose()
-            {
-                for (int i = 0; i < _archetypeCount; i++)
-                {
-                    _archetypes[i].Unlock();
-                }
-            }
         }
     }
 
@@ -1977,10 +2015,10 @@ namespace Ludaludaed.KECS
 
         public void OnUpdate(float deltaTime)
         {
-            foreach (var ent in _filter)
+            _filter.ForEach(entity =>
             {
-                ent.Remove<T>();
-            }
+                entity.Remove<T>();
+            });
         }
     }
 
