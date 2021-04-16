@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using UnityEngine;
 
 namespace Ludaludaed.KECS
 {
@@ -314,6 +313,13 @@ namespace Ludaludaed.KECS
 
     public sealed class World
     {
+        private SparseSet<IComponentPool> _componentPools;
+        private int _componentsTypesCount;
+        
+        private IntDispenser _freeEntityIds;
+        private EntityData[] _entities;
+        private int _entitiesCount;
+        
         private List<Filter> _filters;
 
         private int _worldId;
@@ -324,11 +330,29 @@ namespace Ludaludaed.KECS
         public int WorldId => _worldId;
         public string Name => _name;
         public bool IsAlive => _isAlive;
-
-        internal EntityManager EntityManager;
+        
         internal ArchetypeManager ArchetypeManager;
-        internal ComponentManager ComponentManager;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal World(int worldId, WorldConfig config, string name)
+        {
+            _name = name;
+            _isAlive = true;
+            _worldId = worldId;
+            Config = config;
+            
+            _componentPools = new SparseSet<IComponentPool>(config.CACHE_COMPONENTS_CAPACITY,
+                config.CACHE_COMPONENTS_CAPACITY);
+            _componentsTypesCount = 0;
+            
+            _entities = new EntityData[config.CACHE_ENTITIES_CAPACITY];
+            _freeEntityIds = new IntDispenser();
+            _entitiesCount = 0;
+            
+            _filters = new List<Filter>();
+            ArchetypeManager = new ArchetypeManager(this);
+        }
+        
 
         /// <summary>
         /// Empty filter.
@@ -376,37 +400,129 @@ namespace Ludaludaed.KECS
         {
             return new WorldInfo()
             {
-                ActiveEntities = EntityManager.ActiveEntities,
-                ReservedEntities = EntityManager.ReservedEntities,
+                ActiveEntities = _entitiesCount,
+                ReservedEntities = _freeEntityIds.Count,
                 Archetypes = ArchetypeManager.Count,
-                Components = ComponentManager.Count
+                Components = _componentsTypesCount
             };
         }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal World(int worldId, WorldConfig config, string name)
+        
+        public bool EntityIsAlive(in Entity entity)
         {
-            _name = name;
-            _isAlive = true;
-            _worldId = worldId;
-            Config = config;
-            _filters = new List<Filter>();
-            ArchetypeManager = new ArchetypeManager(this);
-            ComponentManager = new ComponentManager(this);
-            EntityManager = new EntityManager(this);
+            if (entity.World != this || !_isAlive)
+            {
+                return false;
+            }
+
+            return _entities[entity.Id].Age == entity.Age;
         }
 
-        /// <summary>
-        /// Entity creation.
-        /// </summary>
-        /// <returns>Entity</returns>
-        /// <exception cref="Exception"></exception>
+
+        internal ref EntityData GetEntityData(Entity entity)
+        {
+            if (entity.World != this) throw new Exception("|KECS| Invalid world.");
+            if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
+            if (entity.Age != _entities[entity.Id].Age)
+                throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
+            return ref _entities[entity.Id];
+        }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity CreateEntity()
         {
-            return EntityManager.CreateEntity();
+            if (!_isAlive)
+                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
+
+            int newEntityId = _freeEntityIds.GetFreeInt(out var isNew);
+
+            if (_entities.Length == newEntityId)
+            {
+                EnsureEntitiesCapacity(newEntityId << 1);
+            }
+
+            ref var entityData = ref _entities[newEntityId];
+            Entity entity;
+            entity.World = this;
+            entity.Id = newEntityId;
+            entityData.Archetype = ArchetypeManager.EmptyArchetype;
+
+            if (isNew)
+            {
+                entity.Age = 1;
+                entityData.Age = 1;
+            }
+            else
+            {
+                entity.Age = entityData.Age;
+            }
+
+            ArchetypeManager.EmptyArchetype.AddEntity(entity);
+            _entitiesCount++;
+            EntityCreated(entity);
+            return entity;
         }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RecycleEntity(in Entity entity)
+        {
+            ref var entityData = ref _entities[entity.Id];
+            entityData.Age++;
+            if (entityData.Age == 0)
+            {
+                entityData.Age = 1;
+            }
+
+            _freeEntityIds.ReleaseInt(entity.Id);
+            _entitiesCount--;
+            EntityDestroyed(entity);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureEntitiesCapacity(int capacity)
+        {
+            if (_entities.Length < capacity)
+            {
+                var newCapacity = EcsMath.Pot(capacity);
+                Array.Resize(ref _entities, newCapacity);
+                for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
+                {
+                    _componentPools[i].EnsureLength(newCapacity);
+                }
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ComponentPool<T> GetPool<T>() where T : struct
+        {
+            if (!_isAlive)
+                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+
+            if (!_componentPools.Contains(idx))
+            {
+                var pool = new ComponentPool<T>(this);
+                _componentPools.Add(idx, pool);
+                _componentsTypesCount++;
+            }
+
+            return (ComponentPool<T>) _componentPools.GetValue(idx);
+        }
+        
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal IComponentPool GetPool(int idx)
+        {
+            if (!_isAlive)
+                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+            var pool = _componentPools.GetValue(idx);
+            return pool;
+        }
+
 
         internal void ArchetypeCreated(Archetype archetype)
         {
@@ -445,21 +561,35 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
-            foreach (var filter in _filters)
+            
+            _componentsTypesCount = 0;
+            for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
-                filter?.Dispose();
+                _componentPools[i]?.Dispose();
             }
-
+            
+            _componentPools.Clear();
+            _componentPools = null;
+            
+            for (int i = 0, lenght = _filters.Count; i < lenght; i++)
+            {
+                _filters[i]?.Dispose();
+            }
+            
             _filters.Clear();
-
+            _filters = null;
+            
+            _freeEntityIds.Clear();
+            _freeEntityIds = null;
+            _entities = null;
+            _entitiesCount = 0;
+            
             _worldId = -1;
             _name = null;
-            _filters = null;
             _isAlive = false;
-
-            EntityManager.Dispose();
+            
             ArchetypeManager.Dispose();
-            ComponentManager.Dispose();
+            ArchetypeManager = null;
         }
 
         /// <summary>
@@ -489,125 +619,6 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ENTITY
     //=============================================================================
-
-
-    public sealed class EntityManager : IDisposable
-    {
-        private IntDispenser _freeIds;
-        private EntityData[] _entities;
-        private int _entitiesCount;
-
-        public int ActiveEntities => _entitiesCount;
-        public int ReservedEntities => _freeIds.Count;
-
-        private World _world;
-        private ArchetypeManager _archetypeManager;
-        private ComponentManager _componentManager;
-
-        internal EntityManager(World world)
-        {
-            _world = world;
-            _archetypeManager = world.ArchetypeManager;
-            _componentManager = world.ComponentManager;
-            _entities = new EntityData[world.Config.CACHE_ENTITIES_CAPACITY];
-            _freeIds = new IntDispenser();
-        }
-
-
-        public bool IsAlive(in Entity entity)
-        {
-            if (entity.World != _world || !_world.IsAlive)
-            {
-                return false;
-            }
-
-            return _entities[entity.Id].Age == entity.Age;
-        }
-
-
-        internal ref EntityData GetEntityData(Entity entity)
-        {
-            if (entity.World != _world) throw new Exception("|KECS| Invalid world.");
-            if (!_world.IsAlive) throw new Exception("|KECS| World already destroyed.");
-            if (entity.Age != _entities[entity.Id].Age)
-                throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
-            return ref _entities[entity.Id];
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Entity CreateEntity()
-        {
-            if (!_world.IsAlive)
-                throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot create entity.");
-
-            int newEntityId = _freeIds.GetFreeInt(out var isNew);
-
-            if (_entities.Length == newEntityId)
-            {
-                EnsureEntitiesCapacity(newEntityId << 1);
-            }
-
-            ref var entityData = ref _entities[newEntityId];
-            Entity entity;
-            entity.World = _world;
-            entity.Id = newEntityId;
-            entityData.Archetype = _archetypeManager.EmptyArchetype;
-
-            if (isNew)
-            {
-                entity.Age = 1;
-                entityData.Age = 1;
-            }
-            else
-            {
-                entity.Age = entityData.Age;
-            }
-
-            _archetypeManager.EmptyArchetype.AddEntity(entity);
-            _entitiesCount++;
-            _world.EntityCreated(entity);
-            return entity;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RecycleEntity(in Entity entity)
-        {
-            ref var entityData = ref _entities[entity.Id];
-            entityData.Age++;
-            if (entityData.Age == 0)
-            {
-                entityData.Age = 1;
-            }
-
-            _freeIds.ReleaseInt(entity.Id);
-            _entitiesCount--;
-            _world.EntityDestroyed(entity);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureEntitiesCapacity(int capacity)
-        {
-            if (_entities.Length < capacity)
-            {
-                var newCapacity = EcsMath.Pot(capacity);
-                Array.Resize(ref _entities, newCapacity);
-                _componentManager.EnsurePoolsCapacity(newCapacity);
-            }
-        }
-
-        public void Dispose()
-        {
-            _freeIds.Clear();
-            _archetypeManager = null;
-            _freeIds = null;
-            _entities = null;
-            _world = null;
-            _entitiesCount = 0;
-        }
-    }
 
     public struct EntityData
     {
@@ -674,16 +685,16 @@ namespace Ludaludaed.KECS
     {
         public static bool IsAlive(in this Entity entity)
         {
-            return entity.World.EntityManager.IsAlive(in entity);
+            return entity.World.EntityIsAlive(in entity);
         }
 
         public static ref T Set<T>(in this Entity entity, in T value) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
 
-            var pool = world.ComponentManager.GetPool<T>();
+            var pool = world.GetPool<T>();
             pool.Set(entity.Id, value);
 
             if (!entity.Has<T>())
@@ -697,9 +708,9 @@ namespace Ludaludaed.KECS
         public static void Set(in this Entity entity, object value, int typeIdx)
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
 
-            var pool = world.ComponentManager.GetPool(typeIdx);
+            var pool = world.GetPool(typeIdx);
             pool.SetObject(entity.Id, value);
 
             if (!entityData.Archetype.Mask.GetBit(typeIdx))
@@ -712,8 +723,8 @@ namespace Ludaludaed.KECS
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
-            var pool = world.ComponentManager.GetPool<T>();
+            ref var entityData = ref world.GetEntityData(entity);
+            var pool = world.GetPool<T>();
 
             if (entity.Has<T>())
             {
@@ -730,12 +741,12 @@ namespace Ludaludaed.KECS
         public static void Remove(in this Entity entity, int typeIdx)
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
 
             if (entityData.Archetype.Mask.GetBit(typeIdx))
             {
                 GotoPriorArchetype(ref entityData, in entity, typeIdx);
-                world.ComponentManager.GetPool(typeIdx).Remove(entity.Id);
+                world.GetPool(typeIdx).Remove(entity.Id);
             }
 
             if (entityData.Archetype.Mask.Count == 0)
@@ -748,7 +759,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
 
-            var pool = world.ComponentManager.GetPool<T>();
+            var pool = world.GetPool<T>();
 
             if (entity.Has<T>())
             {
@@ -762,14 +773,14 @@ namespace Ludaludaed.KECS
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
         }
 
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
             var mask = entityData.Archetype.Mask;
             var lenght = mask.Count;
             if (typeIndexes == null || typeIndexes.Length < lenght)
@@ -789,7 +800,7 @@ namespace Ludaludaed.KECS
         public static int GetComponentsValues(in this Entity entity, ref object[] objects)
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
             var mask = entityData.Archetype.Mask;
             var lenght = mask.Count;
             if (objects == null || objects.Length < lenght)
@@ -800,7 +811,7 @@ namespace Ludaludaed.KECS
             int counter = 0;
             foreach (var idx in mask)
             {
-                objects[counter++] = world.ComponentManager.GetPool(idx).GetObject(entity.Id);
+                objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
             }
 
             return lenght;
@@ -827,15 +838,15 @@ namespace Ludaludaed.KECS
         public static void Destroy(in this Entity entity)
         {
             var world = entity.World;
-            ref var entityData = ref world.EntityManager.GetEntityData(entity);
+            ref var entityData = ref world.GetEntityData(entity);
 
             foreach (var comp in entityData.Archetype.Mask)
             {
-                world.ComponentManager.GetPool(comp).Remove(entity.Id);
+                world.GetPool(comp).Remove(entity.Id);
             }
 
             entityData.Archetype.RemoveEntity(entity);
-            world.EntityManager.RecycleEntity(entity);
+            world.RecycleEntity(entity);
         }
     }
 
@@ -974,20 +985,13 @@ namespace Ludaludaed.KECS
         private int _delayedOpsCount;
 
         public int Count => Entities.Count;
-        public int Id { get; private set; }
         internal BitMask Mask { get; }
-
-        public override string ToString()
-        {
-            return $"Archetype_{Id}";
-        }
-
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype(World world, int id, BitMask mask)
         {
             Mask = mask;
-            Id = id;
             _lockCount = 0;
 
             _delayedChanges = new DelayedChange[64];
@@ -1119,7 +1123,6 @@ namespace Ludaludaed.KECS
             _delayedChanges = null;
             _lockCount = 0;
             _delayedOpsCount = 0;
-            Id = -1;
         }
     }
 
@@ -1127,77 +1130,6 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // POOLS
     //=============================================================================
-
-
-    public class ComponentManager : IDisposable
-    {
-        private SparseSet<IComponentPool> _pools;
-        private World _world;
-        private int _componentsTypesCount;
-
-        public int Count => _componentsTypesCount;
-
-        public ComponentManager(World world)
-        {
-            _world = world;
-            _pools = new SparseSet<IComponentPool>(world.Config.CACHE_COMPONENTS_CAPACITY,
-                world.Config.CACHE_COMPONENTS_CAPACITY);
-            _componentsTypesCount = 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void EnsurePoolsCapacity(int capacity)
-        {
-            var newCapacity = EcsMath.Pot(capacity);
-            for (int i = 0, lenght = _pools.Count; i < lenght; i++)
-            {
-                _pools[i].EnsureLength(newCapacity);
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ComponentPool<T> GetPool<T>() where T : struct
-        {
-            if (!_world.IsAlive)
-                throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-
-            if (!_pools.Contains(idx))
-            {
-                var pool = new ComponentPool<T>(_world);
-                _pools.Add(idx, pool);
-                _componentsTypesCount++;
-            }
-
-            return (ComponentPool<T>) _pools.GetValue(idx);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal IComponentPool GetPool(int idx)
-        {
-            if (!_world.IsAlive)
-                throw new Exception($"|KECS| World - {_world.Name} was destroyed. You cannot get pool.");
-            var pool = _pools.GetValue(idx);
-            return pool;
-        }
-
-
-        public void Dispose()
-        {
-            _world = null;
-            _componentsTypesCount = 0;
-            foreach (var pool in _pools)
-            {
-                pool?.Dispose();
-            }
-
-            _pools.Clear();
-            _pools = null;
-        }
-    }
-
 
     public static class EcsTypeManager
     {
@@ -1370,8 +1302,6 @@ namespace Ludaludaed.KECS
         private GrowList<Archetype> _archetypes;
         private World _world;
         private ArchetypeManager _archetypeManager;
-        private EntityManager _entityManager;
-        private ComponentManager _componentManager;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Filter(World world)
@@ -1383,8 +1313,6 @@ namespace Ludaludaed.KECS
             _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
 
             _archetypeManager = world.ArchetypeManager;
-            _entityManager = world.EntityManager;
-            _componentManager = world.ComponentManager;
         }
 
 
@@ -1474,7 +1402,7 @@ namespace Ludaludaed.KECS
         public void ForEach<T>(ForEachHandler<T> handler)
             where T : struct
         {
-            var poolT = _componentManager.GetPool<T>();
+            var poolT = _world.GetPool<T>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
@@ -1489,8 +1417,8 @@ namespace Ludaludaed.KECS
             where T : struct
             where Y : struct
         {
-            var poolT = _componentManager.GetPool<T>();
-            var poolY = _componentManager.GetPool<Y>();
+            var poolT = _world.GetPool<T>();
+            var poolY = _world.GetPool<Y>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
@@ -1506,9 +1434,9 @@ namespace Ludaludaed.KECS
             where Y : struct
             where U : struct
         {
-            var poolT = _componentManager.GetPool<T>();
-            var poolY = _componentManager.GetPool<Y>();
-            var poolU = _componentManager.GetPool<U>();
+            var poolT = _world.GetPool<T>();
+            var poolY = _world.GetPool<Y>();
+            var poolU = _world.GetPool<U>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
@@ -1526,10 +1454,10 @@ namespace Ludaludaed.KECS
             where U : struct
             where I : struct
         {
-            var poolT = _componentManager.GetPool<T>();
-            var poolY = _componentManager.GetPool<Y>();
-            var poolU = _componentManager.GetPool<U>();
-            var poolI = _componentManager.GetPool<I>();
+            var poolT = _world.GetPool<T>();
+            var poolY = _world.GetPool<Y>();
+            var poolU = _world.GetPool<U>();
+            var poolI = _world.GetPool<I>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
@@ -1548,11 +1476,11 @@ namespace Ludaludaed.KECS
             where I : struct
             where O : struct
         {
-            var poolT = _componentManager.GetPool<T>();
-            var poolY = _componentManager.GetPool<Y>();
-            var poolU = _componentManager.GetPool<U>();
-            var poolI = _componentManager.GetPool<I>();
-            var poolO = _componentManager.GetPool<O>();
+            var poolT = _world.GetPool<T>();
+            var poolY = _world.GetPool<Y>();
+            var poolU = _world.GetPool<U>();
+            var poolI = _world.GetPool<I>();
+            var poolO = _world.GetPool<O>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
@@ -1572,12 +1500,12 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
         {
-            var poolT = _componentManager.GetPool<T>();
-            var poolY = _componentManager.GetPool<Y>();
-            var poolU = _componentManager.GetPool<U>();
-            var poolI = _componentManager.GetPool<I>();
-            var poolO = _componentManager.GetPool<O>();
-            var poolP = _componentManager.GetPool<P>();
+            var poolT = _world.GetPool<T>();
+            var poolY = _world.GetPool<Y>();
+            var poolU = _world.GetPool<U>();
+            var poolI = _world.GetPool<I>();
+            var poolO = _world.GetPool<O>();
+            var poolP = _world.GetPool<P>();
             ForEach(archetype =>
             {
                 for (int i = 0, lenght = archetype.Count; i < lenght; i++)
