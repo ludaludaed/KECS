@@ -407,7 +407,7 @@ namespace Ludaludaed.KECS
             };
         }
         
-        public bool EntityIsAlive(in Entity entity)
+        internal bool EntityIsAlive(in Entity entity)
         {
             if (entity.World != this || !_isAlive)
             {
@@ -433,8 +433,11 @@ namespace Ludaludaed.KECS
         {
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
+            
+            Entity entity;
+            entity.World = this;
 
-            int newEntityId = _freeEntityIds.GetFreeInt(out var isNew);
+            var isNew = _freeEntityIds.TryGetNewInt(out var newEntityId);
 
             if (_entities.Length == newEntityId)
             {
@@ -442,8 +445,6 @@ namespace Ludaludaed.KECS
             }
 
             ref var entityData = ref _entities[newEntityId];
-            Entity entity;
-            entity.World = this;
             entity.Id = newEntityId;
             entityData.Archetype = ArchetypeManager.EmptyArchetype;
 
@@ -459,7 +460,12 @@ namespace Ludaludaed.KECS
 
             ArchetypeManager.EmptyArchetype.AddEntity(entity);
             _entitiesCount++;
-            EntityCreated(entity);
+#if DEBUG
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            {
+                _debugListeners[i].OnEntityCreated(entity);
+            }
+#endif
             return entity;
         }
 
@@ -476,7 +482,12 @@ namespace Ludaludaed.KECS
 
             _freeEntityIds.ReleaseInt(entity.Id);
             _entitiesCount--;
-            EntityDestroyed(entity);
+#if DEBUG
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            {
+                _debugListeners[i].OnEntityDestroyed(entity);
+            }
+#endif
         }
 
 
@@ -530,28 +541,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners[i].OnArchetypeCreated(archetype);
-            }
-#endif
-        }
-
-
-        internal void EntityCreated(Entity entity)
-        {
-#if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
-            {
-                _debugListeners[i].OnEntityCreated(entity);
-            }
-#endif
-        }
-
-
-        internal void EntityDestroyed(Entity entity)
-        {
-#if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
-            {
-                _debugListeners[i].OnEntityDestroyed(entity);
             }
 #endif
         }
@@ -757,9 +746,7 @@ namespace Ludaludaed.KECS
 
         public static ref T Get<T>(in this Entity entity) where T : struct
         {
-            var world = entity.World;
-
-            var pool = world.GetPool<T>();
+            var pool = entity.World.GetPool<T>();
 
             if (entity.Has<T>())
             {
@@ -2462,18 +2449,12 @@ namespace Ludaludaed.KECS
             return freeInt;
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetFreeInt(out bool isNew)
+        public bool TryGetNewInt(out int freeInt)
         {
-            isNew = false;
-            if (!_freeInts.TryPop(out int freeInt))
-            {
-                freeInt = Interlocked.Increment(ref _lastInt);
-                isNew = true;
-            }
-
-            return freeInt;
+            if (_freeInts.TryPop(out freeInt)) return false;
+            freeInt = Interlocked.Increment(ref _lastInt);
+            return true;
         }
 
 
