@@ -856,8 +856,9 @@ namespace Ludaludaed.KECS
         {
             _world = world;
             _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
-            _archetypes.Add(new Archetype(world, 0, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY)));
+            _archetypes.Add(new Archetype(world, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY)));
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FindArchetypes(Filter filter, int startId)
@@ -869,6 +870,7 @@ namespace Ludaludaed.KECS
 
             filter.Version = _archetypes.Count;
         }
+        
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -900,7 +902,7 @@ namespace Ludaludaed.KECS
 
                     if (nextArchetype == null)
                     {
-                        nextArchetype = new Archetype(_world, _archetypes.Count, newMask);
+                        nextArchetype = new Archetype(_world, newMask);
 
                         nextArchetype.Prior.Add(index, curArchetype);
                         curArchetype.Next.Add(index, nextArchetype);
@@ -976,7 +978,7 @@ namespace Ludaludaed.KECS
         
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype(World world, int id, BitMask mask)
+        internal Archetype(World world, BitMask mask)
         {
             Mask = mask;
             _lockCount = 0;
