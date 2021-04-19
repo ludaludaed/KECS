@@ -315,11 +315,11 @@ namespace Ludaludaed.KECS
     {
         private SparseSet<IComponentPool> _componentPools;
         private int _componentsTypesCount;
-        
+
         private IntDispenser _freeEntityIds;
         private EntityData[] _entities;
         private int _entitiesCount;
-        
+
         private List<Filter> _filters;
 
         private int _worldId;
@@ -330,7 +330,7 @@ namespace Ludaludaed.KECS
         public int WorldId => _worldId;
         public string Name => _name;
         public bool IsAlive => _isAlive;
-        
+
         internal ArchetypeManager ArchetypeManager;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -340,35 +340,17 @@ namespace Ludaludaed.KECS
             _isAlive = true;
             _worldId = worldId;
             Config = config;
-            
+
             _componentPools = new SparseSet<IComponentPool>(config.CACHE_COMPONENTS_CAPACITY,
                 config.CACHE_COMPONENTS_CAPACITY);
             _componentsTypesCount = 0;
-            
+
             _entities = new EntityData[config.CACHE_ENTITIES_CAPACITY];
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
-            
+
             _filters = new List<Filter>();
             ArchetypeManager = new ArchetypeManager(this);
-        }
-        
-
-        /// <summary>
-        /// Empty filter.
-        /// </summary>
-        /// <exception cref="Exception"></exception>
-        public Filter Filter
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (!_isAlive)
-                    throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create filter.");
-                var filter = new Filter(this);
-                _filters.Add(filter);
-                return filter;
-            }
         }
 
 
@@ -395,7 +377,20 @@ namespace Ludaludaed.KECS
             _debugListeners.Remove(listener);
         }
 #endif
-
+        
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Filter Filter()
+        {
+            if (!_isAlive)
+                throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create filter.");
+            var filter = new Filter(this);
+            _filters.Add(filter);
+            return filter;
+        }
+        
+        
         public WorldInfo GetInfo()
         {
             return new WorldInfo()
@@ -406,7 +401,7 @@ namespace Ludaludaed.KECS
                 Components = _componentsTypesCount
             };
         }
-        
+
         internal bool EntityIsAlive(in Entity entity)
         {
             if (entity.World != this || !_isAlive)
@@ -433,7 +428,7 @@ namespace Ludaludaed.KECS
         {
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
-            
+
             Entity entity;
             entity.World = this;
 
@@ -522,7 +517,6 @@ namespace Ludaludaed.KECS
 
             return (ComponentPool<T>) _componentPools.GetValue(idx);
         }
-        
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -550,33 +544,33 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
-            
+
             _componentsTypesCount = 0;
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
                 _componentPools[i]?.Dispose();
             }
-            
+
             _componentPools.Clear();
             _componentPools = null;
-            
+
             for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
                 _filters[i]?.Dispose();
             }
-            
+
             _filters.Clear();
             _filters = null;
-            
+
             _freeEntityIds.Clear();
             _freeEntityIds = null;
             _entities = null;
             _entitiesCount = 0;
-            
+
             _worldId = -1;
             _name = null;
             _isAlive = false;
-            
+
             ArchetypeManager.Dispose();
             ArchetypeManager = null;
         }
@@ -845,11 +839,10 @@ namespace Ludaludaed.KECS
 
     public sealed class ArchetypeManager : IDisposable
     {
-        private World _world;
         private GrowList<Archetype> _archetypes;
         internal Archetype EmptyArchetype => _archetypes[0];
         private object _lockObject = new object();
-
+        private World _world;
         public int Count => _archetypes.Count;
 
         internal ArchetypeManager(World world)
@@ -858,7 +851,7 @@ namespace Ludaludaed.KECS
             _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
             _archetypes.Add(new Archetype(world, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY)));
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FindArchetypes(Filter filter, int startId)
@@ -870,7 +863,6 @@ namespace Ludaludaed.KECS
 
             filter.Version = _archetypes.Count;
         }
-        
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -975,7 +967,7 @@ namespace Ludaludaed.KECS
 
         public int Count => Entities.Count;
         internal BitMask Mask { get; }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype(World world, BitMask mask)
@@ -1991,7 +1983,7 @@ namespace Ludaludaed.KECS
 
         public override void Initialize()
         {
-            _filter = world.Filter.With<T>();
+            _filter = world.Filter().With<T>();
         }
 
 
