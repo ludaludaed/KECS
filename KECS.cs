@@ -327,8 +327,8 @@ namespace Ludaludaed.KECS
         private bool _isAlive;
         public readonly WorldConfig Config;
 
-        public int WorldId => _worldId;
         public string Name => _name;
+        public int WorldId => _worldId;
         public bool IsAlive => _isAlive;
 
         internal ArchetypeManager ArchetypeManager;
@@ -594,7 +594,7 @@ namespace Ludaludaed.KECS
 
         public override string ToString()
         {
-            return $"World - {_worldId} <{Name}>";
+            return $"World - {_worldId} <{_name}>";
         }
     }
 
@@ -688,20 +688,6 @@ namespace Ludaludaed.KECS
             return ref pool.Get(entity.Id);
         }
 
-        public static void Set(in this Entity entity, object value, int typeIdx)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            var pool = world.GetPool(typeIdx);
-            pool.SetObject(entity.Id, value);
-
-            if (!entityData.Archetype.Mask.GetBit(typeIdx))
-            {
-                GotoNextArchetype(ref entityData, in entity, typeIdx);
-            }
-        }
-
         public static void Remove<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -713,23 +699,6 @@ namespace Ludaludaed.KECS
             {
                 GotoPriorArchetype(ref entityData, in entity, idx);
                 pool.Remove(entity.Id);
-            }
-
-            if (entityData.Archetype.Mask.Count == 0)
-            {
-                entity.Destroy();
-            }
-        }
-
-        public static void Remove(in this Entity entity, int typeIdx)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            if (entityData.Archetype.Mask.GetBit(typeIdx))
-            {
-                GotoPriorArchetype(ref entityData, in entity, typeIdx);
-                world.GetPool(typeIdx).Remove(entity.Id);
             }
 
             if (entityData.Archetype.Mask.Count == 0)
@@ -756,6 +725,69 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
+        }
+        
+        private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
+        {
+            var world = entity.World;
+            entityData.Archetype.RemoveEntity(entity);
+            var newArchetype = world.ArchetypeManager.FindOrCreateNextArchetype(entityData.Archetype, index);
+            entityData.Archetype = newArchetype;
+            entityData.Archetype.AddEntity(entity);
+        }
+
+        private static void GotoPriorArchetype(ref EntityData entityData, in Entity entity, int index)
+        {
+            var world = entity.World;
+            entityData.Archetype.RemoveEntity(entity);
+            var newArchetype = world.ArchetypeManager.FindOrCreatePriorArchetype(entityData.Archetype, index);
+            entityData.Archetype = newArchetype;
+            entityData.Archetype.AddEntity(entity);
+        }
+
+        public static void Destroy(in this Entity entity)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+
+            foreach (var comp in entityData.Archetype.Mask)
+            {
+                world.GetPool(comp).Remove(entity.Id);
+            }
+
+            entityData.Archetype.RemoveEntity(entity);
+            world.RecycleEntity(entity);
+        }
+        
+        public static void Remove(in this Entity entity, int typeIdx)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+
+            if (entityData.Archetype.Mask.GetBit(typeIdx))
+            {
+                GotoPriorArchetype(ref entityData, in entity, typeIdx);
+                world.GetPool(typeIdx).Remove(entity.Id);
+            }
+
+            if (entityData.Archetype.Mask.Count == 0)
+            {
+                entity.Destroy();
+            }
+        }
+        
+        public static void Set(in this Entity entity, object value, int typeIdx)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+
+            var pool = world.GetPool(typeIdx);
+            pool.SetObject(entity.Id, value);
+
+            if (!entityData.Archetype.Mask.GetBit(typeIdx))
+            {
+                GotoNextArchetype(ref entityData, in entity, typeIdx);
+            }
         }
 
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
@@ -796,38 +828,6 @@ namespace Ludaludaed.KECS
             }
 
             return lenght;
-        }
-
-        private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
-        {
-            var world = entity.World;
-            entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.ArchetypeManager.FindOrCreateNextArchetype(entityData.Archetype, index);
-            entityData.Archetype = newArchetype;
-            entityData.Archetype.AddEntity(entity);
-        }
-
-        private static void GotoPriorArchetype(ref EntityData entityData, in Entity entity, int index)
-        {
-            var world = entity.World;
-            entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.ArchetypeManager.FindOrCreatePriorArchetype(entityData.Archetype, index);
-            entityData.Archetype = newArchetype;
-            entityData.Archetype.AddEntity(entity);
-        }
-
-        public static void Destroy(in this Entity entity)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            foreach (var comp in entityData.Archetype.Mask)
-            {
-                world.GetPool(comp).Remove(entity.Id);
-            }
-
-            entityData.Archetype.RemoveEntity(entity);
-            world.RecycleEntity(entity);
         }
     }
 
@@ -1281,8 +1281,8 @@ namespace Ludaludaed.KECS
         internal int Version { get; set; }
 
         private GrowList<Archetype> _archetypes;
-        private World _world;
         private ArchetypeManager _archetypeManager;
+        private World _world;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Filter(World world)
@@ -1502,6 +1502,7 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             Version = 0;
+            _archetypeManager = null;
             _archetypes.Clear();
             _archetypes = null;
             _world = null;
