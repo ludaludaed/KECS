@@ -377,9 +377,8 @@ namespace Ludaludaed.KECS
             _debugListeners.Remove(listener);
         }
 #endif
-        
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter Filter()
         {
@@ -389,8 +388,8 @@ namespace Ludaludaed.KECS
             _filters.Add(filter);
             return filter;
         }
-        
-        
+
+
         public WorldInfo GetInfo()
         {
             return new WorldInfo()
@@ -726,7 +725,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
         }
-        
+
         private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
         {
             var world = entity.World;
@@ -758,7 +757,7 @@ namespace Ludaludaed.KECS
             entityData.Archetype.RemoveEntity(entity);
             world.RecycleEntity(entity);
         }
-        
+
         public static void Remove(in this Entity entity, int typeIdx)
         {
             var world = entity.World;
@@ -775,7 +774,7 @@ namespace Ludaludaed.KECS
                 entity.Destroy();
             }
         }
-        
+
         public static void Set(in this Entity entity, object value, int typeIdx)
         {
             var world = entity.World;
