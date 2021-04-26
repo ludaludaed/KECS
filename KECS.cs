@@ -616,21 +616,24 @@ namespace Ludaludaed.KECS
 
         public static readonly Entity Empty = new Entity();
 
+#if DEBUG
         public override string ToString()
         {
-            return $"Entity_ID-{Id}:AGE-{Age}";
+            if (!this.IsAlive()) return "Destroyed Entity";
+            return $"Entity {Id} {Age}";
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(in Entity lhs, in Entity rhs)
         {
-            return lhs.Id == rhs.Id && lhs.Age == rhs.Age;
+            return lhs.Equals(rhs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(in Entity lhs, in Entity rhs)
         {
-            return lhs.Id != rhs.Id || lhs.Age != rhs.Age;
+            return !lhs.Equals(rhs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -643,12 +646,6 @@ namespace Ludaludaed.KECS
         public override bool Equals(object obj)
         {
             return obj is Entity other && Equals(other);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsEmpty()
-        {
-            return Id == 0 && Age == 0;
         }
 
         public override int GetHashCode()
@@ -665,11 +662,19 @@ namespace Ludaludaed.KECS
 
     public static class EntityExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(in this Entity entity)
         {
             return entity.World.EntityIsAlive(in entity);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsEmpty(in this Entity entity)
+        {
+            return entity.Id == 0 && entity.Age == 0;
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T Set<T>(in this Entity entity, in T value) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -687,6 +692,7 @@ namespace Ludaludaed.KECS
             return ref pool.Get(entity.Id);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Remove<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -706,6 +712,7 @@ namespace Ludaludaed.KECS
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T Get<T>(in this Entity entity) where T : struct
         {
             var pool = entity.World.GetPool<T>();
@@ -718,6 +725,7 @@ namespace Ludaludaed.KECS
             return ref pool.Empty;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Has<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -726,6 +734,7 @@ namespace Ludaludaed.KECS
             return entityData.Archetype.Mask.GetBit(idx);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
         {
             var world = entity.World;
@@ -734,7 +743,9 @@ namespace Ludaludaed.KECS
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
+        
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void GotoPriorArchetype(ref EntityData entityData, in Entity entity, int index)
         {
             var world = entity.World;
@@ -743,7 +754,9 @@ namespace Ludaludaed.KECS
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
+        
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(in this Entity entity)
         {
             var world = entity.World;
@@ -757,7 +770,9 @@ namespace Ludaludaed.KECS
             entityData.Archetype.RemoveEntity(entity);
             world.RecycleEntity(entity);
         }
+        
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Remove(in this Entity entity, int typeIdx)
         {
             var world = entity.World;
@@ -775,6 +790,8 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set(in this Entity entity, object value, int typeIdx)
         {
             var world = entity.World;
@@ -789,6 +806,8 @@ namespace Ludaludaed.KECS
             }
         }
 
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
         {
             var world = entity.World;
@@ -809,7 +828,9 @@ namespace Ludaludaed.KECS
             return lenght;
         }
 
-        public static int GetComponentsValues(in this Entity entity, ref object[] objects)
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetComponents(in this Entity entity, ref object[] objects)
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
@@ -840,8 +861,8 @@ namespace Ludaludaed.KECS
     {
         private GrowList<Archetype> _archetypes;
         internal Archetype EmptyArchetype => _archetypes[0];
-        private object _lockObject = new object();
         private World _world;
+        
         public int Count => _archetypes.Count;
 
         internal ArchetypeManager(World world)
@@ -880,32 +901,29 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Archetype FindOrCreateArchetype(BitMask mask)
         {
-            lock (_lockObject)
+            var curArchetype = EmptyArchetype;
+            var newMask = new BitMask(_world.Config.CACHE_COMPONENTS_CAPACITY);
+
+            foreach (var index in mask)
             {
-                var curArchetype = EmptyArchetype;
-                var newMask = new BitMask(_world.Config.CACHE_COMPONENTS_CAPACITY);
+                newMask.SetBit(index);
 
-                foreach (var index in mask)
+                var nextArchetype = curArchetype.Next.GetValue(index);
+
+                if (nextArchetype == null)
                 {
-                    newMask.SetBit(index);
+                    nextArchetype = new Archetype(_world, newMask);
 
-                    var nextArchetype = curArchetype.Next.GetValue(index);
+                    nextArchetype.Prior.Add(index, curArchetype);
+                    curArchetype.Next.Add(index, nextArchetype);
 
-                    if (nextArchetype == null)
-                    {
-                        nextArchetype = new Archetype(_world, newMask);
-
-                        nextArchetype.Prior.Add(index, curArchetype);
-                        curArchetype.Next.Add(index, nextArchetype);
-
-                        _archetypes.Add(nextArchetype);
-                    }
-
-                    curArchetype = nextArchetype;
+                    _archetypes.Add(nextArchetype);
                 }
 
-                return curArchetype;
+                curArchetype = nextArchetype;
             }
+
+            return curArchetype;
         }
 
 
@@ -945,7 +963,6 @@ namespace Ludaludaed.KECS
             }
 
             _world = null;
-            _lockObject = null;
             _archetypes.Clear();
             _archetypes = null;
         }
@@ -1005,24 +1022,21 @@ namespace Ludaludaed.KECS
         internal void Unlock()
         {
             _lockCount--;
-
-            if (_lockCount == 0 && _delayedOpsCount > 0)
+            if (_lockCount != 0 || _delayedOpsCount <= 0) return;
+            for (int i = 0; i < _delayedOpsCount; i++)
             {
-                for (int i = 0; i < _delayedOpsCount; i++)
+                ref var operation = ref _delayedChanges[i];
+                if (operation.IsAdd)
                 {
-                    ref var op = ref _delayedChanges[i];
-                    if (op.IsAdd)
-                    {
-                        AddEntity(op.Entity);
-                    }
-                    else
-                    {
-                        RemoveEntity(op.Entity);
-                    }
+                    AddEntity(operation.Entity);
                 }
-
-                _delayedOpsCount = 0;
+                else
+                {
+                    RemoveEntity(operation.Entity);
+                }
             }
+
+            _delayedOpsCount = 0;
         }
 
 
@@ -2003,8 +2017,8 @@ namespace Ludaludaed.KECS
     {
         protected const int None = -1;
         protected int[] Dense;
-        protected int DenseCount;
         protected int[] Sparse;
+        protected int DenseCount;
 
 
         public ref int this[int index]
