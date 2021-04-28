@@ -667,7 +667,7 @@ namespace Ludaludaed.KECS
         {
             return entity.World.EntityIsAlive(in entity);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsEmpty(in this Entity entity)
         {
@@ -743,7 +743,7 @@ namespace Ludaludaed.KECS
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void GotoPriorArchetype(ref EntityData entityData, in Entity entity, int index)
@@ -754,7 +754,7 @@ namespace Ludaludaed.KECS
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(in this Entity entity)
@@ -770,7 +770,7 @@ namespace Ludaludaed.KECS
             entityData.Archetype.RemoveEntity(entity);
             world.RecycleEntity(entity);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Remove(in this Entity entity, int typeIdx)
@@ -790,7 +790,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set(in this Entity entity, object value, int typeIdx)
         {
@@ -806,7 +806,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
         {
@@ -828,7 +828,7 @@ namespace Ludaludaed.KECS
             return lenght;
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponents(in this Entity entity, ref object[] objects)
         {
@@ -862,7 +862,7 @@ namespace Ludaludaed.KECS
         private GrowList<Archetype> _archetypes;
         internal Archetype EmptyArchetype => _archetypes[0];
         private World _world;
-        
+
         public int Count => _archetypes.Count;
 
         internal ArchetypeManager(World world)
@@ -1549,15 +1549,15 @@ namespace Ludaludaed.KECS
     /// </summary>
     public abstract class SystemBase : IDisposable
     {
-        protected World world;
-        protected Systems systems;
+        protected World _world;
+        protected Systems _systems;
         public abstract void Initialize();
 
 
         internal void StartUp(World world, Systems systems)
         {
-            this.world = world;
-            this.systems = systems;
+            _world = world;
+            _systems = systems;
             OnLaunch();
         }
 
@@ -1997,7 +1997,7 @@ namespace Ludaludaed.KECS
 
         public override void Initialize()
         {
-            _filter = world.Filter().With<T>();
+            _filter = _world.Filter().With<T>();
         }
 
 
