@@ -11,22 +11,6 @@ namespace Ludaludaed.KECS
     // WORLDS
     //=============================================================================
 
-#if DEBUG
-    public interface IWorldDebugListener
-    {
-        void OnEntityCreated(in Entity entity);
-        void OnEntityDestroyed(in Entity entity);
-        void OnArchetypeCreated(Archetype archetype);
-        void OnWorldDestroyed(World world);
-    }
-
-
-    public interface ISystemsDebugListener
-    {
-        void OnSystemsDestroyed(Systems systems);
-    }
-#endif
-
 
     public struct WorldInfo
     {
@@ -2382,14 +2366,14 @@ namespace Ludaludaed.KECS
     public static class EcsMath
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Pot(int v)
+        public static int Pot(int input)
         {
-            if (v < 2)
+            if (input < 2)
             {
                 return 2;
             }
 
-            var n = v - 1;
+            var n = input - 1;
             n |= n >> 1;
             n |= n >> 2;
             n |= n >> 4;
@@ -2398,29 +2382,6 @@ namespace Ludaludaed.KECS
             return n + 1;
         }
     }
-
-
-    public static class ListExtensions
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void RemoveAtFast<T>(this List<T> list, int index)
-        {
-            var count = list.Count;
-            list[index] = list[count - 1];
-            list.RemoveAt(count - 1);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void RemoveFast<T>(this List<T> list, T item)
-        {
-            var count = list.Count;
-            var index = list.IndexOf(item);
-            list[index] = list[count - 1];
-            list.RemoveAt(count - 1);
-        }
-    }
-
 
     internal static class ArrayExtension
     {
@@ -2657,4 +2618,20 @@ namespace Ludaludaed.KECS
             }
         }
     }
+    
+#if DEBUG
+    public interface IWorldDebugListener
+    {
+        void OnEntityCreated(in Entity entity);
+        void OnEntityDestroyed(in Entity entity);
+        void OnArchetypeCreated(Archetype archetype);
+        void OnWorldDestroyed(World world);
+    }
+
+
+    public interface ISystemsDebugListener
+    {
+        void OnSystemsDestroyed(Systems systems);
+    }
+#endif
 }
