@@ -1,4 +1,4 @@
-# KECS 🧁
+# 🧁 KECS 
 
 KECS is a fast and easy C# Entity Component System framework for writing your own games.
 
