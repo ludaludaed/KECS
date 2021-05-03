@@ -57,10 +57,7 @@ namespace Ludaludaed.KECS
         private static IntDispenser _freeWorldsIds;
         private static World[] _worlds;
         private static Dictionary<int, int> _worldsIdx;
-
-        /// <summary>
-        /// Return default world.
-        /// </summary>
+        
 
         public static World Default
         {
@@ -90,14 +87,7 @@ namespace Ludaludaed.KECS
             _worldsIdx = new Dictionary<int, int>(32);
         }
 
-
-        /// <summary>
-        /// Create new world.
-        /// </summary>
-        /// <param name="name">World name.</param>
-        /// <param name="config">Configuration for world</param>
-        /// <returns>World.</returns>
-        /// <exception cref="Exception"></exception>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Create(string name = DEFAULT_WORLD_NAME, WorldConfig config = default)
         {
@@ -139,13 +129,7 @@ namespace Ludaludaed.KECS
             };
         }
 
-
-        /// <summary>
-        /// Returns the world by name.
-        /// </summary>
-        /// <param name="name">World name.</param>
-        /// <returns>World.</returns>
-        /// <exception cref="Exception"></exception>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(string name)
         {
@@ -161,13 +145,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Returns the world by id.
-        /// </summary>
-        /// <param name="worldId">World id.</param>
-        /// <returns>World.</returns>
-        /// <exception cref="Exception"></exception>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(int worldId)
         {
@@ -188,13 +166,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Returns an existing world or creates a new one if it does not exist.
-        /// </summary>
-        /// <param name="name">World name.</param>
-        /// <param name="config">World configuration.</param>
-        /// <returns>World.</returns>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World GetOrCreate(string name, WorldConfig config = default)
         {
@@ -210,12 +182,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Destroy the world by name.
-        /// </summary>
-        /// <param name="name">World name</param>
-        /// <exception cref="Exception"></exception>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(string name)
         {
@@ -235,10 +202,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Destroys all worlds.
-        /// </summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DestroyAll()
         {
@@ -573,10 +537,7 @@ namespace Ludaludaed.KECS
             ArchetypeManager.Dispose();
             ArchetypeManager = null;
         }
-
-        /// <summary>
-        /// Destroy the world.
-        /// </summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Destroy()
         {
@@ -1308,13 +1269,7 @@ namespace Ludaludaed.KECS
 
             _archetypeManager = world.ArchetypeManager;
         }
-
-
-        /// <summary>
-        /// Include component.
-        /// </summary>
-        /// <typeparam name="T">Component type.</typeparam>
-        /// <returns></returns>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter With<T>() where T : struct
         {
@@ -1328,13 +1283,7 @@ namespace Ludaludaed.KECS
             Include.SetBit(typeIdx);
             return this;
         }
-
-
-        /// <summary>
-        /// Exclude component.
-        /// </summary>
-        /// <typeparam name="T">Component type.</typeparam>
-        /// <returns></returns>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter WithOut<T>() where T : struct
         {
@@ -1527,10 +1476,7 @@ namespace Ludaludaed.KECS
     // SYSTEMS
     //=============================================================================
 
-
-    /// <summary>
-    /// Interface for all running systems.
-    /// </summary>
+    
     public interface IUpdate
     {
         void OnUpdate(float deltaTime);
@@ -1543,10 +1489,7 @@ namespace Ludaludaed.KECS
     public interface ILateUpdate : IUpdate
     {
     }
-
-    /// <summary>
-    /// Base class for all systems.
-    /// </summary>
+    
     public abstract class SystemBase : IDisposable
     {
         protected World _world;
@@ -1649,12 +1592,7 @@ namespace Ludaludaed.KECS
             _debugListeners.Remove(listener);
         }
 #endif
-        /// <summary>
-        /// Add shared data for systems.
-        /// </summary>
-        /// <param name="data">Data.</param>
-        /// <typeparam name="T">Type of shared data.</typeparam>
-        /// <returns></returns>
+
         public Systems AddShared<T>(T data) where T : class
         {
             if (_initialized)
@@ -1671,12 +1609,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-
-        /// <summary>
-        /// Get shared data of systems.
-        /// </summary>
-        /// <typeparam name="T">Type of shared data.</typeparam>
-        /// <returns></returns>
+        
         public T GetShared<T>() where T : class
         {
             if (!_initialized)
@@ -1691,11 +1624,8 @@ namespace Ludaludaed.KECS
 
             return _sharedData.Get<T>();
         }
-
-        /// <summary>
-        /// Returns all run systems.
-        /// </summary>
-        /// <returns></returns>
+        
+        
         public List<SystemData> GetUpdateSystems()
         {
             return _updateSystems;
@@ -1716,11 +1646,7 @@ namespace Ludaludaed.KECS
             return _onlyBaseSystems;
         }
 
-        /// <summary>
-        /// Adding a new system.
-        /// </summary>
-        /// <typeparam name="T">System type.</typeparam>
-        /// <returns></returns>
+
         public Systems Add<T>() where T : SystemBase, new()
         {
             var obj = new T();
@@ -1776,12 +1702,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-
-        /// <summary>
-        /// Disable the system.
-        /// </summary>
-        /// <typeparam name="T">System type.</typeparam>
-        /// <returns></returns>
+        
         public Systems Disable<T>() where T : SystemBase
         {
             if (!_initialized)
@@ -1804,12 +1725,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-
-        /// <summary>
-        /// Enable the system.
-        /// </summary>
-        /// <typeparam name="T">System type.</typeparam>
-        /// <returns></returns>
+        
         public Systems Enable<T>() where T : SystemBase
         {
             if (!_initialized)
@@ -1832,23 +1748,13 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-
-        /// <summary>
-        /// Building a cleaning system for one frame (event) components.
-        /// </summary>
-        /// <typeparam name="T">Component type</typeparam>
-        /// <returns></returns>
-        public Systems OneFrame<T>() where T : struct
+        
+        public Systems DestroyAfterFrame<T>() where T : struct
         {
-            return Add(new RemoveOneFrame<T>());
+            return Add(new DestroyAfterFrame<T>());
         }
 
-
-        /// <summary>
-        /// Iterates all IUpdate systems.
-        /// </summary>
-        /// <param name="deltaTime"></param>
-        /// <exception cref="Exception"></exception>
+        
         public void Update(float deltaTime)
         {
             if (!_initialized)
@@ -1870,12 +1776,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Iterates all IFixedUpdate systems.
-        /// </summary>
-        /// <param name="deltaTime"></param>
-        /// <exception cref="Exception"></exception>
+        
         public void FixedUpdate(float deltaTime)
         {
             if (!_initialized)
@@ -1897,12 +1798,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Iterates all IUpdate systems.
-        /// </summary>
-        /// <param name="deltaTime"></param>
-        /// <exception cref="Exception"></exception>
+        
         public void LateUpdate(float deltaTime)
         {
             if (!_initialized)
@@ -1924,11 +1820,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Initialize all systems.
-        /// </summary>
-        /// <exception cref="Exception"></exception>
+        
         public void Initialize()
         {
             if (_destroyed)
@@ -1943,11 +1835,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        /// <summary>
-        /// Destroy all systems.
-        /// </summary>
-        /// <exception cref="Exception"></exception>
+        
         public void Destroy()
         {
             if (_destroyed)
@@ -1993,7 +1881,7 @@ namespace Ludaludaed.KECS
         }
     }
 
-    internal class RemoveOneFrame<T> : SystemBase, ILateUpdate where T : struct
+    internal class DestroyAfterFrame<T> : SystemBase, ILateUpdate where T : struct
     {
         private Filter _filter;
 
