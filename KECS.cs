@@ -169,7 +169,7 @@ namespace Ludaludaed.KECS
         /// <returns>World.</returns>
         /// <exception cref="Exception"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World GetById(int worldId)
+        public static World Get(int worldId)
         {
             lock (_lockObject)
             {
@@ -1655,7 +1655,7 @@ namespace Ludaludaed.KECS
         /// <param name="data">Data.</param>
         /// <typeparam name="T">Type of shared data.</typeparam>
         /// <returns></returns>
-        public T AddShared<T>(T data) where T : class
+        public Systems AddShared<T>(T data) where T : class
         {
             if (_initialized)
             {
@@ -1667,7 +1667,8 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot add shared data.");
             }
 
-            return _sharedData.Add(data);
+            _sharedData.Add(data);
+            return this;
         }
 
 
@@ -1752,13 +1753,15 @@ namespace Ludaludaed.KECS
                         collection = _fixedSystems;
                         impl = fixedSystem;
                     }
-
-                    if (systemValue is ILateUpdate lateSystem)
+                    else
                     {
-                        collection = _lateSystems;
-                        impl = lateSystem;
+                        if (systemValue is ILateUpdate lateSystem)
+                        {
+                            collection = _lateSystems;
+                            impl = lateSystem;
+                        }
                     }
-
+                    
                     systemData.UpdateImpl = impl;
                     collection.Add(systemData);
                 }

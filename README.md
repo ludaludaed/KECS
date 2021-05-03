@@ -15,7 +15,7 @@ KECS is a fast and easy C# Entity Component System framework for writing your ow
 
 ## About ECS pattern
 
-### World
+### 🌏 World
 
 World is a container for all entities and components. The world is created with `Worlds.Create()`. The world can be set
 up with its initial settings using the `WorldConfig` structure.
@@ -41,7 +41,7 @@ The world can be destroyed using the `Destroy ()` method of the `World` class.
 world.Destroy();
 ```
 
-### Component
+### 📦 Component
 
 A component is a container for user data only. In KECS, this is only a value type.
 
@@ -53,7 +53,7 @@ public struct MoveComponent
 }
 ```
 
-### Entity
+### 🤖 Entity
 
 An entity is a container for components. The entity has methods for adding, removing, and getting components.
 
@@ -72,7 +72,7 @@ entity.Destroy ();
 
 > **Important!** An entity without components will be automatically deleted.
 
-### System
+### 🕹️ System
 
 The system processes entities matching the filter. The system must implement the abstract class `SystemBase`. The system
 can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateUpdate`.
@@ -112,7 +112,7 @@ can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateU
     }
 ```
 
-#### Filter
+#### 🎰 Filter
 
 You can create a filter using a chain of commands consisting of two methods `With<>()` / `.WithOut<>()`.
 
@@ -136,7 +136,7 @@ public class SystemTest1 : SystemBase, IUpdate
 }
 ```
 
-#### Data injection
+#### 💉 Data injection
 
 Adding shared data to systems is done by calling the `AddShared ()` method of the `Systems` class.
 
@@ -178,9 +178,12 @@ public class SystemTest1 : SystemBase, IUpdate
 }
 ```
 
-### Systems
+### 🎮 Systems
 
-Systems are added using the `Add <> ()` method of the `Systems` class.
+Systems are added using the `Add<>()` method of the `Systems` class.
+After adding all systems, you must call the `Intitalize()` method.
+
+You can disable and enable systems using the `Enable<>()` and `Disable<>()` methods of the `Systems` class.
 
 ```csharp
 public class StartUp : MonoBehaviour
@@ -219,5 +222,6 @@ public class StartUp : MonoBehaviour
     }
 }
 ```
+> **Important!** After the systems are initialized, you cannot add new systems.
 
 
