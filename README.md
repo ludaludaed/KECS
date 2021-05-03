@@ -60,7 +60,7 @@ An entity is a container for components. The entity has methods for adding, remo
 ```csharp
 Entity entity = _world.CreateEntity();
 
-ref var addedSpeedComponent  = ref entity.Set(new SpeedComponent);
+ref var settedSpeedComponent  = ref entity.Set(new SpeedComponent);
 ref var gottenSpeedComponent = ref entity.Get<SpeedComponent>();
 
 entity.Remove<SpeedComponent>();
