@@ -1,17 +1,17 @@
-# 🧁 KECS 
+# 🧁KECS
 
 KECS is a fast and easy C# Entity Component System framework for writing your own games.
 
 ## Table of Contents
 
 * [About ECS pattern](#about-ecs-pattern)
-    * [World](#world)
-    * [Component](#component)
-    * [Entity](#entity)
-    * [System](#system)
-        * [Filter](#filter)
-        * [Data injection](#data-injection)
-    * [Systems](#systems)
+    * [World](#-world)
+    * [Component](#-component)
+    * [Entity](#-entity)
+    * [System](#-system)
+        * [Filter](#-filter)
+        * [Data injection](#-data-injection)
+    * [Systems](#-systems)
 
 ## About ECS pattern
 
