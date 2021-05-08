@@ -1157,7 +1157,7 @@ namespace Ludaludaed.KECS
         {
             _components.Set(entityId, value);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -1891,7 +1891,8 @@ namespace Ludaludaed.KECS
             _empty = default(T);
         }
 
-        public bool Contains(int sparseIdx) => sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
+        public bool Contains(int sparseIdx) =>
+            _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
 
         public ref T this[int index]
         {
@@ -1950,7 +1951,7 @@ namespace Ludaludaed.KECS
             _denseCount--;
 
             if (packedIdx >= _denseCount) return;
-            
+
             var lastSparseIdx = _dense[_denseCount];
             var lastValueIdx = _instances[_denseCount];
 
@@ -1963,15 +1964,15 @@ namespace Ludaludaed.KECS
         {
             _denseCount = 0;
             Array.Clear(_instances, 0, _instances.Length);
-            Array.Clear(_sparse, 0, _sparse.Length);
             Array.Clear(_dense, 0, _dense.Length);
+            _sparse.Fill(None);
         }
 
         public IEnumerator<T> GetEnumerator()
         {
             return new Enumerator(this);
         }
-        
+
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
@@ -2015,7 +2016,7 @@ namespace Ludaludaed.KECS
 
                 return false;
             }
-            
+
             public void Dispose()
             {
             }
@@ -2349,7 +2350,7 @@ namespace Ludaludaed.KECS
                 _index = -1;
                 _returned = 0;
             }
-            
+
             public int Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
