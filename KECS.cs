@@ -30,7 +30,7 @@ namespace Ludaludaed.KECS
         public const int DEFAULT_ENTITY_COMPONENTS = 256;
         public const int DEFAULT_ENTITIES = 256;
         public const int DEFAULT_ARCHETYPES = 256;
-        public const int DEFAULT_CACHE_COMPONENTS_CAPACITY = 256;
+        public const int DEFAULT_COMPONENTS_TYPES = 256;
     }
 
 
@@ -109,7 +109,7 @@ namespace Ludaludaed.KECS
                     : WorldConfig.DEFAULT_ENTITY_COMPONENTS,
                 COMPONENTS_TYPES = config.COMPONENTS_TYPES > 0
                     ? config.COMPONENTS_TYPES
-                    : WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY
+                    : WorldConfig.DEFAULT_COMPONENTS_TYPES
             };
         }
 
@@ -1058,7 +1058,7 @@ namespace Ludaludaed.KECS
     public static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_COMPONENTS_TYPES];
 
         public static int GetIdx(Type type)
         {
