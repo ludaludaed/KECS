@@ -41,7 +41,7 @@ namespace Ludaludaed.KECS
         private static IntDispenser _freeWorldsIds;
         private static World[] _worlds;
         private static Dictionary<int, int> _worldsIdx;
-        
+
 
         public static World Default
         {
@@ -71,7 +71,7 @@ namespace Ludaludaed.KECS
             _worldsIdx = new Dictionary<int, int>(32);
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Create(string name = DEFAULT_WORLD_NAME, WorldConfig config = default)
         {
@@ -113,7 +113,7 @@ namespace Ludaludaed.KECS
             };
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(string name)
         {
@@ -129,7 +129,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(int worldId)
         {
@@ -150,7 +150,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World GetOrCreate(string name, WorldConfig config = default)
         {
@@ -166,7 +166,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(string name)
         {
@@ -186,7 +186,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DestroyAll()
         {
@@ -261,7 +261,7 @@ namespace Ludaludaed.KECS
 
     public sealed class World
     {
-        private SparseSet<IComponentPool> _componentPools;
+        private HandleMap<IComponentPool> _componentPools;
         private int _componentsTypesCount;
 
         private IntDispenser _freeEntityIds;
@@ -289,7 +289,7 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new SparseSet<IComponentPool>(config.CACHE_COMPONENTS_CAPACITY,
+            _componentPools = new HandleMap<IComponentPool>(config.CACHE_COMPONENTS_CAPACITY,
                 config.CACHE_COMPONENTS_CAPACITY);
             _componentsTypesCount = 0;
 
@@ -440,10 +440,6 @@ namespace Ludaludaed.KECS
             {
                 var newCapacity = EcsMath.Pot(capacity);
                 Array.Resize(ref _entities, newCapacity);
-                for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
-                {
-                    _componentPools[i].EnsureLength(newCapacity);
-                }
             }
         }
 
@@ -458,11 +454,11 @@ namespace Ludaludaed.KECS
             if (!_componentPools.Contains(idx))
             {
                 var pool = new ComponentPool<T>(this);
-                _componentPools.Add(idx, pool);
+                _componentPools.Set(idx, pool);
                 _componentsTypesCount++;
             }
 
-            return (ComponentPool<T>) _componentPools.GetValue(idx);
+            return (ComponentPool<T>) _componentPools.Get(idx);
         }
 
 
@@ -471,7 +467,7 @@ namespace Ludaludaed.KECS
         {
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
-            var pool = _componentPools.GetValue(idx);
+            var pool = _componentPools.Get(idx);
             return pool;
         }
 
@@ -521,7 +517,7 @@ namespace Ludaludaed.KECS
             ArchetypeManager.Dispose();
             ArchetypeManager = null;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Destroy()
         {
@@ -853,14 +849,14 @@ namespace Ludaludaed.KECS
             {
                 newMask.SetBit(index);
 
-                var nextArchetype = curArchetype.Next.GetValue(index);
+                var nextArchetype = curArchetype.Next.Get(index);
 
                 if (nextArchetype == null)
                 {
                     nextArchetype = new Archetype(_world, newMask);
 
-                    nextArchetype.Prior.Add(index, curArchetype);
-                    curArchetype.Next.Add(index, nextArchetype);
+                    nextArchetype.Prior.Set(index, curArchetype);
+                    curArchetype.Next.Set(index, nextArchetype);
 
                     _archetypes.Add(nextArchetype);
                 }
@@ -875,7 +871,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
         {
-            var priorArchetype = archetype.Prior.GetValue(removeIndex);
+            var priorArchetype = archetype.Prior.Get(removeIndex);
             if (priorArchetype != null)
                 return priorArchetype;
 
@@ -889,7 +885,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
         {
-            var nextArchetype = archetype.Next.GetValue(addIndex);
+            var nextArchetype = archetype.Next.Get(addIndex);
             if (nextArchetype != null)
                 return nextArchetype;
 
@@ -916,9 +912,9 @@ namespace Ludaludaed.KECS
 
     public sealed class Archetype : IEnumerable<Entity>, IDisposable
     {
-        internal SparseSet<Entity> Entities;
-        internal SparseSet<Archetype> Next;
-        internal SparseSet<Archetype> Prior;
+        internal HandleMap<Entity> Entities;
+        internal HandleMap<Archetype> Next;
+        internal HandleMap<Archetype> Prior;
 
         public Type[] TypesCache;
 
@@ -939,12 +935,12 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _delayedOpsCount = 0;
 
-            Next = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
+            Next = new HandleMap<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
                 world.Config.CACHE_COMPONENTS_CAPACITY);
-            Prior = new SparseSet<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
+            Prior = new HandleMap<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
                 world.Config.CACHE_COMPONENTS_CAPACITY);
 
-            Entities = new SparseSet<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
+            Entities = new HandleMap<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
                 world.Config.CACHE_ENTITIES_CAPACITY);
 
             TypesCache = new Type[mask.Count];
@@ -1009,7 +1005,7 @@ namespace Ludaludaed.KECS
                 return;
             }
 
-            Entities.Add(entity.Id, entity);
+            Entities.Set(entity.Id, entity);
         }
 
 
@@ -1106,7 +1102,6 @@ namespace Ludaludaed.KECS
     internal interface IComponentPool : IDisposable
     {
         void Remove(int entityId);
-        void EnsureLength(int capacity);
         object GetObject(int entityId);
         void SetObject(int entityId, object value);
     }
@@ -1114,7 +1109,7 @@ namespace Ludaludaed.KECS
 
     internal sealed class ComponentPool<T> : IComponentPool where T : struct
     {
-        private SparseSet<T> _components;
+        private HandleMap<T> _components;
         private int Length => _components.Count;
         private World _owner;
         internal ref T Empty => ref _components.Empty;
@@ -1123,7 +1118,7 @@ namespace Ludaludaed.KECS
         public ComponentPool(World world)
         {
             _owner = world;
-            _components = new SparseSet<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
+            _components = new HandleMap<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
                 world.Config.ENTITY_COMPONENTS_CAPACITY);
         }
 
@@ -1131,14 +1126,14 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId)
         {
-            return ref _components.GetValue(entityId);
+            return ref _components.Get(entityId);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public object GetObject(int entityId)
         {
-            return _components.GetValue(entityId);
+            return _components.Get(entityId);
         }
 
         public void SetObject(int entityId, object value)
@@ -1147,13 +1142,6 @@ namespace Ludaludaed.KECS
             {
                 _components.Set(entityId, component);
             }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(int entityId, in T value)
-        {
-            _components.Add(entityId, value);
         }
 
 
@@ -1169,13 +1157,7 @@ namespace Ludaludaed.KECS
         {
             _components.Set(entityId, value);
         }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EnsureLength(int capacity)
-        {
-            _components.EnsureSparseCapacity(capacity);
-        }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -1253,7 +1235,7 @@ namespace Ludaludaed.KECS
 
             _archetypeManager = world.ArchetypeManager;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter With<T>() where T : struct
         {
@@ -1267,7 +1249,7 @@ namespace Ludaludaed.KECS
             Include.SetBit(typeIdx);
             return this;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter WithOut<T>() where T : struct
         {
@@ -1460,7 +1442,7 @@ namespace Ludaludaed.KECS
     // SYSTEMS
     //=============================================================================
 
-    
+
     public interface IUpdate
     {
         void OnUpdate(float deltaTime);
@@ -1473,7 +1455,7 @@ namespace Ludaludaed.KECS
     public interface ILateUpdate : IUpdate
     {
     }
-    
+
     public abstract class SystemBase : IDisposable
     {
         protected World _world;
@@ -1593,7 +1575,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        
+
         public T GetShared<T>() where T : class
         {
             if (!_initialized)
@@ -1608,8 +1590,8 @@ namespace Ludaludaed.KECS
 
             return _sharedData.Get<T>();
         }
-        
-        
+
+
         public List<SystemData> GetUpdateSystems()
         {
             return _updateSystems;
@@ -1671,7 +1653,7 @@ namespace Ludaludaed.KECS
                             impl = lateSystem;
                         }
                     }
-                    
+
                     systemData.UpdateImpl = impl;
                     collection.Add(systemData);
                 }
@@ -1686,7 +1668,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        
+
         public Systems Disable<T>() where T : SystemBase
         {
             if (!_initialized)
@@ -1709,7 +1691,7 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        
+
         public Systems Enable<T>() where T : SystemBase
         {
             if (!_initialized)
@@ -1732,13 +1714,13 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        
+
         public Systems DestroyAfterFrame<T>() where T : struct
         {
             return Add(new DestroyAfterFrame<T>());
         }
 
-        
+
         public void Update(float deltaTime)
         {
             if (!_initialized)
@@ -1760,7 +1742,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         public void FixedUpdate(float deltaTime)
         {
             if (!_initialized)
@@ -1782,7 +1764,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         public void LateUpdate(float deltaTime)
         {
             if (!_initialized)
@@ -1804,7 +1786,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         public void Initialize()
         {
             if (_destroyed)
@@ -1819,7 +1801,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         public void Destroy()
         {
             if (_destroyed)
@@ -1887,81 +1869,75 @@ namespace Ludaludaed.KECS
     // SPARSE SETS
     //=============================================================================
 
-
-    public class SparseSet : IEnumerable
+    public sealed class HandleMap<T> : IEnumerable<T>
     {
-        protected const int None = -1;
-        protected int[] Dense;
-        protected int[] Sparse;
-        protected int DenseCount;
+        private const int None = -1;
+        private T[] _instances;
+        private int[] _dense;
+        private int[] _sparse;
+        private int _denseCount;
 
+        private T _empty;
+        public int Count => _denseCount;
+        public ref T Empty => ref _empty;
 
-        public ref int this[int index]
+        public HandleMap(int sparseCapacity, int denseCapacity)
+        {
+            _dense = new int[denseCapacity];
+            _sparse = new int[sparseCapacity];
+            _instances = new T[denseCapacity];
+            _sparse.Fill(None);
+            _denseCount = 0;
+            _empty = default(T);
+        }
+
+        public bool Contains(int sparseIdx) => sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
+
+        public ref T this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (index < DenseCount)
+                if (index < _denseCount)
                 {
-                    return ref Dense[index];
+                    return ref _instances[index];
                 }
 
-                throw new Exception($"|KECS| Out of range SparseSet {index}.");
+                throw new Exception($"|KECS| Out of range HandleMap {index}.");
             }
         }
 
-
-        public SparseSet(int denseCapacity, int sparseCapacity)
-        {
-            Dense = new int[denseCapacity];
-            Sparse = new int[sparseCapacity];
-            Sparse.Fill(None);
-            DenseCount = 0;
-        }
-
-
-        public int Count
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => DenseCount;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Get(int sparseIdx)
-        {
-            ArrayExtension.EnsureLength(ref Sparse, sparseIdx, None);
-
-            var packedIdx = Sparse[sparseIdx];
-            if (packedIdx != None && packedIdx < DenseCount)
-            {
-                return packedIdx;
-            }
-
-            return None;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(int sparseIdx)
+        public ref T Get(int sparseIdx)
         {
             if (Contains(sparseIdx))
             {
-                throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
+                return ref _instances[_sparse[sparseIdx]];
             }
 
-            if (Dense.Length == DenseCount)
-            {
-                EnsurePackedCapacity(DenseCount << 1);
-            }
-
-            Sparse[sparseIdx] = DenseCount;
-            Dense[DenseCount] = sparseIdx;
-            DenseCount++;
+            return ref Empty;
         }
 
+        public void Set(int sparseIdx, T value)
+        {
+            if (!Contains(sparseIdx))
+            {
+                ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
+                ArrayExtension.EnsureLength(ref _dense, _denseCount);
+                ArrayExtension.EnsureLength(ref _instances, _denseCount);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                _sparse[sparseIdx] = _denseCount;
+
+                _dense[_denseCount] = sparseIdx;
+                _instances[_denseCount] = value;
+
+                _denseCount++;
+            }
+            else
+            {
+                _instances[_sparse[sparseIdx]] = value;
+            }
+        }
+
         public void Remove(int sparseIdx)
         {
             if (!Contains(sparseIdx))
@@ -1969,293 +1945,77 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
             }
 
-            var packedIdx = Sparse[sparseIdx];
-            Sparse[sparseIdx] = None;
-            DenseCount--;
-            if (packedIdx < DenseCount)
-            {
-                var lastSparseIdx = Dense[DenseCount];
-                Dense[packedIdx] = lastSparseIdx;
-                Sparse[lastSparseIdx] = packedIdx;
-            }
+            var packedIdx = _sparse[sparseIdx];
+            _sparse[sparseIdx] = None;
+            _denseCount--;
+
+            if (packedIdx >= _denseCount) return;
+            
+            var lastSparseIdx = _dense[_denseCount];
+            var lastValueIdx = _instances[_denseCount];
+
+            _dense[packedIdx] = lastSparseIdx;
+            _instances[packedIdx] = lastValueIdx;
+            _sparse[lastSparseIdx] = packedIdx;
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(int sparseIdx)
-        {
-            ArrayExtension.EnsureLength(ref Sparse, sparseIdx, None);
-            return Sparse[sparseIdx] != None;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EnsureSparseCapacity(int capacity)
-        {
-            ArrayExtension.EnsureLength(ref Sparse, capacity, None);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void EnsurePackedCapacity(int capacity)
-        {
-            Array.Resize(ref Dense, capacity);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerator GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
-
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            DenseCount = 0;
-            Array.Clear(Dense, 0, Dense.Length);
-            Sparse.Fill(None);
-        }
-
-
-        private struct Enumerator : IEnumerator
-        {
-            private int _count;
-            private int _index;
-            private SparseSet _sparseSet;
-
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Enumerator(SparseSet sparseSet)
-            {
-                _sparseSet = sparseSet;
-                _count = sparseSet.Count;
-                _index = 0;
-                Current = default;
-            }
-
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Reset()
-            {
-                _count = 0;
-                _index = 0;
-                _sparseSet = null;
-                Current = default;
-            }
-
-
-            object IEnumerator.Current => Current;
-
-
-            public int Current { get; private set; }
-
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                if (_index >= _count) return false;
-                Current = _sparseSet.Dense[_index++];
-                return true;
-            }
-
-
-            public void Dispose()
-            {
-            }
-        }
-    }
-
-
-    public class SparseSet<T> : SparseSet, IEnumerable<T>
-    {
-        private T[] _instances;
-        private T _empty;
-        public ref T Empty => ref _empty;
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SparseSet(int denseCapacity, int sparseCapacity) : base(denseCapacity, sparseCapacity)
-        {
-            _instances = new T[denseCapacity];
-            _empty = default;
-        }
-
-
-        public new ref T this[int index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (index < DenseCount)
-                {
-                    return ref _instances[index];
-                }
-
-                throw new Exception($"|KECS| Out of range SparseSet {index}.");
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetValue(int sparseIdx)
-        {
-            var packedIdx = Get(sparseIdx);
-            return ref packedIdx != None ? ref _instances[packedIdx] : ref _empty;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public new void Add(int sparseIdx)
-        {
-            Add(sparseIdx, _empty);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(int sparseIdx, T value)
-        {
-            if (Contains(sparseIdx))
-            {
-                throw new Exception($"|KECS| Unable to add sparse idx {sparseIdx}: already present.");
-            }
-
-            if (Dense.Length == DenseCount)
-            {
-                EnsurePackedCapacity(DenseCount << 1);
-            }
-
-            Sparse[sparseIdx] = DenseCount;
-            Dense[DenseCount] = sparseIdx;
-            _instances[DenseCount] = value;
-            DenseCount++;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int sparseIdx, T value)
-        {
-            if (!Contains(sparseIdx))
-            {
-                Add(sparseIdx, value);
-                return;
-            }
-
-            if (Dense.Length == DenseCount)
-            {
-                EnsurePackedCapacity(DenseCount << 1);
-            }
-
-            _instances[sparseIdx] = value;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public new void Remove(int sparseIdx)
-        {
-            if (!Contains(sparseIdx))
-            {
-                throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
-            }
-
-            var packedIdx = Sparse[sparseIdx];
-            Sparse[sparseIdx] = None;
-            DenseCount--;
-            if (packedIdx < DenseCount)
-            {
-                var lastValue = _instances[DenseCount];
-                var lastSparseIdx = Dense[DenseCount];
-                Dense[packedIdx] = lastSparseIdx;
-                _instances[packedIdx] = lastValue;
-                Sparse[lastSparseIdx] = packedIdx;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void EnsurePackedCapacity(int capacity)
-        {
-            base.EnsurePackedCapacity(capacity);
-            Array.Resize(ref _instances, capacity);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public new void Clear()
-        {
-            DenseCount = 0;
+            _denseCount = 0;
             Array.Clear(_instances, 0, _instances.Length);
-            Array.Clear(Dense, 0, Dense.Length);
-            Sparse.Fill(None);
+            Array.Clear(_sparse, 0, _sparse.Length);
+            Array.Clear(_dense, 0, _dense.Length);
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public new IEnumerator<T> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
             return new Enumerator(this);
         }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
-
 
         private struct Enumerator : IEnumerator<T>
         {
             private int _count;
             private int _index;
-            private SparseSet<T> _sparseSet;
+            private HandleMap<T> _handleMap;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Enumerator(SparseSet<T> sparseSet)
+            public Enumerator(HandleMap<T> handleMap)
             {
-                this._sparseSet = sparseSet;
-                _count = sparseSet.Count;
+                this._handleMap = handleMap;
+                _count = handleMap.Count;
                 _index = 0;
                 Current = default;
             }
-
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Reset()
             {
                 _count = 0;
                 _index = 0;
-                _sparseSet = null;
+                _handleMap = null;
                 Current = default;
             }
 
-
             object IEnumerator.Current => Current;
-
-
             public T Current { get; private set; }
-
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
                 if (_index < _count)
                 {
-                    Current = _sparseSet[_index++];
+                    Current = _handleMap[_index++];
                     return true;
                 }
 
                 return false;
             }
-
-
+            
             public void Dispose()
             {
             }
@@ -2589,8 +2349,7 @@ namespace Ludaludaed.KECS
                 _index = -1;
                 _returned = 0;
             }
-
-
+            
             public int Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2618,7 +2377,7 @@ namespace Ludaludaed.KECS
             }
         }
     }
-    
+
 #if DEBUG
     public interface IWorldDebugListener
     {
