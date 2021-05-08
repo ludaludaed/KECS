@@ -23,14 +23,14 @@ namespace Ludaludaed.KECS
 
     public struct WorldConfig
     {
-        public int ENTITY_COMPONENTS_CAPACITY;
-        public int CACHE_ENTITIES_CAPACITY;
-        public int CACHE_ARCHETYPES_CAPACITY;
-        public int CACHE_COMPONENTS_CAPACITY;
-        public const int DEFAULT_ENTITY_COMPONENTS_CAPACITY = 256;
-        public const int DEFAULT_CACHE_ENTITIES_CAPACITY = 256;
-        public const int DEFAULT_CACHE_ARCHETYPES_CAPACITY = 256;
-        public const int DEFAULT_CACHE_COMPONENTS_CAPACITY = 256;
+        public int ENTITY_COMPONENTS;
+        public int ENTITIES;
+        public int ARCHETYPES;
+        public int COMPONENTS_TYPES;
+        public const int DEFAULT_ENTITY_COMPONENTS = 256;
+        public const int DEFAULT_ENTITIES = 256;
+        public const int DEFAULT_ARCHETYPES = 256;
+        public const int DEFAULT_COMPONENTS_TYPES = 256;
     }
 
 
@@ -98,18 +98,18 @@ namespace Ludaludaed.KECS
         {
             return new WorldConfig
             {
-                CACHE_ARCHETYPES_CAPACITY = config.CACHE_ARCHETYPES_CAPACITY > 0
-                    ? config.CACHE_ARCHETYPES_CAPACITY
-                    : WorldConfig.DEFAULT_CACHE_ARCHETYPES_CAPACITY,
-                CACHE_ENTITIES_CAPACITY = config.CACHE_ENTITIES_CAPACITY > 0
-                    ? config.CACHE_ENTITIES_CAPACITY
-                    : WorldConfig.DEFAULT_CACHE_ENTITIES_CAPACITY,
-                ENTITY_COMPONENTS_CAPACITY = config.ENTITY_COMPONENTS_CAPACITY > 0
-                    ? config.ENTITY_COMPONENTS_CAPACITY
-                    : WorldConfig.DEFAULT_ENTITY_COMPONENTS_CAPACITY,
-                CACHE_COMPONENTS_CAPACITY = config.CACHE_COMPONENTS_CAPACITY > 0
-                    ? config.CACHE_COMPONENTS_CAPACITY
-                    : WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY
+                ARCHETYPES = config.ARCHETYPES > 0
+                    ? config.ARCHETYPES
+                    : WorldConfig.DEFAULT_ARCHETYPES,
+                ENTITIES = config.ENTITIES > 0
+                    ? config.ENTITIES
+                    : WorldConfig.DEFAULT_ENTITIES,
+                ENTITY_COMPONENTS = config.ENTITY_COMPONENTS > 0
+                    ? config.ENTITY_COMPONENTS
+                    : WorldConfig.DEFAULT_ENTITY_COMPONENTS,
+                COMPONENTS_TYPES = config.COMPONENTS_TYPES > 0
+                    ? config.COMPONENTS_TYPES
+                    : WorldConfig.DEFAULT_COMPONENTS_TYPES
             };
         }
 
@@ -289,11 +289,11 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new HandleMap<IComponentPool>(config.CACHE_COMPONENTS_CAPACITY,
-                config.CACHE_COMPONENTS_CAPACITY);
+            _componentPools = new HandleMap<IComponentPool>(config.COMPONENTS_TYPES,
+                config.COMPONENTS_TYPES);
             _componentsTypesCount = 0;
 
-            _entities = new EntityData[config.CACHE_ENTITIES_CAPACITY];
+            _entities = new EntityData[config.ENTITIES];
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
 
@@ -383,7 +383,7 @@ namespace Ludaludaed.KECS
 
             if (_entities.Length == newEntityId)
             {
-                EnsureEntitiesCapacity(newEntityId << 1);
+                Array.Resize(ref _entities, EcsMath.Pot(newEntityId << 1));
             }
 
             ref var entityData = ref _entities[newEntityId];
@@ -430,17 +430,6 @@ namespace Ludaludaed.KECS
                 _debugListeners[i].OnEntityDestroyed(entity);
             }
 #endif
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureEntitiesCapacity(int capacity)
-        {
-            if (_entities.Length < capacity)
-            {
-                var newCapacity = EcsMath.Pot(capacity);
-                Array.Resize(ref _entities, newCapacity);
-            }
         }
 
 
@@ -809,8 +798,8 @@ namespace Ludaludaed.KECS
         internal ArchetypeManager(World world)
         {
             _world = world;
-            _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
-            _archetypes.Add(new Archetype(world, new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY)));
+            _archetypes = new GrowList<Archetype>(world.Config.ARCHETYPES);
+            _archetypes.Add(new Archetype(world, new BitMask(world.Config.COMPONENTS_TYPES)));
         }
 
 
@@ -843,7 +832,7 @@ namespace Ludaludaed.KECS
         private Archetype FindOrCreateArchetype(BitMask mask)
         {
             var curArchetype = EmptyArchetype;
-            var newMask = new BitMask(_world.Config.CACHE_COMPONENTS_CAPACITY);
+            var newMask = new BitMask(_world.Config.COMPONENTS_TYPES);
 
             foreach (var index in mask)
             {
@@ -935,13 +924,13 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _delayedOpsCount = 0;
 
-            Next = new HandleMap<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
-                world.Config.CACHE_COMPONENTS_CAPACITY);
-            Prior = new HandleMap<Archetype>(world.Config.CACHE_COMPONENTS_CAPACITY,
-                world.Config.CACHE_COMPONENTS_CAPACITY);
+            Next = new HandleMap<Archetype>(world.Config.COMPONENTS_TYPES,
+                world.Config.COMPONENTS_TYPES);
+            Prior = new HandleMap<Archetype>(world.Config.COMPONENTS_TYPES,
+                world.Config.COMPONENTS_TYPES);
 
-            Entities = new HandleMap<Entity>(world.Config.CACHE_ENTITIES_CAPACITY,
-                world.Config.CACHE_ENTITIES_CAPACITY);
+            Entities = new HandleMap<Entity>(world.Config.ENTITIES,
+                world.Config.ENTITIES);
 
             TypesCache = new Type[mask.Count];
 
@@ -1069,7 +1058,7 @@ namespace Ludaludaed.KECS
     public static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_CACHE_COMPONENTS_CAPACITY];
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_COMPONENTS_TYPES];
 
         public static int GetIdx(Type type)
         {
@@ -1118,8 +1107,8 @@ namespace Ludaludaed.KECS
         public ComponentPool(World world)
         {
             _owner = world;
-            _components = new HandleMap<T>(world.Config.ENTITY_COMPONENTS_CAPACITY,
-                world.Config.ENTITY_COMPONENTS_CAPACITY);
+            _components = new HandleMap<T>(world.Config.ENTITY_COMPONENTS,
+                world.Config.ENTITY_COMPONENTS);
         }
 
 
@@ -1229,9 +1218,9 @@ namespace Ludaludaed.KECS
         {
             Version = 0;
             _world = world;
-            Include = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
-            Exclude = new BitMask(world.Config.CACHE_COMPONENTS_CAPACITY);
-            _archetypes = new GrowList<Archetype>(world.Config.CACHE_ARCHETYPES_CAPACITY);
+            Include = new BitMask(world.Config.COMPONENTS_TYPES);
+            Exclude = new BitMask(world.Config.COMPONENTS_TYPES);
+            _archetypes = new GrowList<Archetype>(world.Config.ARCHETYPES);
 
             _archetypeManager = world.ArchetypeManager;
         }
