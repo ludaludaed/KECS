@@ -256,61 +256,57 @@ namespace Ludaludaed.KECS
     internal interface ITaskPool
     {
         void Execute();
-        void Clear();
     }
 
     internal class TaskPool<T> : ITaskPool where T : struct
     {
-        private TaskItem[] _tasks;
-        private int _tasksCount;
+        private TaskItem[] _addTasks;
+        private TaskItem[] _removeTasks;
+        private int _addTasksCount;
         private int _removeTasksCount;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal TaskPool(World world)
         {
-            _tasks = new TaskItem[world.Config.Entities];
-            _tasksCount = 0;
+            _addTasks = new TaskItem[1];
+            _removeTasks = new TaskItem[1];
+            _addTasksCount = 0;
+            _removeTasksCount = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Add(Entity entity, in T component)
         {
-            ArrayExtension.EnsureLength(ref _tasks, _tasksCount);
-            ref var task = ref _tasks[_tasksCount];
+            ArrayExtension.EnsureLength(ref _addTasks, _addTasksCount);
+            ArrayExtension.EnsureLength(ref _removeTasks, _addTasksCount);
+            
+            ref var task = ref _addTasks[_addTasksCount++];
             task.Entity = entity;
             task.Item = component;
-            _tasksCount++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute()
         {
-            for (int i = 0, lenght = _tasksCount; i < lenght; i++)
-            {
-                ref var task = ref _tasks[i];
-                if (task.Entity.IsAlive())
-                {
-                    task.Entity.Set(task.Item);
-                }
-            }
-
-            _removeTasksCount = _tasksCount;
-            _tasksCount = 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
             for (int i = 0, lenght = _removeTasksCount; i < lenght; i++)
             {
-                ref var task = ref _tasks[i];
-                if (task.Entity.IsAlive())
-                {
-                    task.Entity.Remove<T>();
-                }
+                _removeTasksCount = 0;
+                ref var removeTask = ref _removeTasks[i];
+                if (!removeTask.Entity.IsAlive()) continue;
+                removeTask.Entity.Remove<T>();
             }
+            
+            for (int i = 0, lenght = _addTasksCount; i < lenght; i++)
+            {
+                _addTasksCount = 0;
+                ref var task = ref _addTasks[i];
+                if (!task.Entity.IsAlive()) continue;
+                task.Entity.Set(task.Item);
 
-            _removeTasksCount = 0;
+                ref var removeTask = ref _removeTasks[_removeTasksCount++];
+                removeTask.Entity = task.Entity;
+                removeTask.Item = task.Item;
+            }
         }
 
         private struct TaskItem
@@ -555,18 +551,8 @@ namespace Ludaludaed.KECS
                 _taskPools[i].Execute();
             }
         }
-        
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ClearTasks()
-        {
-            for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
-            {
-                _taskPools[i].Clear();
-            }
-        }
-        
-        
+
+
         internal void ArchetypeCreated(Archetype archetype)
         {
 #if DEBUG
