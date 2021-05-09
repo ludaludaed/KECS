@@ -250,6 +250,80 @@ namespace Ludaludaed.KECS
 
 
     //=============================================================================
+    // TASK POOLS
+    //=============================================================================
+
+    internal interface ITaskPool
+    {
+        int Count { get; }
+        void Execute();
+        void Clear();
+    }
+
+    internal class TaskPool<T> : ITaskPool where T : struct
+    {
+        private TaskItem[] _tasks;
+        private int _tasksCount;
+        private int _removeTasksCount;
+        public int Count => _tasksCount;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal TaskPool(World world)
+        {
+            _tasks = new TaskItem[world.Config.Entities];
+            _tasksCount = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Add(Entity entity, in T component)
+        {
+            ArrayExtension.EnsureLength(ref _tasks, _tasksCount);
+            ref var task = ref _tasks[_tasksCount];
+            task.Entity = entity;
+            task.Item = component;
+            _tasksCount++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Execute()
+        {
+            for (int i = 0, lenght = _tasksCount; i < lenght; i++)
+            {
+                ref var task = ref _tasks[i];
+                if (task.Entity.IsAlive())
+                {
+                    task.Entity.Set(task.Item);
+                }
+            }
+
+            _removeTasksCount = _tasksCount;
+            _tasksCount = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            for (int i = 0, lenght = _removeTasksCount; i < lenght; i++)
+            {
+                ref var task = ref _tasks[i];
+                if (task.Entity.IsAlive())
+                {
+                    task.Entity.Remove<T>();
+                }
+            }
+
+            _removeTasksCount = 0;
+        }
+
+        private struct TaskItem
+        {
+            public T Item;
+            public Entity Entity;
+        }
+    }
+
+
+    //=============================================================================
     // WORLD
     //=============================================================================
 
@@ -257,6 +331,7 @@ namespace Ludaludaed.KECS
     public sealed class World
     {
         private HandleMap<IComponentPool> _componentPools;
+        private HandleMap<ITaskPool> _taskPools;
         private int _componentsTypesCount;
 
         private IntDispenser _freeEntityIds;
@@ -284,9 +359,10 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new HandleMap<IComponentPool>(config.ComponentsTypes,
-                config.ComponentsTypes);
+            _componentPools = new HandleMap<IComponentPool>(config.ComponentsTypes, config.ComponentsTypes);
             _componentsTypesCount = 0;
+
+            _taskPools = new HandleMap<ITaskPool>(config.ComponentsTypes, config.ComponentsTypes);
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -454,8 +530,45 @@ namespace Ludaludaed.KECS
             var pool = _componentPools.Get(idx);
             return pool;
         }
+        
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal TaskPool<T> GetTaskPool<T>() where T : struct
+        {
+            if (!_isAlive)
+                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+            var idx = ComponentTypeInfo<T>.TypeIndex;
 
+            if (!_taskPools.Contains(idx))
+            {
+                var pool = new TaskPool<T>(this);
+                _taskPools.Set(idx, pool);
+            }
+
+            return (TaskPool<T>) _taskPools.Get(idx);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ExecuteTasks()
+        {
+            for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
+            {
+                _taskPools[i].Execute();
+            }
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ClearTasks()
+        {
+            for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
+            {
+                _taskPools[i].Clear();
+            }
+        }
+        
+        
         internal void ArchetypeCreated(Archetype archetype)
         {
 #if DEBUG
@@ -615,6 +728,13 @@ namespace Ludaludaed.KECS
             }
 
             return ref pool.Get(entity.Id);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Event<T>(in this Entity entity, in T value = default) where T : struct
+        {
+            if(!entity.IsAlive()) return;
+            entity.World.GetTaskPool<T>().Add(entity, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1602,8 +1722,8 @@ namespace Ludaludaed.KECS
             var obj = new T();
             return Add(obj);
         }
-
-
+        
+        
         private Systems Add<T>(T systemValue) where T : SystemBase
         {
             if (_initialized)
@@ -1696,12 +1816,6 @@ namespace Ludaludaed.KECS
             }
 
             return this;
-        }
-
-
-        public Systems DestroyAfterFrame<T>() where T : struct
-        {
-            return Add(new DestroyAfterFrame<T>());
         }
 
 
@@ -1828,21 +1942,6 @@ namespace Ludaludaed.KECS
             _lateSystems.Clear();
             _sharedData.Dispose();
             _sharedData = null;
-        }
-    }
-
-    internal class DestroyAfterFrame<T> : SystemBase, ILateUpdate where T : struct
-    {
-        private Filter _filter;
-
-        public override void Initialize()
-        {
-            _filter = _world.Filter().With<T>();
-        }
-
-        public void OnUpdate(float deltaTime)
-        {
-            _filter.ForEach(entity => { entity.Remove<T>(); });
         }
     }
 
