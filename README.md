@@ -9,6 +9,7 @@ KECS is a fast and easy C# Entity Component System framework for writing your ow
     * [Component](#-component)
     * [Entity](#-entity)
     * [System](#-system)
+        * [Events](#-events)
         * [Filter](#-filter)
         * [Data injection](#-data-injection)
     * [Systems](#-systems)
@@ -112,6 +113,41 @@ can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateU
     }
 ```
 
+#### 💡 Events
+
+For the event system, the most common components are used. The event for an entity is set by the `entity.Event<>()` method.
+
+```csharp
+public struct EventComponent
+{
+    ...
+}
+...
+entity.Event<EventComponent>();
+```
+Receiving an event
+
+```csharp
+public class SystemTest1 : SystemBase, IUpdate
+{
+    private Filter _filter;
+    
+    public override void Initialize()
+    {
+        _filter = _world.Filter().With<EventComponent>();
+    }
+
+    public void OnUpdate(float deltaTime)
+    {
+        _filter.ForEach((Entity entity, ref EventComponent event) =>
+        {
+            ...
+        });
+    }
+}
+```
+> **Important!** The event hangs on the entity for exactly one frame, that is, the event appears only on the next frame and is deleted after it..
+
 #### 🎰 Filter
 
 You can create a filter using a chain of commands consisting of two methods `With<>()` / `.WithOut<>()`.
@@ -202,6 +238,7 @@ public class StartUp : MonoBehaviour
 
     public void Update()
     {
+        _world.ExecuteTasks();
         _systems.Update(Time.deltaTime);
     }
 
