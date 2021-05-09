@@ -255,7 +255,6 @@ namespace Ludaludaed.KECS
 
     internal interface ITaskPool
     {
-        int Count { get; }
         void Execute();
         void Clear();
     }
@@ -265,7 +264,6 @@ namespace Ludaludaed.KECS
         private TaskItem[] _tasks;
         private int _tasksCount;
         private int _removeTasksCount;
-        public int Count => _tasksCount;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal TaskPool(World world)
