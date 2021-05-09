@@ -44,7 +44,7 @@ world.Destroy();
 
 ### 📦 Component
 
-A component is a container for user data only. In KECS, this is only a value type.
+A component is a container only for users data. In KECS, component is only a value type.
 
 ```csharp
 public struct MoveComponent 
@@ -146,11 +146,11 @@ public class SystemTest1 : SystemBase, IUpdate
     }
 }
 ```
-> **Important!** The event hangs on the entity for exactly one frame, that is, the event appears only on the next frame and is deleted after it..
+> **Important!** The event hangs on the entity on exactly one frame, so the event appears only on the next frame and deleted after it.
 
 #### 🎰 Filter
 
-You can create a filter using a chain of commands consisting of two methods `With<>()` / `.WithOut<>()`.
+You can create a filter using a chain of commands which contain two methods `With<>()` / `.WithOut<>()`.
 
 ```csharp
 public class SystemTest1 : SystemBase, IUpdate
@@ -190,7 +190,7 @@ systems.Add<SystemTest>().
 systems.Initialize();
 ```
 
-Shared data for the system is obtained by calling the `GetShared ()` method.
+Shared data for the system is obtained by calling the `GetShared<>()` method.
 
 ```csharp
 public class SystemTest1 : SystemBase, IUpdate
