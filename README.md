@@ -115,7 +115,7 @@ can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateU
 
 #### 💡 Events
 
-For the event system, the most common components are used. The event for an entity is set by the `entity.Event<>()` method.
+Emitting an event for an entity is set by the `entity.Event<>()` method.
 
 ```csharp
 public struct EventComponent
@@ -125,7 +125,7 @@ public struct EventComponent
 ...
 entity.Event<EventComponent>();
 ```
-Receiving an event
+Receiving an event.
 
 ```csharp
 public class SystemTest1 : SystemBase, IUpdate
