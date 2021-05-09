@@ -48,7 +48,7 @@ namespace Ludaludaed.KECS
             {
                 lock (_lockObject)
                 {
-                    int hashName = DEFAULT_WORLD_NAME.GetHashCode();
+                    var hashName = DEFAULT_WORLD_NAME.GetHashCode();
                     if (_worldsIdx.TryGetValue(hashName, out var worldId))
                     {
                         return _worlds[worldId];
@@ -75,13 +75,13 @@ namespace Ludaludaed.KECS
         {
             lock (_lockObject)
             {
-                int hashName = name.GetHashCode();
+                var hashName = name.GetHashCode();
                 if (_worldsIdx.ContainsKey(hashName))
                 {
                     throw new Exception($"|KECS| A world with {name} name already exists.");
                 }
 
-                int worldId = _freeWorldsIds.GetFreeInt();
+                var worldId = _freeWorldsIds.GetFreeInt();
                 ArrayExtension.EnsureLength(ref _worlds, worldId);
                 var newWorld = new World(worldId, CheckConfig(config), name);
                 _worlds[worldId] = newWorld;
@@ -112,7 +112,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(string name)
         {
-            int hashName = name.GetHashCode();
+            var hashName = name.GetHashCode();
             lock (_lockObject)
             {
                 if (_worldsIdx.TryGetValue(hashName, out int worldId))
@@ -149,7 +149,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World GetOrCreate(string name, WorldConfig config = default)
         {
-            int hashName = name.GetHashCode();
+            var hashName = name.GetHashCode();
             lock (_lockObject)
             {
                 if (_worldsIdx.TryGetValue(hashName, out int worldId))
@@ -165,7 +165,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(string name)
         {
-            int hashName = name.GetHashCode();
+            var hashName = name.GetHashCode();
             lock (_lockObject)
             {
                 if (_worldsIdx.TryGetValue(hashName, out int worldId))
@@ -217,7 +217,7 @@ namespace Ludaludaed.KECS
 
         internal T Add<T>(T data) where T : class
         {
-            int hash = typeof(T).GetHashCode();
+            var hash = typeof(T).GetHashCode();
             if (!_data.ContainsKey(hash))
             {
                 _data.Add(hash, data);
@@ -230,7 +230,7 @@ namespace Ludaludaed.KECS
 
         internal T Get<T>() where T : class
         {
-            int hash = typeof(T).GetHashCode();
+            var hash = typeof(T).GetHashCode();
 
             if (_data.TryGetValue(hash, out var data))
             {
