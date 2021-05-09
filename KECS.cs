@@ -23,14 +23,12 @@ namespace Ludaludaed.KECS
 
     public struct WorldConfig
     {
-        public int ENTITY_COMPONENTS;
-        public int ENTITIES;
-        public int ARCHETYPES;
-        public int COMPONENTS_TYPES;
-        public const int DEFAULT_ENTITY_COMPONENTS = 256;
-        public const int DEFAULT_ENTITIES = 256;
-        public const int DEFAULT_ARCHETYPES = 256;
-        public const int DEFAULT_COMPONENTS_TYPES = 256;
+        public int Entities;
+        public int Archetypes;
+        public int ComponentsTypes;
+        public const int DefaultEntities = 256;
+        public const int DefaultArchetypes = 256;
+        public const int DefaultComponentsTypes = 256;
     }
 
 
@@ -98,18 +96,15 @@ namespace Ludaludaed.KECS
         {
             return new WorldConfig
             {
-                ARCHETYPES = config.ARCHETYPES > 0
-                    ? config.ARCHETYPES
-                    : WorldConfig.DEFAULT_ARCHETYPES,
-                ENTITIES = config.ENTITIES > 0
-                    ? config.ENTITIES
-                    : WorldConfig.DEFAULT_ENTITIES,
-                ENTITY_COMPONENTS = config.ENTITY_COMPONENTS > 0
-                    ? config.ENTITY_COMPONENTS
-                    : WorldConfig.DEFAULT_ENTITY_COMPONENTS,
-                COMPONENTS_TYPES = config.COMPONENTS_TYPES > 0
-                    ? config.COMPONENTS_TYPES
-                    : WorldConfig.DEFAULT_COMPONENTS_TYPES
+                Archetypes = config.Archetypes > 0
+                    ? config.Archetypes
+                    : WorldConfig.DefaultArchetypes,
+                Entities = config.Entities > 0
+                    ? config.Entities
+                    : WorldConfig.DefaultEntities,
+                ComponentsTypes = config.ComponentsTypes > 0
+                    ? config.ComponentsTypes
+                    : WorldConfig.DefaultComponentsTypes
             };
         }
 
@@ -289,11 +284,11 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new HandleMap<IComponentPool>(config.COMPONENTS_TYPES,
-                config.COMPONENTS_TYPES);
+            _componentPools = new HandleMap<IComponentPool>(config.ComponentsTypes,
+                config.ComponentsTypes);
             _componentsTypesCount = 0;
 
-            _entities = new EntityData[config.ENTITIES];
+            _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
 
@@ -798,8 +793,8 @@ namespace Ludaludaed.KECS
         internal ArchetypeManager(World world)
         {
             _world = world;
-            _archetypes = new GrowList<Archetype>(world.Config.ARCHETYPES);
-            _archetypes.Add(new Archetype(world, new BitMask(world.Config.COMPONENTS_TYPES)));
+            _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
+            _archetypes.Add(new Archetype(world, new BitMask(world.Config.ComponentsTypes)));
         }
 
 
@@ -832,7 +827,7 @@ namespace Ludaludaed.KECS
         private Archetype FindOrCreateArchetype(BitMask mask)
         {
             var curArchetype = EmptyArchetype;
-            var newMask = new BitMask(_world.Config.COMPONENTS_TYPES);
+            var newMask = new BitMask(_world.Config.ComponentsTypes);
 
             foreach (var index in mask)
             {
@@ -924,13 +919,13 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _delayedOpsCount = 0;
 
-            Next = new HandleMap<Archetype>(world.Config.COMPONENTS_TYPES,
-                world.Config.COMPONENTS_TYPES);
-            Prior = new HandleMap<Archetype>(world.Config.COMPONENTS_TYPES,
-                world.Config.COMPONENTS_TYPES);
+            Next = new HandleMap<Archetype>(world.Config.ComponentsTypes,
+                world.Config.ComponentsTypes);
+            Prior = new HandleMap<Archetype>(world.Config.ComponentsTypes,
+                world.Config.ComponentsTypes);
 
-            Entities = new HandleMap<Entity>(world.Config.ENTITIES,
-                world.Config.ENTITIES);
+            Entities = new HandleMap<Entity>(world.Config.Entities,
+                world.Config.Entities);
 
             TypesCache = new Type[mask.Count];
 
@@ -1058,7 +1053,7 @@ namespace Ludaludaed.KECS
     public static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DEFAULT_COMPONENTS_TYPES];
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponentsTypes];
 
         public static int GetIdx(Type type)
         {
@@ -1107,8 +1102,8 @@ namespace Ludaludaed.KECS
         public ComponentPool(World world)
         {
             _owner = world;
-            _components = new HandleMap<T>(world.Config.ENTITY_COMPONENTS,
-                world.Config.ENTITY_COMPONENTS);
+            _components = new HandleMap<T>(world.Config.Entities,
+                world.Config.Entities);
         }
 
 
@@ -1218,9 +1213,9 @@ namespace Ludaludaed.KECS
         {
             Version = 0;
             _world = world;
-            Include = new BitMask(world.Config.COMPONENTS_TYPES);
-            Exclude = new BitMask(world.Config.COMPONENTS_TYPES);
-            _archetypes = new GrowList<Archetype>(world.Config.ARCHETYPES);
+            Include = new BitMask(world.Config.ComponentsTypes);
+            Exclude = new BitMask(world.Config.ComponentsTypes);
+            _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
 
             _archetypeManager = world.ArchetypeManager;
         }
@@ -1839,12 +1834,12 @@ namespace Ludaludaed.KECS
     internal class DestroyAfterFrame<T> : SystemBase, ILateUpdate where T : struct
     {
         private Filter _filter;
-        
+
         public override void Initialize()
         {
             _filter = _world.Filter().With<T>();
         }
-        
+
         public void OnUpdate(float deltaTime)
         {
             _filter.ForEach(entity => { entity.Remove<T>(); });
