@@ -1703,17 +1703,11 @@ namespace Ludaludaed.KECS
 
         public Systems Add<T>() where T : SystemBase, new()
         {
-            var obj = new T();
-            return Add(obj);
-        }
-        
-        
-        private Systems Add<T>(T systemValue) where T : SystemBase
-        {
             if (_initialized)
             {
                 throw new Exception("|KECS| System cannot be added after initialization.");
             }
+            var systemValue = new T();
 
             int hash = typeof(T).GetHashCode();
 
