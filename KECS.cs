@@ -2181,7 +2181,7 @@ namespace Ludaludaed.KECS
 
     internal class IntDispenser : IDisposable
     {
-        private ConcurrentStack<int> _freeInts;
+        private readonly ConcurrentStack<int> _freeInts;
         private int _lastInt;
         public int LastInt => _lastInt;
         private readonly int _startInt;
