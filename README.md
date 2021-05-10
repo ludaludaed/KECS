@@ -13,6 +13,8 @@ KECS is a fast and easy C# Entity Component System framework for writing your ow
         * [Filter](#-filter)
         * [Data injection](#-data-injection)
     * [Systems](#-systems)
+* [License](#-license)
+* [Contacts](#-contacts)
 
 ## About ECS pattern
 
@@ -260,5 +262,12 @@ public class StartUp : MonoBehaviour
 }
 ```
 > **Important!** After the systems are initialized, you cannot add new systems.
+
+## 📘 License
+📄 [MIT License](LICENSE)
+
+## 💬 Contacts
+Telegram: [ludaludaed](https://t.me/ludaludaed)
+
 
 
