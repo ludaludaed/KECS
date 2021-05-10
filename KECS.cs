@@ -59,8 +59,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         static Worlds()
         {
             _lockObject = new object();
@@ -262,7 +261,7 @@ namespace Ludaludaed.KECS
         private int _addTasksCount;
         private int _removeTasksCount;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         internal TaskPool(World world)
         {
             _addTasks = new TaskItem[world.Config.Entities];
@@ -323,21 +322,24 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
+        private readonly List<Filter> _filters;
+
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
         private int _entitiesCount;
-        private readonly List<Filter> _filters;
+
         private int _worldId;
         private readonly string _name;
         private bool _isAlive;
-        public readonly WorldConfig Config;
+        internal readonly WorldConfig Config;
+
         public string Name => _name;
         public int WorldId => _worldId;
         public bool IsAlive => _isAlive;
 
-        internal ArchetypeManager ArchetypeManager;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal readonly ArchetypeManager ArchetypeManager;
+        
+        
         internal World(int worldId, WorldConfig config, string name)
         {
             _name = name;
@@ -976,11 +978,11 @@ namespace Ludaludaed.KECS
 
     public sealed class Archetype : IEnumerable<Entity>, IDisposable
     {
-        internal HandleMap<Entity> Entities;
-        internal HandleMap<Archetype> Next;
-        internal HandleMap<Archetype> Prior;
+        internal readonly HandleMap<Entity> Entities;
+        internal readonly HandleMap<Archetype> Next;
+        internal readonly HandleMap<Archetype> Prior;
 
-        public Type[] TypesCache;
+        public readonly Type[] TypesCache;
 
         private int _lockCount;
         private DelayedChange[] _delayedChanges;
@@ -989,8 +991,7 @@ namespace Ludaludaed.KECS
         public int Count => Entities.Count;
         internal BitMask Mask { get; }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         internal Archetype(World world, BitMask mask)
         {
             Mask = mask;
@@ -1172,8 +1173,7 @@ namespace Ludaludaed.KECS
         private World _owner;
         internal ref T Empty => ref _components.Empty;
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public ComponentPool(World world)
         {
             _owner = world;
@@ -1284,7 +1284,7 @@ namespace Ludaludaed.KECS
         private readonly ArchetypeManager _archetypeManager;
         private readonly World _world;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
         internal Filter(World world)
         {
             Include = new BitMask(world.Config.Components);
@@ -2093,7 +2093,7 @@ namespace Ludaludaed.KECS
             private int _index;
             private HandleMap<T> _handleMap;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
             public Enumerator(HandleMap<T> handleMap)
             {
                 this._handleMap = handleMap;
@@ -2154,8 +2154,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         internal GrowList(int capacity)
         {
             _data = new T[capacity];
@@ -2188,8 +2187,7 @@ namespace Ludaludaed.KECS
         private readonly int _startInt;
         public int Count => _freeInts.Count;
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public IntDispenser()
         {
             _freeInts = new ConcurrentStack<int>();
@@ -2319,16 +2317,12 @@ namespace Ludaludaed.KECS
     {
         private const int CHUNK_CAPACITY = sizeof(ulong) * 8;
         private readonly ulong[] _chunks;
-        private readonly int _capacity;
-
 
         public int Count { get; private set; }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public BitMask(int capacity = 0)
         {
-            this._capacity = capacity;
             var newSize = capacity / CHUNK_CAPACITY;
             if (capacity % CHUNK_CAPACITY != 0)
             {
@@ -2339,25 +2333,16 @@ namespace Ludaludaed.KECS
             _chunks = new ulong[newSize];
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public BitMask(in BitMask copy)
         {
-            this._capacity = copy._capacity;
-            var newSize = _capacity / CHUNK_CAPACITY;
-            if (_capacity % CHUNK_CAPACITY != 0)
+            _chunks = new ulong[copy._chunks.Length];
+            for (int i = 0, lenght = copy._chunks.Length; i < lenght; i++)
             {
-                newSize++;
+                _chunks[i] = copy._chunks[i];
             }
 
-            Count = 0;
-
-            _chunks = new ulong[newSize];
-
-            foreach (var item in copy)
-            {
-                SetBit(item);
-            }
+            Count = copy.Count;
         }
 
 
@@ -2456,8 +2441,7 @@ namespace Ludaludaed.KECS
             private int _index;
             private int _returned;
 
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public Enumerator(BitMask bitMask)
             {
                 this._bitMask = bitMask;
