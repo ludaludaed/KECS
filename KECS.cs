@@ -2336,12 +2336,12 @@ namespace Ludaludaed.KECS
         
         public BitMask(in BitMask copy)
         {
-            _chunks = new ulong[copy._chunks.Length];
-            for (int i = 0, lenght = copy._chunks.Length; i < lenght; i++)
+            var newSize = copy._chunks.Length;
+            _chunks = new ulong[newSize];
+            for (var i = 0; i < newSize; i++)
             {
                 _chunks[i] = copy._chunks[i];
             }
-
             Count = copy.Count;
         }
 
