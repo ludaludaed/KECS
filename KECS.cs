@@ -2235,36 +2235,13 @@ namespace Ludaludaed.KECS
         }
     }
 
-
-    public static class EcsMath
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Pot(int input)
-        {
-            if (input < 2)
-            {
-                return 2;
-            }
-
-            var n = input - 1;
-            n |= n >> 1;
-            n |= n >> 2;
-            n |= n >> 4;
-            n |= n >> 8;
-            n |= n >> 16;
-            return n + 1;
-        }
-    }
-
     internal static class ArrayExtension
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void InnerEnsureLength<T>(ref T[] array, int index)
         {
-            int newLength = Math.Max(1, array.Length);
-
+            var newLength = Math.Max(1, array.Length);
             newLength <<= 1;
-
             while (index >= newLength)
             {
                 newLength <<= 1;
@@ -2299,7 +2276,7 @@ namespace Ludaludaed.KECS
         {
             if (index >= array.Length)
             {
-                int oldLength = array.Length;
+                var oldLength = array.Length;
 
                 InnerEnsureLength(ref array, index);
                 array.Fill(defaultValue, oldLength);
