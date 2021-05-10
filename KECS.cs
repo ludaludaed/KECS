@@ -869,9 +869,8 @@ namespace Ludaludaed.KECS
     public sealed class ArchetypeManager : IDisposable
     {
         private readonly GrowList<Archetype> _archetypes;
-        internal Archetype EmptyArchetype => _archetypes[0];
         private readonly World _world;
-
+        internal Archetype EmptyArchetype => _archetypes[0];
         public int Count => _archetypes.Count;
 
         internal ArchetypeManager(World world)
