@@ -35,10 +35,10 @@ namespace Ludaludaed.KECS
     public static class Worlds
     {
         private const string DEFAULT_WORLD_NAME = "DEFAULT";
-        private static object _lockObject;
-        private static IntDispenser _freeWorldsIds;
+        private static readonly object _lockObject;
+        private static readonly IntDispenser _freeWorldsIds;
         private static World[] _worlds;
-        private static Dictionary<int, int> _worldsIdx;
+        private static readonly Dictionary<int, int> _worldsIdx;
 
 
         public static World Default
@@ -208,7 +208,7 @@ namespace Ludaludaed.KECS
 
     internal class SharedData
     {
-        private Dictionary<int, object> _data;
+        private readonly Dictionary<int, object> _data;
 
         internal SharedData()
         {
@@ -244,7 +244,6 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             _data.Clear();
-            _data = null;
         }
     }
 
@@ -268,8 +267,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal TaskPool(World world)
         {
-            _addTasks = new TaskItem[1];
-            _removeTasks = new TaskItem[1];
+            _addTasks = new TaskItem[world.Config.Entities];
+            _removeTasks = new TaskItem[world.Config.Entities];
             _addTasksCount = 0;
             _removeTasksCount = 0;
         }
@@ -279,7 +278,7 @@ namespace Ludaludaed.KECS
         {
             ArrayExtension.EnsureLength(ref _addTasks, _addTasksCount);
             ArrayExtension.EnsureLength(ref _removeTasks, _addTasksCount);
-            
+
             ref var task = ref _addTasks[_addTasksCount++];
             task.Entity = entity;
             task.Item = component;
@@ -295,7 +294,7 @@ namespace Ludaludaed.KECS
                 if (!removeTask.Entity.IsAlive()) continue;
                 removeTask.Entity.Remove<T>();
             }
-            
+
             for (int i = 0, lenght = _addTasksCount; i < lenght; i++)
             {
                 _addTasksCount = 0;
@@ -324,21 +323,16 @@ namespace Ludaludaed.KECS
 
     public sealed class World
     {
-        private HandleMap<IComponentPool> _componentPools;
-        private HandleMap<ITaskPool> _taskPools;
-        private int _componentsTypesCount;
-
-        private IntDispenser _freeEntityIds;
+        private readonly HandleMap<IComponentPool> _componentPools;
+        private readonly HandleMap<ITaskPool> _taskPools;
+        private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
         private int _entitiesCount;
-
-        private List<Filter> _filters;
-
+        private readonly List<Filter> _filters;
         private int _worldId;
-        private string _name;
+        private readonly string _name;
         private bool _isAlive;
         public readonly WorldConfig Config;
-
         public string Name => _name;
         public int WorldId => _worldId;
         public bool IsAlive => _isAlive;
@@ -354,8 +348,6 @@ namespace Ludaludaed.KECS
             Config = config;
 
             _componentPools = new HandleMap<IComponentPool>(config.ComponentsTypes, config.ComponentsTypes);
-            _componentsTypesCount = 0;
-
             _taskPools = new HandleMap<ITaskPool>(config.ComponentsTypes, config.ComponentsTypes);
 
             _entities = new EntityData[config.Entities];
@@ -396,7 +388,7 @@ namespace Ludaludaed.KECS
         public Filter Filter()
         {
             if (!_isAlive)
-                throw new Exception($"|KECS| World - {_worldId} was destroyed. You cannot create filter.");
+                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create filter.");
             var filter = new Filter(this);
             _filters.Add(filter);
             return filter;
@@ -410,7 +402,7 @@ namespace Ludaludaed.KECS
                 ActiveEntities = _entitiesCount,
                 ReservedEntities = _freeEntityIds.Count,
                 Archetypes = ArchetypeManager.Count,
-                Components = _componentsTypesCount
+                Components = _componentPools.Count
             };
         }
 
@@ -509,7 +501,6 @@ namespace Ludaludaed.KECS
             {
                 var pool = new ComponentPool<T>(this);
                 _componentPools.Set(idx, pool);
-                _componentsTypesCount++;
             }
 
             return (ComponentPool<T>) _componentPools.Get(idx);
@@ -524,7 +515,7 @@ namespace Ludaludaed.KECS
             var pool = _componentPools.Get(idx);
             return pool;
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal TaskPool<T> GetTaskPool<T>() where T : struct
@@ -541,11 +532,12 @@ namespace Ludaludaed.KECS
 
             return (TaskPool<T>) _taskPools.Get(idx);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExecuteTasks()
         {
+            if (!_isAlive) throw new Exception($"|KECS| World - {_name} destroyed");
             for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
             {
                 _taskPools[i].Execute();
@@ -567,36 +559,24 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
         {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_worldId} already destroy");
-
-            _componentsTypesCount = 0;
+            if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
                 _componentPools[i]?.Dispose();
             }
 
             _componentPools.Clear();
-            _componentPools = null;
-
             for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
                 _filters[i]?.Dispose();
             }
 
             _filters.Clear();
-            _filters = null;
-
             _freeEntityIds.Clear();
-            _freeEntityIds = null;
-            _entities = null;
             _entitiesCount = 0;
-
             _worldId = -1;
-            _name = null;
             _isAlive = false;
-
             ArchetypeManager.Dispose();
-            ArchetypeManager = null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -713,11 +693,11 @@ namespace Ludaludaed.KECS
 
             return ref pool.Get(entity.Id);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Event<T>(in this Entity entity, in T value = default) where T : struct
         {
-            if(!entity.IsAlive()) return;
+            if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
         }
 
@@ -888,9 +868,9 @@ namespace Ludaludaed.KECS
 
     public sealed class ArchetypeManager : IDisposable
     {
-        private GrowList<Archetype> _archetypes;
+        private readonly GrowList<Archetype> _archetypes;
         internal Archetype EmptyArchetype => _archetypes[0];
-        private World _world;
+        private readonly World _world;
 
         public int Count => _archetypes.Count;
 
@@ -991,9 +971,7 @@ namespace Ludaludaed.KECS
                 _archetypes[i].Dispose();
             }
 
-            _world = null;
             _archetypes.Clear();
-            _archetypes = null;
         }
     }
 
@@ -1078,9 +1056,9 @@ namespace Ludaludaed.KECS
             }
 
             ArrayExtension.EnsureLength(ref _delayedChanges, _delayedOpsCount);
-            ref var op = ref _delayedChanges[_delayedOpsCount++];
-            op.Entity = entity;
-            op.IsAdd = isAdd;
+            ref var delayedChange = ref _delayedChanges[_delayedOpsCount++];
+            delayedChange.Entity = entity;
+            delayedChange.IsAdd = isAdd;
             return true;
         }
 
@@ -1138,12 +1116,6 @@ namespace Ludaludaed.KECS
             Prior.Clear();
 
             Array.Clear(TypesCache, 0, TypesCache.Length);
-            TypesCache = null;
-
-            Entities = null;
-            Next = null;
-            Prior = null;
-            _delayedChanges = null;
             _lockCount = 0;
             _delayedOpsCount = 0;
         }
@@ -1171,7 +1143,7 @@ namespace Ludaludaed.KECS
         internal static readonly int TypeIndex;
         internal static readonly Type Type;
 
-        private static object _lockObject = new object();
+        private static readonly object _lockObject = new object();
 
 
         static ComponentTypeInfo()
@@ -1197,7 +1169,7 @@ namespace Ludaludaed.KECS
 
     internal sealed class ComponentPool<T> : IComponentPool where T : struct
     {
-        private HandleMap<T> _components;
+        private readonly HandleMap<T> _components;
         private int Length => _components.Count;
         private World _owner;
         internal ref T Empty => ref _components.Empty;
@@ -1251,7 +1223,6 @@ namespace Ludaludaed.KECS
         public void Dispose()
         {
             _components.Clear();
-            _components = null;
         }
     }
 
@@ -1308,26 +1279,26 @@ namespace Ludaludaed.KECS
         internal BitMask Exclude;
         internal int Version { get; set; }
 
-        private GrowList<Archetype> _archetypes;
-        private ArchetypeManager _archetypeManager;
-        private World _world;
+        private readonly GrowList<Archetype> _archetypes;
+        private readonly ArchetypeManager _archetypeManager;
+        private readonly World _world;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Filter(World world)
         {
-            Version = 0;
-            _world = world;
             Include = new BitMask(world.Config.ComponentsTypes);
             Exclude = new BitMask(world.Config.ComponentsTypes);
             _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
-
             _archetypeManager = world.ArchetypeManager;
+
+            _world = world;
+            Version = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter With<T>() where T : struct
         {
-            int typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
 
             if (Exclude.GetBit(typeIdx))
             {
@@ -1341,7 +1312,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter WithOut<T>() where T : struct
         {
-            int typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
 
             if (Include.GetBit(typeIdx))
             {
@@ -1399,6 +1370,8 @@ namespace Ludaludaed.KECS
         public void ForEach<T>(ForEachHandler<T> handler)
             where T : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             ForEach(archetype =>
             {
@@ -1414,6 +1387,10 @@ namespace Ludaludaed.KECS
             where T : struct
             where Y : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             ForEach(archetype =>
@@ -1431,6 +1408,12 @@ namespace Ludaludaed.KECS
             where Y : struct
             where U : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<U>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1451,6 +1434,14 @@ namespace Ludaludaed.KECS
             where U : struct
             where I : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<U>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<I>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1473,6 +1464,16 @@ namespace Ludaludaed.KECS
             where I : struct
             where O : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<U>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<I>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<O>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1497,6 +1498,18 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
         {
+            if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<U>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<I>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<O>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
+            if (!Include.GetBit(ComponentTypeInfo<P>.TypeIndex))
+                throw new Exception("|KECS| There is no such component in the filter.");
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1518,10 +1531,7 @@ namespace Ludaludaed.KECS
         internal void Dispose()
         {
             Version = 0;
-            _archetypeManager = null;
             _archetypes.Clear();
-            _archetypes = null;
-            _world = null;
         }
     }
 
@@ -1707,6 +1717,7 @@ namespace Ludaludaed.KECS
             {
                 throw new Exception("|KECS| System cannot be added after initialization.");
             }
+
             var systemValue = new T();
 
             int hash = typeof(T).GetHashCode();
@@ -1919,7 +1930,6 @@ namespace Ludaludaed.KECS
             _fixedSystems.Clear();
             _lateSystems.Clear();
             _sharedData.Dispose();
-            _sharedData = null;
         }
     }
 
@@ -2168,9 +2178,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            _freeInts.Clear();
-            _freeInts = null;
-            _lastInt = _startInt;
+            Clear();
         }
 
 
