@@ -25,10 +25,10 @@ namespace Ludaludaed.KECS
     {
         public int Entities;
         public int Archetypes;
-        public int ComponentsTypes;
+        public int Components;
         public const int DefaultEntities = 256;
         public const int DefaultArchetypes = 256;
-        public const int DefaultComponentsTypes = 256;
+        public const int DefaultComponents = 256;
     }
 
 
@@ -96,15 +96,9 @@ namespace Ludaludaed.KECS
         {
             return new WorldConfig
             {
-                Archetypes = config.Archetypes > 0
-                    ? config.Archetypes
-                    : WorldConfig.DefaultArchetypes,
-                Entities = config.Entities > 0
-                    ? config.Entities
-                    : WorldConfig.DefaultEntities,
-                ComponentsTypes = config.ComponentsTypes > 0
-                    ? config.ComponentsTypes
-                    : WorldConfig.DefaultComponentsTypes
+                Archetypes = config.Archetypes > 0 ? config.Archetypes : WorldConfig.DefaultArchetypes,
+                Entities = config.Entities > 0 ? config.Entities : WorldConfig.DefaultEntities,
+                Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents
             };
         }
 
@@ -215,7 +209,7 @@ namespace Ludaludaed.KECS
             _data = new Dictionary<int, object>();
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal T Add<T>(T data) where T : class
         {
@@ -351,8 +345,8 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new HandleMap<IComponentPool>(config.ComponentsTypes, config.ComponentsTypes);
-            _taskPools = new HandleMap<ITaskPool>(config.ComponentsTypes, config.ComponentsTypes);
+            _componentPools = new HandleMap<IComponentPool>(config.Components, config.Components);
+            _taskPools = new HandleMap<ITaskPool>(config.Components, config.Components);
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -410,7 +404,7 @@ namespace Ludaludaed.KECS
                 Components = _componentPools.Count
             };
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool EntityIsAlive(in Entity entity)
@@ -444,24 +438,20 @@ namespace Ludaludaed.KECS
             Entity entity;
             entity.World = this;
 
-            var isNew = _freeEntityIds.TryGetNewInt(out var newEntityId);
-
-            if (_entities.Length == newEntityId)
+            if (_freeEntityIds.TryGetNewInt(out var newEntityId))
             {
-                Array.Resize(ref _entities, EcsMath.Pot(newEntityId << 1));
-            }
-
-            ref var entityData = ref _entities[newEntityId];
-            entity.Id = newEntityId;
-            entityData.Archetype = ArchetypeManager.EmptyArchetype;
-
-            if (isNew)
-            {
+                ArrayExtension.EnsureLength(ref _entities, newEntityId);
+                ref var entityData = ref _entities[newEntityId];
+                entity.Id = newEntityId;
+                entityData.Archetype = ArchetypeManager.EmptyArchetype;
                 entity.Age = 1;
                 entityData.Age = 1;
             }
             else
             {
+                ref var entityData = ref _entities[newEntityId];
+                entity.Id = newEntityId;
+                entityData.Archetype = ArchetypeManager.EmptyArchetype;
                 entity.Age = entityData.Age;
             }
 
@@ -885,7 +875,7 @@ namespace Ludaludaed.KECS
         {
             _world = world;
             _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
-            _archetypes.Add(new Archetype(world, new BitMask(world.Config.ComponentsTypes)));
+            _archetypes.Add(new Archetype(world, new BitMask(world.Config.Components)));
         }
 
 
@@ -918,7 +908,7 @@ namespace Ludaludaed.KECS
         private Archetype FindOrCreateArchetype(BitMask mask)
         {
             var curArchetype = EmptyArchetype;
-            var newMask = new BitMask(_world.Config.ComponentsTypes);
+            var newMask = new BitMask(_world.Config.Components);
 
             foreach (var index in mask)
             {
@@ -1009,10 +999,10 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _delayedOpsCount = 0;
 
-            Next = new HandleMap<Archetype>(world.Config.ComponentsTypes,
-                world.Config.ComponentsTypes);
-            Prior = new HandleMap<Archetype>(world.Config.ComponentsTypes,
-                world.Config.ComponentsTypes);
+            Next = new HandleMap<Archetype>(world.Config.Components,
+                world.Config.Components);
+            Prior = new HandleMap<Archetype>(world.Config.Components,
+                world.Config.Components);
 
             Entities = new HandleMap<Entity>(world.Config.Entities,
                 world.Config.Entities);
@@ -1120,8 +1110,8 @@ namespace Ludaludaed.KECS
             _lockCount = 0;
             _delayedOpsCount = 0;
         }
-        
-        
+
+
         private struct DelayedChange
         {
             public bool IsAdd;
@@ -1137,7 +1127,7 @@ namespace Ludaludaed.KECS
     public static class EcsTypeManager
     {
         internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponentsTypes];
+        public static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponents];
 
         public static int GetIdx(Type type)
         {
@@ -1204,7 +1194,7 @@ namespace Ludaludaed.KECS
         {
             return _components.Get(entityId);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetObject(int entityId, object value)
@@ -1297,8 +1287,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Filter(World world)
         {
-            Include = new BitMask(world.Config.ComponentsTypes);
-            Exclude = new BitMask(world.Config.ComponentsTypes);
+            Include = new BitMask(world.Config.Components);
+            Exclude = new BitMask(world.Config.Components);
             _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
             _archetypeManager = world.ArchetypeManager;
 
@@ -1382,8 +1372,10 @@ namespace Ludaludaed.KECS
         public void ForEach<T>(ForEachHandler<T> handler)
             where T : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             ForEach(archetype =>
             {
@@ -1394,17 +1386,19 @@ namespace Ludaludaed.KECS
                 }
             });
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ForEach<T, Y>(ForEachHandler<T, Y> handler)
             where T : struct
             where Y : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             ForEach(archetype =>
@@ -1417,19 +1411,21 @@ namespace Ludaludaed.KECS
             });
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ForEach<T, Y, U>(ForEachHandler<T, Y, U> handler)
             where T : struct
             where Y : struct
             where U : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<U>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1443,7 +1439,7 @@ namespace Ludaludaed.KECS
             });
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ForEach<T, Y, U, I>(ForEachHandler<T, Y, U, I> handler)
             where T : struct
@@ -1451,6 +1447,7 @@ namespace Ludaludaed.KECS
             where U : struct
             where I : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1459,6 +1456,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<I>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1473,8 +1471,8 @@ namespace Ludaludaed.KECS
                 }
             });
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ForEach<T, Y, U, I, O>(ForEachHandler<T, Y, U, I, O> handler)
             where T : struct
@@ -1483,6 +1481,7 @@ namespace Ludaludaed.KECS
             where I : struct
             where O : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1493,6 +1492,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<O>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1508,8 +1508,8 @@ namespace Ludaludaed.KECS
                 }
             });
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ForEach<T, Y, U, I, O, P>(ForEachHandler<T, Y, U, I, O, P> handler)
             where T : struct
@@ -1519,6 +1519,7 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
         {
+#if DEBUG
             if (!Include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1531,6 +1532,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!Include.GetBit(ComponentTypeInfo<P>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
+#endif
             var poolT = _world.GetPool<T>();
             var poolY = _world.GetPool<Y>();
             var poolU = _world.GetPool<U>();
@@ -1547,7 +1549,7 @@ namespace Ludaludaed.KECS
                 }
             });
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Dispose()
@@ -1716,19 +1718,19 @@ namespace Ludaludaed.KECS
         {
             return _updateSystems;
         }
-        
+
 
         public List<SystemData> GetFixedUpdateSystems()
         {
             return _fixedSystems;
         }
-        
+
 
         public List<SystemData> GetLateUpdateSystems()
         {
             return _lateSystems;
         }
-        
+
 
         public List<SystemData> GetOnlyBaseSystems()
         {
@@ -2002,7 +2004,7 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| Out of range HandleMap {index}.");
             }
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx)
@@ -2014,7 +2016,7 @@ namespace Ludaludaed.KECS
 
             return ref Empty;
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value)
@@ -2038,7 +2040,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int sparseIdx)
         {
@@ -2061,7 +2063,7 @@ namespace Ludaludaed.KECS
             _sparse[lastSparseIdx] = packedIdx;
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
@@ -2071,14 +2073,14 @@ namespace Ludaludaed.KECS
             _sparse.Fill(None);
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<T> GetEnumerator()
         {
             return new Enumerator(this);
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -2152,7 +2154,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal GrowList(int capacity)
         {
@@ -2160,7 +2162,7 @@ namespace Ludaludaed.KECS
             _lenght = 0;
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Add(in T value)
         {
@@ -2169,7 +2171,7 @@ namespace Ludaludaed.KECS
             _data[index] = value;
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Clear()
         {
@@ -2464,7 +2466,7 @@ namespace Ludaludaed.KECS
                 _returned = 0;
             }
 
-            
+
             public int Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
