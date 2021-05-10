@@ -2183,9 +2183,8 @@ namespace Ludaludaed.KECS
     {
         private readonly ConcurrentStack<int> _freeInts;
         private int _lastInt;
-        public int LastInt => _lastInt;
         private readonly int _startInt;
-        public int Count => _freeInts.Count;
+        internal int Count => _freeInts.Count;
 
         
         public IntDispenser()
