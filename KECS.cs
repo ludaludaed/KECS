@@ -79,7 +79,6 @@ namespace Ludaludaed.KECS
                 {
                     throw new Exception($"|KECS| A world with {name} name already exists.");
                 }
-
                 var worldId = _freeWorldsIds.GetFreeInt();
                 ArrayExtension.EnsureLength(ref _worlds, worldId);
                 var newWorld = new World(worldId, CheckConfig(config), name);
@@ -112,7 +111,6 @@ namespace Ludaludaed.KECS
                 {
                     return _worlds[worldId];
                 }
-
                 throw new Exception($"|KECS| No world with {name} name was found.");
             }
         }
@@ -130,10 +128,8 @@ namespace Ludaludaed.KECS
                     {
                         throw new Exception($"|KECS| World with {worldId} id is null.");
                     }
-
                     return world;
                 }
-
                 throw new Exception($"|KECS| No world with {worldId} id was found.");
             }
         }
