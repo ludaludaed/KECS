@@ -862,7 +862,7 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    public sealed class ArchetypeManager : IDisposable
+    internal sealed class ArchetypeManager : IDisposable
     {
         private readonly GrowList<Archetype> _archetypes;
         private readonly World _world;
