@@ -2230,7 +2230,7 @@ namespace Ludaludaed.KECS
         }
     }
 
-    internal static class ArrayExtension
+    public static class ArrayExtension
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void InnerEnsureLength<T>(ref T[] array, int index)
