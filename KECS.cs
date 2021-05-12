@@ -487,6 +487,20 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public World Registry<T>() where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+
+            if (_componentPools.Contains(idx)) return this;
+            
+            var pool = new ComponentPool<T>(this);
+            _componentPools.Set(idx, pool);
+            
+            return this;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ComponentPool<T> GetPool<T>() where T : struct
         {
             if (!_isAlive)
@@ -734,6 +748,14 @@ namespace Ludaludaed.KECS
         public static bool Has<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+            return entityData.Archetype.Mask.GetBit(idx);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Has(in this Entity entity, int idx)
+        {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
@@ -1009,7 +1031,7 @@ namespace Ludaludaed.KECS
             int counter = 0;
             foreach (var idx in mask)
             {
-                TypesCache[counter++] = EcsTypeManager.ComponentsTypes[idx];
+                TypesCache[counter++] = EcsTypeManager.ComponentsInfos[idx].Type;
             }
 
             world.ArchetypeCreated(this);
@@ -1123,32 +1145,38 @@ namespace Ludaludaed.KECS
 
     public static class EcsTypeManager
     {
-        internal static int ComponentTypesCount = 0;
-        public static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponents];
-
-        public static int GetIdx(Type type)
+        public static int ComponentTypesCount;
+        public static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
+        
+        public readonly struct TypeInfo
         {
-            return Array.IndexOf(ComponentsTypes, type);
+            public readonly int Index;
+            public readonly Type Type;
+
+            public TypeInfo(int idx, Type type)
+            {
+                Index = idx;
+                Type = type;
+            }
         }
     }
 
 
-    internal static class ComponentTypeInfo<T> where T : struct
+    public static class ComponentTypeInfo<T> where T : struct
     {
-        internal static readonly int TypeIndex;
-        internal static readonly Type Type;
+        public static readonly int TypeIndex;
+        public static readonly Type Type;
 
         private static readonly object _lockObject = new object();
-
-
+        
         static ComponentTypeInfo()
         {
             lock (_lockObject)
             {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
-                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
-                EcsTypeManager.ComponentsTypes[TypeIndex] = Type;
+                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsInfos, TypeIndex);
+                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex,Type);
             }
         }
     }
@@ -1165,14 +1193,10 @@ namespace Ludaludaed.KECS
     internal sealed class ComponentPool<T> : IComponentPool where T : struct
     {
         private readonly HandleMap<T> _components;
-        private int Length => _components.Count;
-        private World _owner;
         internal ref T Empty => ref _components.Empty;
-
         
         public ComponentPool(World world)
         {
-            _owner = world;
             _components = new HandleMap<T>(world.Config.Entities,
                 world.Config.Entities);
         }
