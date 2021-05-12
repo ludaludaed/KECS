@@ -846,7 +846,7 @@ namespace Ludaludaed.KECS
                 typeIndexes = new int[lenght];
             }
 
-            int counter = 0;
+            var counter = 0;
             foreach (var idx in mask)
             {
                 typeIndexes[counter++] = idx;
@@ -868,7 +868,7 @@ namespace Ludaludaed.KECS
                 objects = new object[lenght];
             }
 
-            int counter = 0;
+            var counter = 0;
             foreach (var idx in mask)
             {
                 objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
