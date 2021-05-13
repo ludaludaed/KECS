@@ -59,7 +59,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         static Worlds()
         {
             _lockObject = new object();
@@ -79,6 +79,7 @@ namespace Ludaludaed.KECS
                 {
                     throw new Exception($"|KECS| A world with {name} name already exists.");
                 }
+
                 var worldId = _freeWorldsIds.GetFreeInt();
                 ArrayExtension.EnsureLength(ref _worlds, worldId);
                 var newWorld = new World(worldId, CheckConfig(config), name);
@@ -111,6 +112,7 @@ namespace Ludaludaed.KECS
                 {
                     return _worlds[worldId];
                 }
+
                 throw new Exception($"|KECS| No world with {name} name was found.");
             }
         }
@@ -128,8 +130,10 @@ namespace Ludaludaed.KECS
                     {
                         throw new Exception($"|KECS| World with {worldId} id is null.");
                     }
+
                     return world;
                 }
+
                 throw new Exception($"|KECS| No world with {worldId} id was found.");
             }
         }
@@ -257,7 +261,7 @@ namespace Ludaludaed.KECS
         private int _addTasksCount;
         private int _removeTasksCount;
 
-        
+
         internal TaskPool(World world)
         {
             _addTasks = new TaskItem[world.Config.Entities];
@@ -334,8 +338,8 @@ namespace Ludaludaed.KECS
         public bool IsAlive => _isAlive;
 
         internal readonly ArchetypeManager ArchetypeManager;
-        
-        
+
+
         internal World(int worldId, WorldConfig config, string name)
         {
             _name = name;
@@ -492,10 +496,10 @@ namespace Ludaludaed.KECS
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
             if (_componentPools.Contains(idx)) return this;
-            
+
             var pool = new ComponentPool<T>(this);
             _componentPools.Set(idx, pool);
-            
+
             return this;
         }
 
@@ -752,7 +756,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             return entityData.Archetype.Mask.GetBit(idx);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Has(in this Entity entity, int idx)
         {
@@ -1009,7 +1013,7 @@ namespace Ludaludaed.KECS
         public int Count => Entities.Count;
         internal BitMask Mask { get; }
 
-        
+
         internal Archetype(World world, BitMask mask)
         {
             Mask = mask;
@@ -1147,7 +1151,7 @@ namespace Ludaludaed.KECS
     {
         public static int ComponentTypesCount;
         public static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
-        
+
         public readonly struct TypeInfo
         {
             public readonly int Index;
@@ -1168,7 +1172,7 @@ namespace Ludaludaed.KECS
         public static readonly Type Type;
 
         private static readonly object _lockObject = new object();
-        
+
         static ComponentTypeInfo()
         {
             lock (_lockObject)
@@ -1176,7 +1180,7 @@ namespace Ludaludaed.KECS
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
                 ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsInfos, TypeIndex);
-                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex,Type);
+                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type);
             }
         }
     }
@@ -1194,7 +1198,7 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<T> _components;
         internal ref T Empty => ref _components.Empty;
-        
+
         public ComponentPool(World world)
         {
             _components = new HandleMap<T>(world.Config.Entities,
@@ -1767,43 +1771,42 @@ namespace Ludaludaed.KECS
 
             var systemValue = new T();
 
-            int hash = typeof(T).GetHashCode();
+            var hash = typeof(T).GetHashCode();
 
-            if (!_systems.ContainsKey(hash))
+            if (_systems.ContainsKey(hash)) return this;
+            
+            var systemData = new SystemData {IsEnable = true, Base = systemValue};
+            _allSystems.Add(systemData);
+            systemValue.StartUp(_world, this);
+
+            if (systemValue is IUpdate system)
             {
-                var systemData = new SystemData {IsEnable = true, Base = systemValue};
-                _allSystems.Add(systemData);
-                systemValue.StartUp(_world, this);
+                var collection = _updateSystems;
+                var impl = system;
 
-                if (systemValue is IUpdate system)
+                if (systemValue is IFixedUpdate fixedSystem)
                 {
-                    var collection = _updateSystems;
-                    var impl = system;
-
-                    if (systemValue is IFixedUpdate fixedSystem)
-                    {
-                        collection = _fixedSystems;
-                        impl = fixedSystem;
-                    }
-                    else
-                    {
-                        if (systemValue is ILateUpdate lateSystem)
-                        {
-                            collection = _lateSystems;
-                            impl = lateSystem;
-                        }
-                    }
-
-                    systemData.UpdateImpl = impl;
-                    collection.Add(systemData);
+                    collection = _fixedSystems;
+                    impl = fixedSystem;
                 }
                 else
                 {
-                    _onlyBaseSystems.Add(systemData);
+                    if (systemValue is ILateUpdate lateSystem)
+                    {
+                        collection = _lateSystems;
+                        impl = lateSystem;
+                    }
                 }
 
-                _systems.Add(hash, systemData);
+                systemData.UpdateImpl = impl;
+                collection.Add(systemData);
             }
+            else
+            {
+                _onlyBaseSystems.Add(systemData);
+            }
+
+            _systems.Add(hash, systemData);
 
             return this;
         }
@@ -1821,7 +1824,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            int hash = typeof(T).GetHashCode();
+            var hash = typeof(T).GetHashCode();
 
             if (_systems.TryGetValue(hash, out var systemValue))
             {
@@ -1844,7 +1847,7 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            int hash = typeof(T).GetHashCode();
+            var hash = typeof(T).GetHashCode();
 
             if (_systems.TryGetValue(hash, out var systemValue))
             {
@@ -1867,8 +1870,9 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            foreach (var update in _updateSystems)
+            for (int i = 0, lenght = _updateSystems.Count; i < lenght; i++)
             {
+                var update = _updateSystems[i];
                 if (update.IsEnable)
                 {
                     update.UpdateImpl?.OnUpdate(deltaTime);
@@ -1889,8 +1893,9 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            foreach (var update in _fixedSystems)
+            for (int i = 0, lenght = _fixedSystems.Count; i < lenght; i++)
             {
+                var update = _fixedSystems[i];
                 if (update.IsEnable)
                 {
                     update.UpdateImpl?.OnUpdate(deltaTime);
@@ -1911,8 +1916,9 @@ namespace Ludaludaed.KECS
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             }
 
-            foreach (var update in _lateSystems)
+            for (int i = 0, lenght = _lateSystems.Count; i < lenght; i++)
             {
+                var update = _lateSystems[i];
                 if (update.IsEnable)
                 {
                     update.UpdateImpl?.OnUpdate(deltaTime);
@@ -1929,9 +1935,10 @@ namespace Ludaludaed.KECS
             }
 
             _initialized = true;
-            foreach (var initializer in _allSystems)
+
+            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                initializer.Base.Initialize();
+                _allSystems[i].Base.Initialize();
             }
         }
 
@@ -1945,19 +1952,21 @@ namespace Ludaludaed.KECS
 
             _destroyed = true;
 
-            foreach (var destroy in _allSystems)
+            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
+                var destroy = _allSystems[i];
                 if (destroy.IsEnable)
                 {
                     destroy.Base.OnDestroy();
                 }
             }
 
-            foreach (var postDestroy in _allSystems)
+            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                if (postDestroy.IsEnable)
+                var destroy = _allSystems[i];
+                if (destroy.IsEnable)
                 {
-                    postDestroy.Base.PostDestroy();
+                    destroy.Base.PostDestroy();
                 }
             }
 #if DEBUG
@@ -2082,7 +2091,7 @@ namespace Ludaludaed.KECS
                 _instances[packedIdx] = lastValue;
                 _sparse[lastSparseIdx] = packedIdx;
             }
-            
+
             _instances[_denseCount] = default;
         }
 
@@ -2177,7 +2186,7 @@ namespace Ludaludaed.KECS
             }
         }
 
-        
+
         internal GrowList(int capacity)
         {
             _data = new T[capacity];
@@ -2209,7 +2218,7 @@ namespace Ludaludaed.KECS
         private readonly int _startInt;
         internal int Count => _freeInts.Count;
 
-        
+
         public IntDispenser()
         {
             _freeInts = new ConcurrentStack<int>();
@@ -2319,7 +2328,7 @@ namespace Ludaludaed.KECS
 
         public int Count { get; private set; }
 
-        
+
         public BitMask(int capacity = 0)
         {
             var newSize = capacity / CHUNK_CAPACITY;
@@ -2332,7 +2341,7 @@ namespace Ludaludaed.KECS
             _chunks = new ulong[newSize];
         }
 
-        
+
         public BitMask(in BitMask copy)
         {
             var newSize = copy._chunks.Length;
@@ -2341,6 +2350,7 @@ namespace Ludaludaed.KECS
             {
                 _chunks[i] = copy._chunks[i];
             }
+
             Count = copy.Count;
         }
 
@@ -2440,7 +2450,7 @@ namespace Ludaludaed.KECS
             private int _index;
             private int _returned;
 
-            
+
             public Enumerator(BitMask bitMask)
             {
                 this._bitMask = bitMask;
