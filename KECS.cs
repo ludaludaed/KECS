@@ -2073,14 +2073,17 @@ namespace Ludaludaed.KECS
             _sparse[sparseIdx] = None;
             _denseCount--;
 
-            if (packedIdx >= _denseCount) return;
+            if (packedIdx < _denseCount)
+            {
+                var lastSparseIdx = _dense[_denseCount];
+                var lastValue = _instances[_denseCount];
 
-            var lastSparseIdx = _dense[_denseCount];
-            var lastValueIdx = _instances[_denseCount];
-
-            _dense[packedIdx] = lastSparseIdx;
-            _instances[packedIdx] = lastValueIdx;
-            _sparse[lastSparseIdx] = packedIdx;
+                _dense[packedIdx] = lastSparseIdx;
+                _instances[packedIdx] = lastValue;
+                _sparse[lastSparseIdx] = packedIdx;
+            }
+            
+            _instances[_denseCount] = default;
         }
 
 
