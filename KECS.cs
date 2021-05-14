@@ -31,7 +31,10 @@ namespace Ludaludaed.KECS
         public const int DefaultComponents = 256;
     }
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class Worlds
     {
         private const string DEFAULT_WORLD_NAME = "DEFAULT";
@@ -164,7 +167,7 @@ namespace Ludaludaed.KECS
                 if (_worldsIdx.TryGetValue(hashName, out int worldId))
                 {
                     _worldsIdx.Remove(hashName);
-                    _worlds[worldId].Dispose();
+                    _worlds[worldId].InternalDestroy();
                     _worlds[worldId] = null;
                     _freeWorldsIds.ReleaseInt(worldId);
                     return;
@@ -182,7 +185,7 @@ namespace Ludaludaed.KECS
             {
                 foreach (var item in _worlds)
                 {
-                    item?.Dispose();
+                    item?.InternalDestroy();
                 }
 
                 Array.Clear(_worlds, 0, _worlds.Length);
@@ -198,7 +201,10 @@ namespace Ludaludaed.KECS
     // SHARED DATA
     //=============================================================================
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal class SharedData
     {
         private readonly Dictionary<int, object> _data;
@@ -254,6 +260,11 @@ namespace Ludaludaed.KECS
         void Execute();
     }
 
+
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal class TaskPool<T> : ITaskPool where T : struct
     {
         private TaskItem[] _addTasks;
@@ -317,7 +328,10 @@ namespace Ludaludaed.KECS
     // WORLD
     //=============================================================================
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class World
     {
         private readonly HandleMap<IComponentPool> _componentPools;
@@ -416,7 +430,7 @@ namespace Ludaludaed.KECS
                 return false;
             }
 
-            return _entities[entity.Id].Age == entity.Age;
+            return _entities[entity.Id].Age == entity.Age && _entities[entity.Id].Used;
         }
 
 
@@ -439,13 +453,13 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = this;
-
             if (_freeEntityIds.TryGetNewInt(out var newEntityId))
             {
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
                 entityData.Archetype = ArchetypeManager.EmptyArchetype;
+                entityData.Used = true;
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -454,6 +468,7 @@ namespace Ludaludaed.KECS
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
                 entityData.Archetype = ArchetypeManager.EmptyArchetype;
+                entityData.Used = true;
                 entity.Age = entityData.Age;
             }
 
@@ -473,6 +488,7 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
+            entityData.Used = false;
             entityData.Age++;
             if (entityData.Age == 0)
             {
@@ -511,11 +527,9 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (!_componentPools.Contains(idx))
-            {
-                var pool = new ComponentPool<T>(this);
-                _componentPools.Set(idx, pool);
-            }
+            if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
+            var pool = new ComponentPool<T>(this);
+            _componentPools.Set(idx, pool);
 
             return (ComponentPool<T>) _componentPools.Get(idx);
         }
@@ -538,11 +552,9 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (!_taskPools.Contains(idx))
-            {
-                var pool = new TaskPool<T>(this);
-                _taskPools.Set(idx, pool);
-            }
+            if (_taskPools.Contains(idx)) return (TaskPool<T>) _taskPools.Get(idx);
+            var pool = new TaskPool<T>(this);
+            _taskPools.Set(idx, pool);
 
             return (TaskPool<T>) _taskPools.Get(idx);
         }
@@ -571,9 +583,36 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Dispose()
+        public Entity[] GetEntities()
+        {
+            var entities = new Entity[_entitiesCount];
+            Entity entity;
+            entity.World = this;
+            var counter = 0;
+            for (int i = 0, lenght = _entities.Length; i < lenght; i++)
+            {
+                ref var entityData = ref _entities[i];
+                if (!entityData.Used) continue;
+                entity.Id = i;
+                entity.Age = entityData.Age;
+                entities[counter++] = entity;
+            }
+
+            return entities;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void InternalDestroy()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
+
+            var entities = GetEntities();
+            for (int i = 0, lenght = entities.Length; i < lenght; i++)
+            {
+                entities[i].Destroy();
+            }
+
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
                 _componentPools[i]?.Dispose();
@@ -621,6 +660,7 @@ namespace Ludaludaed.KECS
     public struct EntityData
     {
         public int Age;
+        public bool Used;
         public Archetype Archetype;
     }
 
@@ -676,6 +716,11 @@ namespace Ludaludaed.KECS
         }
     }
 
+
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class EntityExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -887,7 +932,10 @@ namespace Ludaludaed.KECS
     // ARCHETYPES
     //=============================================================================
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal sealed class ArchetypeManager : IDisposable
     {
         private readonly GrowList<Archetype> _archetypes;
@@ -997,7 +1045,10 @@ namespace Ludaludaed.KECS
         }
     }
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class Archetype : IEnumerable<Entity>, IDisposable
     {
         internal readonly HandleMap<Entity> Entities;
@@ -1012,7 +1063,6 @@ namespace Ludaludaed.KECS
 
         public int Count => Entities.Count;
         internal BitMask Mask { get; }
-
 
         internal Archetype(World world, BitMask mask)
         {
@@ -1146,7 +1196,10 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // POOLS
     //=============================================================================
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class EcsTypeManager
     {
         public static int ComponentTypesCount;
@@ -1165,7 +1218,10 @@ namespace Ludaludaed.KECS
         }
     }
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class ComponentTypeInfo<T> where T : struct
     {
         public static readonly int TypeIndex;
@@ -1193,7 +1249,10 @@ namespace Ludaludaed.KECS
         void SetObject(int entityId, object value);
     }
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal sealed class ComponentPool<T> : IComponentPool where T : struct
     {
         private readonly HandleMap<T> _components;
@@ -1297,7 +1356,10 @@ namespace Ludaludaed.KECS
         where O : struct
         where P : struct;
 
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class Filter
     {
         internal BitMask Include;
@@ -1644,6 +1706,10 @@ namespace Ludaludaed.KECS
     }
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class Systems : IDisposable
     {
         private readonly Dictionary<int, SystemData> _systems;
@@ -1774,7 +1840,7 @@ namespace Ludaludaed.KECS
             var hash = typeof(T).GetHashCode();
 
             if (_systems.ContainsKey(hash)) return this;
-            
+
             var systemData = new SystemData {IsEnable = true, Base = systemValue};
             _allSystems.Add(systemData);
             systemValue.StartUp(_world, this);
@@ -1994,6 +2060,10 @@ namespace Ludaludaed.KECS
     // HANDLE MAP
     //=============================================================================
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class HandleMap<T> : IEnumerable<T>
     {
         private const int None = -1;
@@ -2170,6 +2240,10 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal class GrowList<T>
     {
         private T[] _data;
@@ -2211,6 +2285,10 @@ namespace Ludaludaed.KECS
     }
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     internal class IntDispenser : IDisposable
     {
         private readonly ConcurrentStack<int> _freeInts;
@@ -2266,6 +2344,10 @@ namespace Ludaludaed.KECS
         }
     }
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class ArrayExtension
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -2504,3 +2586,21 @@ namespace Ludaludaed.KECS
     }
 #endif
 }
+
+#if ENABLE_IL2CPP
+namespace Unity.IL2CPP.CompilerServices {
+    enum Option {
+        NullChecks = 1,
+        ArrayBoundsChecks = 2
+    }
+
+    [AttributeUsage (AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property, Inherited =
+ false, AllowMultiple = true)]
+    class Il2CppSetOptionAttribute : Attribute {
+        public Option Option { get; private set; }
+        public object Value { get; private set; }
+
+        public Il2CppSetOptionAttribute (Option option, object value) { Option = option; Value = value; }
+    }
+}
+#endif
