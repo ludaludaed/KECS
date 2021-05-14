@@ -337,6 +337,7 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
         private readonly List<Filter> _filters;
+        private readonly GrowList<Archetype> _archetypes;
 
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
@@ -351,9 +352,6 @@ namespace Ludaludaed.KECS
         public int WorldId => _worldId;
         public bool IsAlive => _isAlive;
 
-        internal readonly ArchetypeManager ArchetypeManager;
-
-
         internal World(int worldId, WorldConfig config, string name)
         {
             _name = name;
@@ -363,13 +361,15 @@ namespace Ludaludaed.KECS
 
             _componentPools = new HandleMap<IComponentPool>(config.Components, config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components, config.Components);
+            
+            _archetypes = new GrowList<Archetype>(Config.Archetypes);
+            _archetypes.Add(new Archetype(this, new BitMask(Config.Components)));
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
 
             _filters = new List<Filter>();
-            ArchetypeManager = new ArchetypeManager(this);
         }
 
 
@@ -416,7 +416,7 @@ namespace Ludaludaed.KECS
             {
                 ActiveEntities = _entitiesCount,
                 ReservedEntities = _freeEntityIds.Count,
-                Archetypes = ArchetypeManager.Count,
+                Archetypes = _archetypes.Count,
                 Components = _componentPools.Count
             };
         }
@@ -458,7 +458,7 @@ namespace Ludaludaed.KECS
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = ArchetypeManager.EmptyArchetype;
+                entityData.Archetype = _archetypes[0];
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -466,11 +466,11 @@ namespace Ludaludaed.KECS
             {
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = ArchetypeManager.EmptyArchetype;
+                entityData.Archetype = _archetypes[0];
                 entity.Age = entityData.Age;
             }
 
-            ArchetypeManager.EmptyArchetype.AddEntity(entity);
+            _archetypes[0].AddEntity(entity);
             _entitiesCount++;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
@@ -578,6 +578,82 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void FindArchetypes(Filter filter, int startId)
+        {
+            var include = filter.Include;
+            var exclude = filter.Exclude;
+            
+            for (int i = startId, lenght = _archetypes.Count; i < lenght; i++)
+            {
+                var archetype = _archetypes[i];
+                if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
+                {
+                    filter.AddArchetype(archetype);
+                }
+            }
+
+            filter.Version = _archetypes.Count;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Archetype FindOrCreateArchetype(BitMask mask)
+        {
+            var curArchetype = _archetypes[0];
+            var newMask = new BitMask(Config.Components);
+
+            foreach (var index in mask)
+            {
+                newMask.SetBit(index);
+
+                var nextArchetype = curArchetype.Next.Get(index);
+
+                if (nextArchetype == null)
+                {
+                    nextArchetype = new Archetype(this, newMask);
+
+                    nextArchetype.Prior.Set(index, curArchetype);
+                    curArchetype.Next.Set(index, nextArchetype);
+
+                    _archetypes.Add(nextArchetype);
+                }
+
+                curArchetype = nextArchetype;
+            }
+
+            return curArchetype;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
+        {
+            var priorArchetype = archetype.Prior.Get(removeIndex);
+            if (priorArchetype != null)
+                return priorArchetype;
+
+            var mask = new BitMask(archetype.Mask);
+            mask.ClearBit(removeIndex);
+
+            return FindOrCreateArchetype(mask);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
+        {
+            var nextArchetype = archetype.Next.Get(addIndex);
+            if (nextArchetype != null)
+                return nextArchetype;
+
+            var mask = new BitMask(archetype.Mask);
+            mask.SetBit(addIndex);
+
+            return FindOrCreateArchetype(mask);
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -621,13 +697,18 @@ namespace Ludaludaed.KECS
             {
                 _filters[i]?.Dispose();
             }
+            
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
+            {
+                _archetypes[i].Dispose();
+            }
 
+            _archetypes.Clear();
             _filters.Clear();
             _freeEntityIds.Clear();
             _entitiesCount = 0;
             _worldId = -1;
             _isAlive = false;
-            ArchetypeManager.Dispose();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -812,7 +893,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.ArchetypeManager.FindOrCreateNextArchetype(entityData.Archetype, index);
+            var newArchetype = world.FindOrCreateNextArchetype(entityData.Archetype, index);
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
@@ -823,7 +904,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.ArchetypeManager.FindOrCreatePriorArchetype(entityData.Archetype, index);
+            var newArchetype = world.FindOrCreatePriorArchetype(entityData.Archetype, index);
             entityData.Archetype = newArchetype;
             entityData.Archetype.AddEntity(entity);
         }
@@ -851,7 +932,7 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
 
-            if (entityData.Archetype.Mask.GetBit(typeIdx))
+            if (entity.Has(typeIdx))
             {
                 GotoPriorArchetype(ref entityData, in entity, typeIdx);
                 world.GetPool(typeIdx).Remove(entity.Id);
@@ -928,120 +1009,7 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ARCHETYPES
     //=============================================================================
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    internal sealed class ArchetypeManager : IDisposable
-    {
-        private readonly GrowList<Archetype> _archetypes;
-        private readonly World _world;
-        internal Archetype EmptyArchetype => _archetypes[0];
-        public int Count => _archetypes.Count;
-
-        internal ArchetypeManager(World world)
-        {
-            _world = world;
-            _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
-            _archetypes.Add(new Archetype(world, new BitMask(world.Config.Components)));
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FindArchetypes(Filter filter, int startId)
-        {
-            for (int i = startId, lenght = _archetypes.Count; i < lenght; i++)
-            {
-                CheckArchetype(_archetypes[i], filter);
-            }
-
-            filter.Version = _archetypes.Count;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CheckArchetype(Archetype archetype, Filter filter)
-        {
-            var include = filter.Include;
-            var exclude = filter.Exclude;
-
-            if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
-            {
-                filter.AddArchetype(archetype);
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Archetype FindOrCreateArchetype(BitMask mask)
-        {
-            var curArchetype = EmptyArchetype;
-            var newMask = new BitMask(_world.Config.Components);
-
-            foreach (var index in mask)
-            {
-                newMask.SetBit(index);
-
-                var nextArchetype = curArchetype.Next.Get(index);
-
-                if (nextArchetype == null)
-                {
-                    nextArchetype = new Archetype(_world, newMask);
-
-                    nextArchetype.Prior.Set(index, curArchetype);
-                    curArchetype.Next.Set(index, nextArchetype);
-
-                    _archetypes.Add(nextArchetype);
-                }
-
-                curArchetype = nextArchetype;
-            }
-
-            return curArchetype;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
-        {
-            var priorArchetype = archetype.Prior.Get(removeIndex);
-            if (priorArchetype != null)
-                return priorArchetype;
-
-            var mask = new BitMask(archetype.Mask);
-            mask.ClearBit(removeIndex);
-
-            return FindOrCreateArchetype(mask);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
-        {
-            var nextArchetype = archetype.Next.Get(addIndex);
-            if (nextArchetype != null)
-                return nextArchetype;
-
-            var mask = new BitMask(archetype.Mask);
-            mask.SetBit(addIndex);
-
-            return FindOrCreateArchetype(mask);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
-            {
-                _archetypes[i].Dispose();
-            }
-
-            _archetypes.Clear();
-        }
-    }
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1364,7 +1332,6 @@ namespace Ludaludaed.KECS
         internal int Version { get; set; }
 
         private readonly GrowList<Archetype> _archetypes;
-        private readonly ArchetypeManager _archetypeManager;
         private readonly World _world;
 
 
@@ -1373,7 +1340,6 @@ namespace Ludaludaed.KECS
             Include = new BitMask(world.Config.Components);
             Exclude = new BitMask(world.Config.Components);
             _archetypes = new GrowList<Archetype>(world.Config.Archetypes);
-            _archetypeManager = world.ArchetypeManager;
 
             _world = world;
             Version = 0;
@@ -1417,7 +1383,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ForEach(ForEachArchetypeHandler handler)
         {
-            _archetypeManager.FindArchetypes(this, Version);
+            _world.FindArchetypes(this, Version);
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
