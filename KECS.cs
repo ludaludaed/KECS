@@ -430,7 +430,7 @@ namespace Ludaludaed.KECS
                 return false;
             }
 
-            return _entities[entity.Id].Age == entity.Age && _entities[entity.Id].Used;
+            return _entities[entity.Id].Age == entity.Age;
         }
 
 
@@ -459,7 +459,6 @@ namespace Ludaludaed.KECS
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
                 entityData.Archetype = ArchetypeManager.EmptyArchetype;
-                entityData.Used = true;
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -468,7 +467,6 @@ namespace Ludaludaed.KECS
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
                 entityData.Archetype = ArchetypeManager.EmptyArchetype;
-                entityData.Used = true;
                 entity.Age = entityData.Age;
             }
 
@@ -488,7 +486,7 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
-            entityData.Used = false;
+            entityData.Archetype = null;
             entityData.Age++;
             if (entityData.Age == 0)
             {
@@ -592,7 +590,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = _entities.Length; i < lenght; i++)
             {
                 ref var entityData = ref _entities[i];
-                if (!entityData.Used) continue;
+                if (entityData.Archetype == null) continue;
                 entity.Id = i;
                 entity.Age = entityData.Age;
                 entities[counter++] = entity;
@@ -660,7 +658,6 @@ namespace Ludaludaed.KECS
     public struct EntityData
     {
         public int Age;
-        public bool Used;
         public Archetype Archetype;
     }
 
