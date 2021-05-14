@@ -336,8 +336,8 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        private readonly List<Filter> _filters;
         private readonly GrowList<Archetype> _archetypes;
+        private readonly List<Filter> _filters;
 
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
