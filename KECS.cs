@@ -37,7 +37,7 @@ namespace Ludaludaed.KECS
 #endif
     public static class Worlds
     {
-        private const string DEFAULT_WORLD_NAME = "DEFAULT";
+        private const string DefaultWorldName = "DEFAULT";
         private static readonly object _lockObject;
         private static readonly IntDispenser _freeWorldsIds;
         private static World[] _worlds;
@@ -51,7 +51,7 @@ namespace Ludaludaed.KECS
             {
                 lock (_lockObject)
                 {
-                    var hashName = DEFAULT_WORLD_NAME.GetHashCode();
+                    var hashName = DefaultWorldName.GetHashCode();
                     if (_worldsIdx.TryGetValue(hashName, out var worldId))
                     {
                         return _worlds[worldId];
@@ -73,7 +73,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Create(string name = DEFAULT_WORLD_NAME, WorldConfig config = default)
+        public static World Create(string name = DefaultWorldName, WorldConfig config = default)
         {
             lock (_lockObject)
             {
@@ -2236,15 +2236,15 @@ namespace Ludaludaed.KECS
 
     public struct BitMask
     {
-        private const int CHUNK_CAPACITY = sizeof(ulong) * 8;
+        private const int ChunkCapacity = sizeof(ulong) * 8;
         private readonly ulong[] _chunks;
 
         public int Count { get; private set; }
 
         public BitMask(int capacity = 0)
         {
-            var newSize = capacity / CHUNK_CAPACITY;
-            if (capacity % CHUNK_CAPACITY != 0)
+            var newSize = capacity / ChunkCapacity;
+            if (capacity % ChunkCapacity != 0)
             {
                 newSize++;
             }
@@ -2270,9 +2270,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetBit(int index)
         {
-            var chunk = index / CHUNK_CAPACITY;
+            var chunk = index / ChunkCapacity;
             var oldValue = _chunks[chunk];
-            var newValue = oldValue | (1UL << (index % CHUNK_CAPACITY));
+            var newValue = oldValue | (1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
             Count++;
@@ -2282,9 +2282,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearBit(int index)
         {
-            var chunk = index / CHUNK_CAPACITY;
+            var chunk = index / ChunkCapacity;
             var oldValue = _chunks[chunk];
-            var newValue = oldValue & ~(1UL << (index % CHUNK_CAPACITY));
+            var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
             Count--;
@@ -2294,7 +2294,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool GetBit(int index)
         {
-            return (_chunks[index / CHUNK_CAPACITY] & (1UL << (index % CHUNK_CAPACITY))) != 0;
+            return (_chunks[index / ChunkCapacity] & (1UL << (index % ChunkCapacity))) != 0;
         }
 
 
