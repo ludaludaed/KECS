@@ -122,38 +122,11 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Get(int worldId)
+        internal static World Get(int worldId)
         {
             lock (_lockObject)
             {
-                if (_worlds.Length > worldId)
-                {
-                    var world = _worlds[worldId];
-                    if (world == null)
-                    {
-                        throw new Exception($"|KECS| World with {worldId} id is null.");
-                    }
-
-                    return world;
-                }
-
-                throw new Exception($"|KECS| No world with {worldId} id was found.");
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World GetOrCreate(string name, WorldConfig config = default)
-        {
-            var hashName = name.GetHashCode();
-            lock (_lockObject)
-            {
-                if (_worldsIdx.TryGetValue(hashName, out int worldId))
-                {
-                    return _worlds[worldId];
-                }
-
-                return Create(name, config);
+                return worldId < _worlds.Length ? _worlds[worldId] : null;
             }
         }
 
@@ -172,7 +145,6 @@ namespace Ludaludaed.KECS
                     _freeWorldsIds.ReleaseInt(worldId);
                     return;
                 }
-
                 throw new Exception($"|KECS| A world with {name} name has not been found. Unable to delete.");
             }
         }
@@ -349,7 +321,6 @@ namespace Ludaludaed.KECS
         internal readonly WorldConfig Config;
 
         public string Name => _name;
-        public int WorldId => _worldId;
         public bool IsAlive => _isAlive;
 
         internal World(int worldId, WorldConfig config, string name)
@@ -361,7 +332,7 @@ namespace Ludaludaed.KECS
 
             _componentPools = new HandleMap<IComponentPool>(config.Components, config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components, config.Components);
-            
+
             _archetypes = new GrowList<Archetype>(Config.Archetypes);
             _archetypes.Add(new Archetype(this, new BitMask(Config.Components)));
 
@@ -401,8 +372,10 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter Filter()
         {
+#if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create filter.");
+#endif
             var filter = new Filter(this);
             _filters.Add(filter);
             return filter;
@@ -425,11 +398,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool EntityIsAlive(in Entity entity)
         {
-            if (entity.World != this || !_isAlive)
-            {
-                return false;
-            }
-
+            if (entity.World != this || !_isAlive) return false;
             return _entities[entity.Id].Age == entity.Age;
         }
 
@@ -437,10 +406,12 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ref EntityData GetEntityData(Entity entity)
         {
+#if DEBUG
             if (entity.World != this) throw new Exception("|KECS| Invalid world.");
             if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
             if (entity.Age != _entities[entity.Id].Age)
                 throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
+#endif
             return ref _entities[entity.Id];
         }
 
@@ -448,9 +419,10 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Entity CreateEntity()
         {
+#if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
-
+#endif
             Entity entity;
             entity.World = this;
             if (_freeEntityIds.TryGetNewInt(out var newEntityId))
@@ -508,12 +480,9 @@ namespace Ludaludaed.KECS
         public World Registry<T>() where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
-
             if (_componentPools.Contains(idx)) return this;
-
             var pool = new ComponentPool<T>(this);
             _componentPools.Set(idx, pool);
-
             return this;
         }
 
@@ -521,10 +490,11 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ComponentPool<T> GetPool<T>() where T : struct
         {
+#if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+#endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-
             if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
             var pool = new ComponentPool<T>(this);
             _componentPools.Set(idx, pool);
@@ -536,8 +506,10 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal IComponentPool GetPool(int idx)
         {
+#if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+#endif
             var pool = _componentPools.Get(idx);
             return pool;
         }
@@ -546,8 +518,10 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal TaskPool<T> GetTaskPool<T>() where T : struct
         {
+#if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+#endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
             if (_taskPools.Contains(idx)) return (TaskPool<T>) _taskPools.Get(idx);
@@ -578,15 +552,15 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FindArchetypes(Filter filter, int startId)
+        internal void FindArchetypes(Filter filter, int version)
         {
             var include = filter.Include;
             var exclude = filter.Exclude;
-            
-            for (int i = startId, lenght = _archetypes.Count; i < lenght; i++)
+
+            for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes[i];
                 if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
@@ -679,8 +653,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void InternalDestroy()
         {
+#if DEBUG
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
-
+#endif
             var entities = GetEntities();
             for (int i = 0, lenght = entities.Length; i < lenght; i++)
             {
@@ -697,7 +672,7 @@ namespace Ludaludaed.KECS
             {
                 _filters[i]?.Dispose();
             }
-            
+
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 _archetypes[i].Dispose();
@@ -1009,7 +984,7 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ARCHETYPES
     //=============================================================================
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1231,19 +1206,13 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int entityId)
-        {
-            return ref _components.Get(entityId);
-        }
+        public ref T Get(int entityId) => ref _components.Get(entityId);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetObject(int entityId)
-        {
-            return _components.Get(entityId);
-        }
-
-
+        public object GetObject(int entityId) => _components.Get(entityId);
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetObject(int entityId, object value)
         {
@@ -1255,24 +1224,15 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int entityId)
-        {
-            _components.Remove(entityId);
-        }
-
+        public void Remove(int entityId) => _components.Remove(entityId);
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Set(int entityId, in T value) => _components.Set(entityId, value);
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int entityId, in T value)
-        {
-            _components.Set(entityId, value);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            _components.Clear();
-        }
+        public void Dispose() => _components.Clear();
     }
 
 
@@ -1683,7 +1643,7 @@ namespace Ludaludaed.KECS
         private readonly List<SystemData> _allSystems;
         private readonly List<SystemData> _onlyBaseSystems;
 
-        private SharedData _sharedData;
+        private readonly SharedData _sharedData;
 
         private readonly World _world;
         private bool _initialized;
@@ -1736,16 +1696,10 @@ namespace Ludaludaed.KECS
 
         public Systems AddShared<T>(T data) where T : class
         {
-            if (_initialized)
-            {
-                throw new Exception($"|KECS| Systems was initialized. You cannot add shared data.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot add shared data.");
-            }
-
+#if DEBUG
+            if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             _sharedData.Add(data);
             return this;
         }
@@ -1753,16 +1707,10 @@ namespace Ludaludaed.KECS
 
         public T GetShared<T>() where T : class
         {
-            if (!_initialized)
-            {
-                throw new Exception($"|KECS| Systems haven't initialized yet. You cannot get shared data.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot get shared data.");
-            }
-
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             return _sharedData.Get<T>();
         }
 
@@ -1789,14 +1737,12 @@ namespace Ludaludaed.KECS
         {
             return _onlyBaseSystems;
         }
-
-
+        
         public Systems Add<T>() where T : SystemBase, new()
         {
-            if (_initialized)
-            {
-                throw new Exception("|KECS| System cannot be added after initialization.");
-            }
+#if DEBUG
+            if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+#endif
 
             var systemValue = new T();
 
@@ -1843,126 +1789,76 @@ namespace Ludaludaed.KECS
 
         public Systems Disable<T>() where T : SystemBase
         {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             var hash = typeof(T).GetHashCode();
-
-            if (_systems.TryGetValue(hash, out var systemValue))
-            {
-                systemValue.IsEnable = false;
-            }
-
+            if (_systems.TryGetValue(hash, out var systemValue)) systemValue.IsEnable = false;
             return this;
         }
 
 
         public Systems Enable<T>() where T : SystemBase
         {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             var hash = typeof(T).GetHashCode();
-
-            if (_systems.TryGetValue(hash, out var systemValue))
-            {
-                systemValue.IsEnable = true;
-            }
-
+            if (_systems.TryGetValue(hash, out var systemValue)) systemValue.IsEnable = true;
             return this;
         }
 
 
         public void Update(float deltaTime)
         {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             for (int i = 0, lenght = _updateSystems.Count; i < lenght; i++)
             {
                 var update = _updateSystems[i];
-                if (update.IsEnable)
-                {
-                    update.UpdateImpl?.OnUpdate(deltaTime);
-                }
+                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
 
 
         public void FixedUpdate(float deltaTime)
         {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
 
             for (int i = 0, lenght = _fixedSystems.Count; i < lenght; i++)
             {
                 var update = _fixedSystems[i];
-                if (update.IsEnable)
-                {
-                    update.UpdateImpl?.OnUpdate(deltaTime);
-                }
+                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
 
 
         public void LateUpdate(float deltaTime)
         {
-            if (!_initialized)
-            {
-                throw new Exception("|KECS| Systems haven't initialized yet.");
-            }
-
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            }
-
+#if DEBUG
+            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+#endif
             for (int i = 0, lenght = _lateSystems.Count; i < lenght; i++)
             {
                 var update = _lateSystems[i];
-                if (update.IsEnable)
-                {
-                    update.UpdateImpl?.OnUpdate(deltaTime);
-                }
+                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
 
 
         public void Initialize()
         {
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
-            }
-
+#if DEBUG
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
+#endif
             _initialized = true;
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
@@ -1974,29 +1870,21 @@ namespace Ludaludaed.KECS
 
         public void Destroy()
         {
-            if (_destroyed)
-            {
-                throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
-            }
-
+#if DEBUG
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
+#endif
             _destroyed = true;
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
                 var destroy = _allSystems[i];
-                if (destroy.IsEnable)
-                {
-                    destroy.Base.OnDestroy();
-                }
+                if (destroy.IsEnable) destroy.Base.OnDestroy();
             }
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
                 var destroy = _allSystems[i];
-                if (destroy.IsEnable)
-                {
-                    destroy.Base.PostDestroy();
-                }
+                if (destroy.IsEnable) destroy.Base.PostDestroy();
             }
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
@@ -2058,11 +1946,7 @@ namespace Ludaludaed.KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (index < _denseCount)
-                {
-                    return ref _instances[index];
-                }
-
+                if (index < _denseCount) return ref _instances[index];
                 throw new Exception($"|KECS| Out of range HandleMap {index}.");
             }
         }
@@ -2071,11 +1955,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx)
         {
-            if (Contains(sparseIdx))
-            {
-                return ref _instances[_sparse[sparseIdx]];
-            }
-
+            if (Contains(sparseIdx)) return ref _instances[_sparse[sparseIdx]];
             return ref Empty;
         }
 
@@ -2140,17 +2020,12 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerator<T> GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
+        public IEnumerator<T> GetEnumerator() => new Enumerator(this);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
 
         private struct Enumerator : IEnumerator<T>
         {
@@ -2234,17 +2109,14 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Add(in T value)
         {
-            int index = _lenght++;
+            var index = _lenght++;
             ArrayExtension.EnsureLength(ref _data, index);
             _data[index] = value;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Clear()
-        {
-            Array.Clear(_data, 0, _data.Length);
-        }
+        internal void Clear() => Array.Clear(_data, 0, _data.Length);
     }
 
 
@@ -2293,11 +2165,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            Clear();
-        }
-
+        public void Dispose() => Clear();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -2372,7 +2240,7 @@ namespace Ludaludaed.KECS
         private readonly ulong[] _chunks;
 
         public int Count { get; private set; }
-        
+
         public BitMask(int capacity = 0)
         {
             var newSize = capacity / CHUNK_CAPACITY;
@@ -2435,10 +2303,7 @@ namespace Ludaludaed.KECS
         {
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
-                if ((_chunks[i] & bitMask._chunks[i]) != bitMask._chunks[i])
-                {
-                    return false;
-                }
+                if ((_chunks[i] & bitMask._chunks[i]) != bitMask._chunks[i]) return false;
             }
 
             return true;
@@ -2450,10 +2315,7 @@ namespace Ludaludaed.KECS
         {
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
-                if ((_chunks[i] & bitMask._chunks[i]) != 0)
-                {
-                    return true;
-                }
+                if ((_chunks[i] & bitMask._chunks[i]) != 0) return true;
             }
 
             return false;
@@ -2512,23 +2374,15 @@ namespace Ludaludaed.KECS
                     while (true)
                     {
                         _index++;
-                        if (!_bitMask.GetBit(_index))
-                        {
-                            continue;
-                        }
-
+                        if (!_bitMask.GetBit(_index)) continue;
                         _returned++;
                         return _index;
                     }
                 }
             }
 
-
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                return _returned < _count;
-            }
+            public bool MoveNext() => _returned < _count;
         }
     }
 
