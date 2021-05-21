@@ -26,9 +26,11 @@ namespace Ludaludaed.KECS
         public int Entities;
         public int Archetypes;
         public int Components;
+        public int Filters;
         public const int DefaultEntities = 256;
         public const int DefaultArchetypes = 256;
         public const int DefaultComponents = 256;
+        public const int DefaultFilters = 32;
     }
 
 #if ENABLE_IL2CPP
@@ -100,7 +102,8 @@ namespace Ludaludaed.KECS
             {
                 Archetypes = config.Archetypes > 0 ? config.Archetypes : WorldConfig.DefaultArchetypes,
                 Entities = config.Entities > 0 ? config.Entities : WorldConfig.DefaultEntities,
-                Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents
+                Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents,
+                Filters = config.Filters > 0 ? config.Filters : WorldConfig.DefaultFilters
             };
         }
 
@@ -309,7 +312,7 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
         private readonly GrowList<Archetype> _archetypes;
-        private readonly List<Filter> _filters;
+        private readonly GrowList<Filter> _filters;
 
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
@@ -340,7 +343,7 @@ namespace Ludaludaed.KECS
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
 
-            _filters = new List<Filter>();
+            _filters = new GrowList<Filter>(Config.Filters);
         }
 
 
@@ -430,7 +433,7 @@ namespace Ludaludaed.KECS
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = _archetypes[0];
+                entityData.Archetype = _archetypes.Get(0);
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -438,11 +441,11 @@ namespace Ludaludaed.KECS
             {
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = _archetypes[0];
+                entityData.Archetype = _archetypes.Get(0);
                 entity.Age = entityData.Age;
             }
 
-            _archetypes[0].AddEntity(entity);
+            _archetypes.Get(0).AddEntity(entity);
             _entitiesCount++;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
@@ -562,7 +565,7 @@ namespace Ludaludaed.KECS
 
             for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
             {
-                var archetype = _archetypes[i];
+                var archetype = _archetypes.Get(i);
                 if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
                 {
                     filter.AddArchetype(archetype);
@@ -576,7 +579,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Archetype FindOrCreateArchetype(BitMask mask)
         {
-            var curArchetype = _archetypes[0];
+            var curArchetype = _archetypes.Get(0);
             var newMask = new BitMask(Config.Components);
 
             foreach (var index in mask)
@@ -670,12 +673,12 @@ namespace Ludaludaed.KECS
             _componentPools.Clear();
             for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
-                _filters[i]?.Dispose();
+                _filters.Get(i)?.Dispose();
             }
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
-                _archetypes[i].Dispose();
+                _archetypes.Get(i).Dispose();
             }
 
             _archetypes.Clear();
@@ -1347,20 +1350,20 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
-                _archetypes[i].Lock();
+                _archetypes.Get(i).Lock();
             }
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
-                if (_archetypes[i].Count > 0)
+                if (_archetypes.Get(i).Count > 0)
                 {
-                    handler(_archetypes[i]);
+                    handler(_archetypes.Get(i));
                 }
             }
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
-                _archetypes[i].Unlock();
+                _archetypes.Get(i).Unlock();
             }
         }
 
@@ -1637,11 +1640,11 @@ namespace Ludaludaed.KECS
     {
         private readonly Dictionary<int, SystemData> _systems;
 
-        private readonly List<SystemData> _updateSystems;
-        private readonly List<SystemData> _fixedSystems;
-        private readonly List<SystemData> _lateSystems;
-        private readonly List<SystemData> _allSystems;
-        private readonly List<SystemData> _onlyBaseSystems;
+        private readonly GrowList<SystemData> _updateSystems;
+        private readonly GrowList<SystemData> _fixedSystems;
+        private readonly GrowList<SystemData> _lateSystems;
+        private readonly GrowList<SystemData> _allSystems;
+        private readonly GrowList<SystemData> _onlyBaseSystems;
 
         private readonly SharedData _sharedData;
 
@@ -1661,11 +1664,11 @@ namespace Ludaludaed.KECS
             _destroyed = false;
             _sharedData = new SharedData();
             _systems = new Dictionary<int, SystemData>();
-            _allSystems = new List<SystemData>();
-            _updateSystems = new List<SystemData>();
-            _fixedSystems = new List<SystemData>();
-            _lateSystems = new List<SystemData>();
-            _onlyBaseSystems = new List<SystemData>();
+            _allSystems = new GrowList<SystemData>();
+            _updateSystems = new GrowList<SystemData>();
+            _fixedSystems = new GrowList<SystemData>();
+            _lateSystems = new GrowList<SystemData>();
+            _onlyBaseSystems = new GrowList<SystemData>();
         }
 
 #if DEBUG
@@ -1715,25 +1718,25 @@ namespace Ludaludaed.KECS
         }
 
 
-        public List<SystemData> GetUpdateSystems()
+        public GrowList<SystemData> GetUpdateSystems()
         {
             return _updateSystems;
         }
 
 
-        public List<SystemData> GetFixedUpdateSystems()
+        public GrowList<SystemData> GetFixedUpdateSystems()
         {
             return _fixedSystems;
         }
 
 
-        public List<SystemData> GetLateUpdateSystems()
+        public GrowList<SystemData> GetLateUpdateSystems()
         {
             return _lateSystems;
         }
 
 
-        public List<SystemData> GetOnlyBaseSystems()
+        public GrowList<SystemData> GetOnlyBaseSystems()
         {
             return _onlyBaseSystems;
         }
@@ -1819,7 +1822,7 @@ namespace Ludaludaed.KECS
 #endif
             for (int i = 0, lenght = _updateSystems.Count; i < lenght; i++)
             {
-                var update = _updateSystems[i];
+                var update = _updateSystems.Get(i);
                 if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
@@ -1834,7 +1837,7 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _fixedSystems.Count; i < lenght; i++)
             {
-                var update = _fixedSystems[i];
+                var update = _fixedSystems.Get(i);
                 if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
@@ -1848,7 +1851,7 @@ namespace Ludaludaed.KECS
 #endif
             for (int i = 0, lenght = _lateSystems.Count; i < lenght; i++)
             {
-                var update = _lateSystems[i];
+                var update = _lateSystems.Get(i);
                 if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
             }
         }
@@ -1863,7 +1866,7 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                _allSystems[i].Base.Initialize();
+                _allSystems.Get(i).Base.Initialize();
             }
         }
 
@@ -1877,13 +1880,13 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                var destroy = _allSystems[i];
+                var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.Base.OnDestroy();
             }
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                var destroy = _allSystems[i];
+                var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.Base.PostDestroy();
             }
 #if DEBUG
@@ -2082,41 +2085,42 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal class GrowList<T>
+    public class GrowList<T>
     {
         private T[] _data;
-        internal int Count => _lenght;
+        public int Count => _lenght;
         private int _lenght;
+        private T _empty;
+        private const int DefaultCapacity = 16;
 
-        internal ref T this[int index]
+        public GrowList(int capacity = DefaultCapacity)
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                ArrayExtension.EnsureLength(ref _data, index);
-                return ref _data[index];
-            }
-        }
-
-
-        internal GrowList(int capacity)
-        {
+            if (capacity < DefaultCapacity) capacity = DefaultCapacity;
             _data = new T[capacity];
+            _empty = default;
             _lenght = 0;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Add(in T value)
+        public void Add(in T value)
         {
             var index = _lenght++;
             ArrayExtension.EnsureLength(ref _data, index);
             _data[index] = value;
         }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T Get(int idx)
+        {
+            if (idx < _lenght) return ref _data[idx];
+            return ref _empty;
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Clear() => Array.Clear(_data, 0, _data.Length);
+        public void Clear() => Array.Clear(_data, 0, _data.Length);
     }
 
 
