@@ -2151,11 +2151,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFreeInt()
         {
-            if (!_freeInts.TryPop(out int freeInt))
-            {
-                freeInt = Interlocked.Increment(ref _lastInt);
-            }
-
+            if (_freeInts.TryPop(out var freeInt)) return freeInt;
+            freeInt = Interlocked.Increment(ref _lastInt);
             return freeInt;
         }
 
