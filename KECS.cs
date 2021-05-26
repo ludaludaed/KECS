@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using UnityEngine;
 
 namespace Ludaludaed.KECS
 {
@@ -148,6 +149,7 @@ namespace Ludaludaed.KECS
                     _freeWorldsIds.ReleaseInt(worldId);
                     return;
                 }
+
                 throw new Exception($"|KECS| A world with {name} name has not been found. Unable to delete.");
             }
         }
@@ -426,14 +428,17 @@ namespace Ludaludaed.KECS
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
 #endif
+            ref var emptyArchetype = ref _archetypes.Get(0);
+
             Entity entity;
             entity.World = this;
+
             if (_freeEntityIds.TryGetNewInt(out var newEntityId))
             {
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = _archetypes.Get(0);
+                entityData.Archetype = emptyArchetype;
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -441,11 +446,11 @@ namespace Ludaludaed.KECS
             {
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Archetype = _archetypes.Get(0);
+                entityData.Archetype = emptyArchetype;
                 entity.Age = entityData.Age;
             }
 
-            _archetypes.Get(0).AddEntity(entity);
+            emptyArchetype.AddEntity(entity);
             _entitiesCount++;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
@@ -801,7 +806,7 @@ namespace Ludaludaed.KECS
             var pool = world.GetPool<T>();
             pool.Set(entity.Id, value);
 
-            if (!entity.Has<T>())
+            if (!entityData.Archetype.Mask.GetBit(idx))
             {
                 GotoNextArchetype(ref entityData, in entity, idx);
             }
@@ -824,7 +829,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             var pool = world.GetPool<T>();
 
-            if (entity.Has<T>())
+            if (entityData.Archetype.Mask.GetBit(idx))
             {
                 GotoPriorArchetype(ref entityData, in entity, idx);
                 pool.Remove(entity.Id);
@@ -1214,8 +1219,8 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public object GetObject(int entityId) => _components.Get(entityId);
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetObject(int entityId, object value)
         {
@@ -1228,11 +1233,11 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int entityId) => _components.Remove(entityId);
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int entityId, in T value) => _components.Set(entityId, value);
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose() => _components.Clear();
@@ -1740,7 +1745,7 @@ namespace Ludaludaed.KECS
         {
             return _onlyBaseSystems;
         }
-        
+
         public Systems Add<T>() where T : SystemBase, new()
         {
 #if DEBUG
@@ -2109,7 +2114,7 @@ namespace Ludaludaed.KECS
             ArrayExtension.EnsureLength(ref _data, index);
             _data[index] = value;
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int idx)
