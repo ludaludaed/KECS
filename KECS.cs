@@ -2167,7 +2167,7 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseInt(int releasedInt) => _freeInts.Push(releasedInt);
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -2187,7 +2187,7 @@ namespace Ludaludaed.KECS
         private static void InnerEnsureLength<T>(ref T[] array, int index)
         {
             var newLength = Math.Max(1, array.Length);
-            
+
             while (index >= newLength)
             {
                 newLength <<= 1;
@@ -2406,19 +2406,26 @@ namespace Ludaludaed.KECS
 }
 
 #if ENABLE_IL2CPP
-namespace Unity.IL2CPP.CompilerServices {
-    enum Option {
+namespace Unity.IL2CPP.CompilerServices
+{
+    enum Option
+    {
         NullChecks = 1,
         ArrayBoundsChecks = 2
     }
 
-    [AttributeUsage (AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property, Inherited =
- false, AllowMultiple = true)]
-    class Il2CppSetOptionAttribute : Attribute {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property, Inherited =
+        false, AllowMultiple = true)]
+    class Il2CppSetOptionAttribute : Attribute
+    {
         public Option Option { get; private set; }
         public object Value { get; private set; }
 
-        public Il2CppSetOptionAttribute (Option option, object value) { Option = option; Value = value; }
+        public Il2CppSetOptionAttribute(Option option, object value)
+        {
+            Option = option;
+            Value = value;
+        }
     }
 }
 #endif
