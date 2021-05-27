@@ -2091,11 +2091,11 @@ namespace Ludaludaed.KECS
 #endif
     public class GrowList<T>
     {
-        private T[] _data;
-        public int Count => _lenght;
-        private int _lenght;
-        private T _empty;
         private const int DefaultCapacity = 16;
+        private T[] _data;
+        private T _empty;
+        private int _lenght;
+        public int Count => _lenght;
 
         public GrowList(int capacity = DefaultCapacity)
         {
@@ -2132,7 +2132,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal class IntDispenser : IDisposable
+    internal class IntDispenser
     {
         private readonly ConcurrentStack<int> _freeInts;
         private int _lastInt;
@@ -2167,10 +2167,7 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseInt(int releasedInt) => _freeInts.Push(releasedInt);
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose() => Clear();
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -2186,11 +2183,11 @@ namespace Ludaludaed.KECS
 #endif
     public static class ArrayExtension
     {
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InnerEnsureLength<T>(ref T[] array, int index)
         {
             var newLength = Math.Max(1, array.Length);
-            newLength <<= 1;
+            
             while (index >= newLength)
             {
                 newLength <<= 1;
