@@ -636,48 +636,33 @@ namespace Ludaludaed.KECS
             return FindOrCreateArchetype(mask);
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Entity[] GetEntities()
-        {
-            var entities = new Entity[_entitiesCount];
-            Entity entity;
-            entity.World = this;
-            var counter = 0;
-            for (int i = 0, lenght = _entities.Length; i < lenght; i++)
-            {
-                ref var entityData = ref _entities[i];
-                if (entityData.Archetype == null) continue;
-                entity.Id = i;
-                entity.Age = entityData.Age;
-                entities[counter++] = entity;
-            }
-
-            return entities;
-        }
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void InternalDestroy()
         {
 #if DEBUG
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
 #endif
-            var entities = GetEntities();
-            for (int i = 0, lenght = entities.Length; i < lenght; i++)
+            
+            Entity entity;
+            entity.World = this;
+            for (int i = 0, lenght = _entities.Length; i < lenght; i++)
             {
-                entities[i].Destroy();
+                ref var entityData = ref _entities[i];
+                if (entityData.Archetype == null) continue;
+                entity.Id = i;
+                entity.Age = entityData.Age;
+                entity.Destroy();
             }
 
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
-                _componentPools[i]?.Dispose();
+                _componentPools[i].Dispose();
             }
 
             _componentPools.Clear();
             for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
-                _filters.Get(i)?.Dispose();
+                _filters.Get(i).Dispose();
             }
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
