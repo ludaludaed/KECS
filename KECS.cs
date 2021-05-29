@@ -635,6 +635,7 @@ namespace Ludaludaed.KECS
 
             return FindOrCreateArchetype(mask);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void InternalDestroy()
