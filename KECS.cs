@@ -190,18 +190,14 @@ namespace Ludaludaed.KECS
             _data = new Dictionary<int, object>();
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal T Add<T>(T data) where T : class
         {
             var hash = typeof(T).GetHashCode();
-            if (!_data.ContainsKey(hash))
-            {
-                _data.Add(hash, data);
-                return data;
-            }
-
-            throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
+            if (_data.ContainsKey(hash))
+                throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
+            _data.Add(hash, data);
+            return data;
         }
 
 
@@ -209,21 +205,13 @@ namespace Ludaludaed.KECS
         internal T Get<T>() where T : class
         {
             var hash = typeof(T).GetHashCode();
-
-            if (_data.TryGetValue(hash, out var data))
-            {
-                return data as T;
-            }
-
+            if (_data.TryGetValue(hash, out var data)) return data as T;
             throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Dispose()
-        {
-            _data.Clear();
-        }
+        internal void Dispose() => _data.Clear();
     }
 
 
@@ -635,7 +623,7 @@ namespace Ludaludaed.KECS
 
             return FindOrCreateArchetype(mask);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void InternalDestroy()
@@ -643,7 +631,7 @@ namespace Ludaludaed.KECS
 #if DEBUG
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
 #endif
-            
+
             Entity entity;
             entity.World = this;
             for (int i = 0, lenght = _entities.Length; i < lenght; i++)
@@ -988,14 +976,12 @@ namespace Ludaludaed.KECS
         internal readonly HandleMap<Archetype> Next;
         internal readonly HandleMap<Archetype> Prior;
 
-        public readonly Type[] TypesCache;
-
         private int _lockCount;
         private DelayedChange[] _delayedChanges;
         private int _delayedOpsCount;
 
         public int Count => Entities.Count;
-        internal BitMask Mask { get; }
+        public BitMask Mask { get; }
 
         internal Archetype(World world, BitMask mask)
         {
@@ -1012,15 +998,6 @@ namespace Ludaludaed.KECS
 
             Entities = new HandleMap<Entity>(world.Config.Entities,
                 world.Config.Entities);
-
-            TypesCache = new Type[mask.Count];
-
-            int counter = 0;
-            foreach (var idx in mask)
-            {
-                TypesCache[counter++] = EcsTypeManager.ComponentsInfos[idx].Type;
-            }
-
             world.ArchetypeCreated(this);
         }
 
@@ -1111,8 +1088,7 @@ namespace Ludaludaed.KECS
             Entities.Clear();
             Next.Clear();
             Prior.Clear();
-
-            Array.Clear(TypesCache, 0, TypesCache.Length);
+            
             _lockCount = 0;
             _delayedOpsCount = 0;
         }
@@ -2258,6 +2234,7 @@ namespace Ludaludaed.KECS
             freeInt = Interlocked.Increment(ref _lastInt);
             return freeInt;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetNewInt(out int freeInt)
