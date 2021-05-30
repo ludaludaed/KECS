@@ -26,11 +26,9 @@ namespace Ludaludaed.KECS
         public int Entities;
         public int Archetypes;
         public int Components;
-        public int Filters;
         public const int DefaultEntities = 256;
         public const int DefaultArchetypes = 256;
         public const int DefaultComponents = 256;
-        public const int DefaultFilters = 32;
     }
 
 #if ENABLE_IL2CPP
@@ -103,7 +101,6 @@ namespace Ludaludaed.KECS
                 Archetypes = config.Archetypes > 0 ? config.Archetypes : WorldConfig.DefaultArchetypes,
                 Entities = config.Entities > 0 ? config.Entities : WorldConfig.DefaultEntities,
                 Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents,
-                Filters = config.Filters > 0 ? config.Filters : WorldConfig.DefaultFilters
             };
         }
 
@@ -316,6 +313,7 @@ namespace Ludaludaed.KECS
 
         public string Name => _name;
         public bool IsAlive => _isAlive;
+        public int WorldId => _worldId;
 
         internal World(int worldId, WorldConfig config, string name)
         {
@@ -1257,13 +1255,11 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Filter
     {
+        private readonly GrowList<Archetype> _archetypes;
+        private readonly World _world;
         internal BitMask Include;
         internal BitMask Exclude;
         internal int Version { get; set; }
-
-        private readonly GrowList<Archetype> _archetypes;
-        private readonly World _world;
-
 
         internal Filter(World world)
         {
