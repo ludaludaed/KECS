@@ -244,6 +244,7 @@ namespace Ludaludaed.KECS
             _addTasksCount = 0;
             _removeTasksCount = 0;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Add(Entity entity, in T component)
@@ -255,6 +256,7 @@ namespace Ludaludaed.KECS
             task.Entity = entity;
             task.Item = component;
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute()
@@ -279,6 +281,7 @@ namespace Ludaludaed.KECS
                 removeTask.Item = task.Item;
             }
         }
+        
 
         private struct TaskItem
         {
@@ -679,12 +682,6 @@ namespace Ludaludaed.KECS
             }
 #endif
         }
-
-
-        public override string ToString()
-        {
-            return $"World - {_worldId} <{_name}>";
-        }
     }
 
 
@@ -788,7 +785,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Event<T>(in this Entity entity, in T value = default) where T : struct
+        public static void SetEvent<T>(in this Entity entity, in T value = default) where T : struct
         {
             if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
@@ -888,7 +885,7 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
 
-            if (entity.Has(typeIdx))
+            if (entityData.Archetype.Mask.GetBit(typeIdx))
             {
                 GotoPriorArchetype(ref entityData, in entity, typeIdx);
                 world.GetPool(typeIdx).Remove(entity.Id);

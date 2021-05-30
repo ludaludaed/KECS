@@ -118,7 +118,7 @@ can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateU
 
 #### 💡 Events
 
-Emitting an event for an entity is set by the `entity.Event<>()` method.
+Emitting an event for an entity is set by the `entity.SetEvent<>()` method.
 
 ```csharp
 public struct EventComponent
@@ -126,7 +126,7 @@ public struct EventComponent
     ...
 }
 ...
-entity.Event<EventComponent>();
+entity.SetEvent<EventComponent>();
 ```
 Receiving an event.
 
@@ -153,7 +153,7 @@ public class SystemTest1 : SystemBase, IUpdate
 
 #### 🎰 Filter
 
-You can create a filter using a chain of commands which contain two methods `With<>()` / `.WithOut<>()`.
+You can create a filter using a chain of commands which contain two methods `With<>()` / `.Without<>()`.
 
 ```csharp
 public class SystemTest1 : SystemBase, IUpdate
@@ -162,7 +162,7 @@ public class SystemTest1 : SystemBase, IUpdate
     
     public override void Initialize()
     {
-        _filter = _world.Filter().With<FooComponent>().With<BarComponent>().WithOut<BazComponent>();
+        _filter = _world.Filter().With<FooComponent>().With<BarComponent>().Without<BazComponent>();
     }
 
     public void OnUpdate(float deltaTime)
