@@ -304,7 +304,6 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
         private readonly GrowList<Archetype> _archetypes;
-        private readonly GrowList<Filter> _filters;
 
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
@@ -334,8 +333,6 @@ namespace Ludaludaed.KECS
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
             _entitiesCount = 0;
-
-            _filters = new GrowList<Filter>(Config.Filters);
         }
 
 
@@ -372,7 +369,6 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create filter.");
 #endif
             var filter = new Filter(this);
-            _filters.Add(filter);
             return filter;
         }
 
@@ -652,18 +648,13 @@ namespace Ludaludaed.KECS
             }
 
             _componentPools.Clear();
-            for (int i = 0, lenght = _filters.Count; i < lenght; i++)
-            {
-                _filters.Get(i).Dispose();
-            }
-
+            
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 _archetypes.Get(i).Dispose();
             }
 
             _archetypes.Clear();
-            _filters.Clear();
             _freeEntityIds.Clear();
             _entitiesCount = 0;
             _worldId = -1;
@@ -1640,14 +1631,6 @@ namespace Ludaludaed.KECS
                         ref poolA.Get(entity.Id), ref poolS.Get(entity.Id));
                 }
             });
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Dispose()
-        {
-            Version = 0;
-            _archetypes.Clear();
         }
     }
 
