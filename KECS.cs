@@ -1035,11 +1035,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddEntity(in Entity entity)
         {
-            if (AddDelayedChange(entity, true))
-            {
-                return;
-            }
-
+            if (AddDelayedChange(entity, true)) return;
             Entities.Set(entity.Id, entity);
         }
 
@@ -1047,11 +1043,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RemoveEntity(in Entity entity)
         {
-            if (AddDelayedChange(entity, false))
-            {
-                return;
-            }
-
+            if (AddDelayedChange(entity, false)) return;
             Entities.Remove(entity.Id);
         }
 
