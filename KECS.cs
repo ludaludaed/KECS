@@ -1648,7 +1648,7 @@ namespace Ludaludaed.KECS
         public abstract void Initialize();
 
 
-        internal void StartUp(World world, Systems systems)
+        internal void Ctor(World world, Systems systems)
         {
             _world = world;
             _systems = systems;
@@ -1798,7 +1798,7 @@ namespace Ludaludaed.KECS
 
             var systemData = new SystemData {IsEnable = true, Base = systemValue};
             _allSystems.Add(systemData);
-            systemValue.StartUp(_world, this);
+            systemValue.Ctor(_world, this);
 
             if (systemValue is IUpdate system)
             {
