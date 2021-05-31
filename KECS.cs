@@ -1674,15 +1674,7 @@ namespace Ludaludaed.KECS
         public void Dispose() => OnDestroy();
     }
 
-
-    public sealed class SystemData
-    {
-        public bool IsEnable;
-        public SystemBase Base;
-        public IUpdate UpdateImpl;
-    }
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1957,6 +1949,13 @@ namespace Ludaludaed.KECS
             _fixedSystems.Clear();
             _lateSystems.Clear();
             _sharedData.Dispose();
+        }
+        
+        public sealed class SystemData
+        {
+            public bool IsEnable;
+            public SystemBase Base;
+            public IUpdate UpdateImpl;
         }
     }
 
