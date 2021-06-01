@@ -2407,7 +2407,7 @@ namespace Ludaludaed.KECS
 
             public Enumerator(BitMask bitMask)
             {
-                this._bitMask = bitMask;
+                _bitMask = bitMask;
                 _count = bitMask.Count;
                 _index = -1;
                 _returned = 0;
