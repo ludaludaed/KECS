@@ -2286,18 +2286,14 @@ namespace Ludaludaed.KECS
     public struct BitMask
     {
         private const int ChunkCapacity = sizeof(ulong) * 8;
-        private readonly ulong[] _chunks;
+        private ulong[] _chunks;
 
         public int Count { get; private set; }
 
         public BitMask(int capacity = 0)
         {
             var newSize = capacity / ChunkCapacity;
-            if (capacity % ChunkCapacity != 0)
-            {
-                newSize++;
-            }
-
+            if (capacity % ChunkCapacity != 0) newSize++;
             Count = 0;
             _chunks = new ulong[newSize];
         }
@@ -2320,6 +2316,7 @@ namespace Ludaludaed.KECS
         public void SetBit(int index)
         {
             var chunk = index / ChunkCapacity;
+            ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue | (1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
@@ -2332,6 +2329,7 @@ namespace Ludaludaed.KECS
         public void ClearBit(int index)
         {
             var chunk = index / ChunkCapacity;
+            ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
@@ -2343,7 +2341,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool GetBit(int index)
         {
-            return (_chunks[index / ChunkCapacity] & (1UL << (index % ChunkCapacity))) != 0;
+            var chunk = index / ChunkCapacity;
+            return chunk < _chunks.Length && (_chunks[chunk] & (1UL << (index % ChunkCapacity))) != 0;
         }
 
 
