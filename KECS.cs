@@ -1281,13 +1281,14 @@ namespace Ludaludaed.KECS
     public static class FilterExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Filter With<T>( this Filter filter) where T : struct
+        public static Filter With<T>(this Filter filter) where T : struct
         {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
             if (filter.Exclude.GetBit(typeIdx)) return filter;
             filter.Include.SetBit(typeIdx);
             return filter;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Filter Without<T>(this Filter filter) where T : struct
@@ -1297,7 +1298,8 @@ namespace Ludaludaed.KECS
             filter.Exclude.SetBit(typeIdx);
             return filter;
         }
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ForEach(this Filter filter, ForEachArchetypeHandler handler)
         {
