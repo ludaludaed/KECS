@@ -1344,7 +1344,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
 #endif
@@ -1369,7 +1369,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1399,7 +1399,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1434,7 +1434,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1474,7 +1474,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1519,7 +1519,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1569,7 +1569,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1625,7 +1625,7 @@ namespace Ludaludaed.KECS
         {
             var world = filter.World;
 #if DEBUG
-            var include = filter.Include;
+            ref var include = ref filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
