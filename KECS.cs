@@ -1260,7 +1260,7 @@ namespace Ludaludaed.KECS
         internal readonly World World;
         internal BitMask Include;
         internal BitMask Exclude;
-        internal int Version { get; set; }
+        internal int Version;
 
         internal Filter(World world)
         {
@@ -1271,24 +1271,6 @@ namespace Ludaludaed.KECS
             World = world;
             Version = 0;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter With<T>() where T : struct
-        {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (Exclude.GetBit(typeIdx)) return this;
-            Include.SetBit(typeIdx);
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter Without<T>() where T : struct
-        {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (Include.GetBit(typeIdx)) return this;
-            Exclude.SetBit(typeIdx);
-            return this;
-        }
     }
 
 
@@ -1298,6 +1280,24 @@ namespace Ludaludaed.KECS
 #endif
     public static class FilterExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Filter With<T>( this Filter filter) where T : struct
+        {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (filter.Exclude.GetBit(typeIdx)) return filter;
+            filter.Include.SetBit(typeIdx);
+            return filter;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Filter Without<T>(this Filter filter) where T : struct
+        {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (filter.Include.GetBit(typeIdx)) return filter;
+            filter.Exclude.SetBit(typeIdx);
+            return filter;
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ForEach(this Filter filter, ForEachArchetypeHandler handler)
         {
@@ -1342,9 +1342,9 @@ namespace Ludaludaed.KECS
         public static void ForEach<T>(this Filter filter, ForEachHandler<T> handler)
             where T : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
 #endif
@@ -1367,9 +1367,9 @@ namespace Ludaludaed.KECS
             where T : struct
             where Y : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1397,9 +1397,9 @@ namespace Ludaludaed.KECS
             where Y : struct
             where U : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1432,9 +1432,9 @@ namespace Ludaludaed.KECS
             where U : struct
             where I : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1472,9 +1472,9 @@ namespace Ludaludaed.KECS
             where I : struct
             where O : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1517,9 +1517,9 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1567,9 +1567,9 @@ namespace Ludaludaed.KECS
             where P : struct
             where A : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
@@ -1623,9 +1623,9 @@ namespace Ludaludaed.KECS
             where A : struct
             where S : struct
         {
-            var include = filter.Include;
             var world = filter.World;
 #if DEBUG
+            var include = filter.Include;
             if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
                 throw new Exception("|KECS| There is no such component in the filter.");
             if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
