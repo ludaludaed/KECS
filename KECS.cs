@@ -322,8 +322,8 @@ namespace Ludaludaed.KECS
             _worldId = worldId;
             Config = config;
 
-            _componentPools = new HandleMap<IComponentPool>(config.Components, config.Components);
-            _taskPools = new HandleMap<ITaskPool>(config.Components, config.Components);
+            _componentPools = new HandleMap<IComponentPool>(config.Components);
+            _taskPools = new HandleMap<ITaskPool>(config.Components);
 
             _archetypes = new GrowList<Archetype>(Config.Archetypes);
             _archetypes.Add(new Archetype(this, new BitMask(Config.Components)));
@@ -963,8 +963,8 @@ namespace Ludaludaed.KECS
         internal readonly HandleMap<Archetype> Next;
         internal readonly HandleMap<Archetype> Prior;
 
-        private int _lockCount;
         private DelayedChange[] _delayedChanges;
+        private int _lockCount;
         private int _delayedOpsCount;
 
         public int Count => Entities.Count;
@@ -972,19 +972,13 @@ namespace Ludaludaed.KECS
 
         internal Archetype(World world, BitMask mask)
         {
-            Mask = mask;
-            _lockCount = 0;
-
+            Next = new HandleMap<Archetype>(world.Config.Components);
+            Prior = new HandleMap<Archetype>(world.Config.Components);
+            Entities = new HandleMap<Entity>(world.Config.Entities);
             _delayedChanges = new DelayedChange[64];
+            _lockCount = 0;
             _delayedOpsCount = 0;
-
-            Next = new HandleMap<Archetype>(world.Config.Components,
-                world.Config.Components);
-            Prior = new HandleMap<Archetype>(world.Config.Components,
-                world.Config.Components);
-
-            Entities = new HandleMap<Entity>(world.Config.Entities,
-                world.Config.Entities);
+            Mask = mask;
             world.ArchetypeCreated(this);
         }
 
@@ -998,17 +992,11 @@ namespace Ludaludaed.KECS
         {
             _lockCount--;
             if (_lockCount != 0 || _delayedOpsCount <= 0) return;
-            for (int i = 0; i < _delayedOpsCount; i++)
+            for (var i = 0; i < _delayedOpsCount; i++)
             {
                 ref var operation = ref _delayedChanges[i];
-                if (operation.IsAdd)
-                {
-                    AddEntity(operation.Entity);
-                }
-                else
-                {
-                    RemoveEntity(operation.Entity);
-                }
+                if (operation.IsAdd) AddEntity(operation.Entity);
+                else RemoveEntity(operation.Entity);
             }
 
             _delayedOpsCount = 0;
@@ -1018,11 +1006,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool AddDelayedChange(in Entity entity, bool isAdd)
         {
-            if (_lockCount <= 0)
-            {
-                return false;
-            }
-
+            if (_lockCount <= 0) return false;
             ArrayExtension.EnsureLength(ref _delayedChanges, _delayedOpsCount);
             ref var delayedChange = ref _delayedChanges[_delayedOpsCount++];
             delayedChange.Entity = entity;
@@ -1148,8 +1132,7 @@ namespace Ludaludaed.KECS
 
         public ComponentPool(World world)
         {
-            _components = new HandleMap<T>(world.Config.Entities,
-                world.Config.Entities);
+            _components = new HandleMap<T>(world.Config.Entities);
         }
 
 
@@ -2031,11 +2014,11 @@ namespace Ludaludaed.KECS
         public int Count => _denseCount;
         public ref T Empty => ref _empty;
 
-        public HandleMap(int sparseCapacity, int denseCapacity)
+        public HandleMap(int capacity)
         {
-            _dense = new int[denseCapacity];
-            _sparse = new int[sparseCapacity];
-            _instances = new T[denseCapacity];
+            _dense = new int[capacity];
+            _sparse = new int[capacity];
+            _instances = new T[capacity];
             _sparse.Fill(None);
             _denseCount = 0;
             _empty = default(T);
@@ -2126,11 +2109,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerator<T> GetEnumerator() => new Enumerator(this);
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-
+        
         private struct Enumerator : IEnumerator<T>
         {
             private int _count;
@@ -2140,7 +2121,7 @@ namespace Ludaludaed.KECS
 
             public Enumerator(HandleMap<T> handleMap)
             {
-                this._handleMap = handleMap;
+                _handleMap = handleMap;
                 _count = handleMap.Count;
                 _index = 0;
                 Current = default;
@@ -2161,13 +2142,9 @@ namespace Ludaludaed.KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
-                if (_index < _count)
-                {
-                    Current = _handleMap[_index++];
-                    return true;
-                }
-
-                return false;
+                if (_index >= _count) return false;
+                Current = _handleMap[_index++];
+                return true;
             }
 
             public void Dispose()
