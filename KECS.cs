@@ -556,7 +556,7 @@ namespace Ludaludaed.KECS
             for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes.Get(i);
-                if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Contains(exclude)))
+                if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Intersects(exclude)))
                 {
                     filter.Archetypes.Add(archetype);
                 }
