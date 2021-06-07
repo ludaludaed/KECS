@@ -452,11 +452,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref _entities[entity.Id];
             entityData.Archetype = null;
             entityData.Age++;
-            if (entityData.Age == 0)
-            {
-                entityData.Age = 1;
-            }
-
+            if (entityData.Age == 0) entityData.Age = 1;
             _freeEntityIds.ReleaseInt(entity.Id);
             _entitiesCount--;
 #if DEBUG
