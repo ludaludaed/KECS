@@ -499,8 +499,10 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
 #endif
             if (_componentPools.Contains(idx)) return _componentPools.Get(idx);
+            
             var pool = EcsTypeManager.GetTypeInfo(idx).PoolCreator.CreateInstance(Config.Entities);
             _componentPools.Set(idx, pool);
+            
             return _componentPools.Get(idx);
         }
 
