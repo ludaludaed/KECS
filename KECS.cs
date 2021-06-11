@@ -1027,45 +1027,28 @@ namespace Ludaludaed.KECS
     public static class EcsTypeManager
     {
         internal static int ComponentTypesCount;
-        internal static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
+        internal static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponents];
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Contains(int idx) => idx < ComponentTypesCount;
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TypeInfo GetTypeInfo(int idx)
+        public static Type GetTypeByIndex(int idx)
         {
-            if (!Contains(idx)) return default;
-            return ComponentsInfos[idx];
+            if (idx >= ComponentTypesCount) return default;
+            return ComponentsTypes[idx];
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TypeInfo[] GetTypeInfos()
+        public static Type[] GetAllTypes()
         {
             var count = ComponentTypesCount;
-            var infos = new TypeInfo[count];
+            var infos = new Type[count];
             for (var i = 0; i < count; i++)
             {
-                infos[i] = ComponentsInfos[i];
+                infos[i] = ComponentsTypes[i];
             }
 
             return infos;
-        }
-
-
-        public readonly struct TypeInfo
-        {
-            public readonly int Index;
-            public readonly Type Type;
-
-            internal TypeInfo(int idx, Type type)
-            {
-                Index = idx;
-                Type = type;
-            }
         }
     }
 
@@ -1086,8 +1069,8 @@ namespace Ludaludaed.KECS
             {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
-                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsInfos, TypeIndex);
-                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type);
+                ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
+                EcsTypeManager.ComponentsTypes[TypeIndex] = Type;
             }
         }
     }
