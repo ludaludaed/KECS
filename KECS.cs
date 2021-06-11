@@ -498,11 +498,6 @@ namespace Ludaludaed.KECS
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
 #endif
-            if (_componentPools.Contains(idx)) return _componentPools.Get(idx);
-
-            if (!EcsTypeManager.TryGetTypeInfo(idx, out var typeInfo)) return default;
-            var pool = typeInfo.PoolCreator.CreateInstance(Config.Entities);
-            _componentPools.Set(idx, pool);
             return _componentPools.Get(idx);
         }
 
@@ -870,42 +865,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Remove(in this Entity entity, int typeIdx)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            if (entityData.Archetype.Mask.GetBit(typeIdx))
-            {
-                GotoPriorArchetype(ref entityData, in entity, typeIdx);
-                world.GetPool(typeIdx).Remove(entity.Id);
-            }
-
-            if (entityData.Archetype.Mask.Count == 0)
-            {
-                entity.Destroy();
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Set(in this Entity entity, object value, int typeIdx)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            var pool = world.GetPool(typeIdx);
-            if (pool == null) return;
-            pool.SetObject(entity.Id, value);
-
-            if (!entityData.Archetype.Mask.GetBit(typeIdx))
-            {
-                GotoNextArchetype(ref entityData, in entity, typeIdx);
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
         {
             var world = entity.World;
@@ -1092,21 +1051,11 @@ namespace Ludaludaed.KECS
         
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetTypeInfo(int idx, out TypeInfo info)
-        {
-            info = default;
-            if (!Contains(idx)) return false;
-            info = ComponentsInfos[idx];
-            return true;
-        }
-        
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TypeInfo[] GetTypeInfos()
         {
             var count = ComponentTypesCount;
             var infos = new TypeInfo[count];
-            for (int i = 0, lenght = count; i < lenght; i++)
+            for (var i = 0; i < count; i++)
             {
                 infos[i] = ComponentsInfos[i];
             }
@@ -1119,13 +1068,11 @@ namespace Ludaludaed.KECS
         {
             public readonly int Index;
             public readonly Type Type;
-            internal readonly IComponentPoolCreator PoolCreator;
 
-            internal TypeInfo(int idx, Type type, IComponentPoolCreator creator)
+            internal TypeInfo(int idx, Type type)
             {
                 Index = idx;
                 Type = type;
-                PoolCreator = creator;
             }
         }
     }
@@ -1138,7 +1085,6 @@ namespace Ludaludaed.KECS
     {
         internal static readonly int TypeIndex;
         internal static readonly Type Type;
-        internal static readonly ComponentPoolCreator<T> Creator;
 
         private static readonly object _lockObject = new object();
 
@@ -1148,34 +1094,16 @@ namespace Ludaludaed.KECS
             {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
-                Creator = new ComponentPoolCreator<T>();
                 ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsInfos, TypeIndex);
-                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type, Creator);
+                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type);
             }
         }
-    }
-
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    internal class ComponentPoolCreator<T> : IComponentPoolCreator where T : struct
-    {
-        public IComponentPool CreateInstance(int capacity) => new ComponentPool<T>(capacity);
-    }
-
-
-    internal interface IComponentPoolCreator
-    {
-        IComponentPool CreateInstance(int capacity);
     }
 
     internal interface IComponentPool : IDisposable
     {
         void Remove(int entityId);
         object GetObject(int entityId);
-        void SetObject(int entityId, object value);
     }
 
 #if ENABLE_IL2CPP
@@ -1199,16 +1127,6 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public object GetObject(int entityId) => _components.Get(entityId);
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetObject(int entityId, object value)
-        {
-            if (value is T component)
-            {
-                _components.Set(entityId, component);
-            }
-        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
