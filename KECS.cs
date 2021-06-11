@@ -819,14 +819,6 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Has(in this Entity entity, int idx)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-            return entityData.Archetype.Mask.GetBit(idx);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
         {
             var world = entity.World;
@@ -1036,11 +1028,11 @@ namespace Ludaludaed.KECS
     {
         internal static int ComponentTypesCount;
         internal static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Contains(int idx) => idx < ComponentTypesCount;
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TypeInfo GetTypeInfo(int idx)
@@ -1048,7 +1040,7 @@ namespace Ludaludaed.KECS
             if (!Contains(idx)) return default;
             return ComponentsInfos[idx];
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TypeInfo[] GetTypeInfos()
@@ -1062,7 +1054,7 @@ namespace Ludaludaed.KECS
 
             return infos;
         }
-        
+
 
         public readonly struct TypeInfo
         {
