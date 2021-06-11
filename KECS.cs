@@ -1058,8 +1058,8 @@ namespace Ludaludaed.KECS
 #endif
     public static class ComponentTypeInfo<T> where T : struct
     {
-        internal static readonly int TypeIndex;
-        internal static readonly Type Type;
+        public static readonly int TypeIndex;
+        public static readonly Type Type;
 
         private static readonly object _lockObject = new object();
 
