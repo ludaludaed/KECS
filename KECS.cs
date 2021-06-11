@@ -234,10 +234,10 @@ namespace Ludaludaed.KECS
         private int _removeTasksCount;
 
 
-        internal TaskPool(World world)
+        internal TaskPool(int capacity)
         {
-            _addTasks = new TaskItem[world.Config.Entities];
-            _removeTasks = new TaskItem[world.Config.Entities];
+            _addTasks = new TaskItem[capacity];
+            _removeTasks = new TaskItem[capacity];
             _addTasksCount = 0;
             _removeTasksCount = 0;
         }
@@ -469,7 +469,7 @@ namespace Ludaludaed.KECS
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             if (_componentPools.Contains(idx)) return this;
-            var pool = new ComponentPool<T>(this);
+            var pool = new ComponentPool<T>(Config.Entities);
             _componentPools.Set(idx, pool);
             return this;
         }
@@ -484,7 +484,7 @@ namespace Ludaludaed.KECS
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
             if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
-            var pool = new ComponentPool<T>(this);
+            var pool = new ComponentPool<T>(Config.Entities);
             _componentPools.Set(idx, pool);
 
             return (ComponentPool<T>) _componentPools.Get(idx);
@@ -513,7 +513,7 @@ namespace Ludaludaed.KECS
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
             if (_taskPools.Contains(idx)) return (TaskPool<T>) _taskPools.Get(idx);
-            var pool = new TaskPool<T>(this);
+            var pool = new TaskPool<T>(Config.Entities);
             _taskPools.Set(idx, pool);
 
             return (TaskPool<T>) _taskPools.Get(idx);
@@ -1127,12 +1127,12 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<T> _components;
         internal ref T Empty => ref _components.Empty;
 
-        public ComponentPool(World world)
+        public ComponentPool(int capacity)
         {
-            _components = new HandleMap<T>(world.Config.Entities);
+            _components = new HandleMap<T>(capacity);
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId) => ref _components.Get(entityId);
 
