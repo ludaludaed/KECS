@@ -891,6 +891,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
 
             var pool = world.GetPool(typeIdx);
+            if (pool == null) return;
             pool.SetObject(entity.Id, value);
 
             if (!entityData.Archetype.Mask.GetBit(typeIdx))
@@ -1110,7 +1111,7 @@ namespace Ludaludaed.KECS
     }
 
 
-    internal interface IComponentPool : IDisposable
+    public interface IComponentPool : IDisposable
     {
         void Remove(int entityId);
         object GetObject(int entityId);
@@ -2107,7 +2108,7 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        
+
         private struct Enumerator : IEnumerator<T>
         {
             private int _count;
