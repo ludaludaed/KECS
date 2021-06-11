@@ -498,8 +498,10 @@ namespace Ludaludaed.KECS
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
 #endif
-            var pool = _componentPools.Get(idx);
-            return pool;
+            if (_componentPools.Contains(idx)) return _componentPools.Get(idx);
+            var pool = EcsTypeManager.GetTypeInfo(idx).PoolCreator.CreateInstance(Config.Entities);
+            _componentPools.Set(idx, pool);
+            return _componentPools.Get(idx);
         }
 
 
@@ -1071,18 +1073,37 @@ namespace Ludaludaed.KECS
 #endif
     public static class EcsTypeManager
     {
-        public static int ComponentTypesCount;
-        public static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
-
+        internal static int ComponentTypesCount;
+        internal static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
+        
+        public static TypeInfo GetTypeInfo(int idx)
+        {
+            if (idx >= ComponentTypesCount) return default;
+            return ComponentsInfos[idx];
+        }
+        
+        public static TypeInfo[] GetTypeInfos()
+        {
+            var count = ComponentTypesCount;
+            var infos = new TypeInfo[count];
+            for (int i = 0, lenght = count; i < lenght; i++)
+            {
+                infos[i] = ComponentsInfos[i];
+            }
+            return infos;
+        }
+        
         public readonly struct TypeInfo
         {
             public readonly int Index;
             public readonly Type Type;
+            internal readonly IComponentPoolCreator PoolCreator;
 
-            public TypeInfo(int idx, Type type)
+            internal TypeInfo(int idx, Type type, IComponentPoolCreator creator)
             {
                 Index = idx;
                 Type = type;
+                PoolCreator = creator;
             }
         }
     }
@@ -1093,8 +1114,9 @@ namespace Ludaludaed.KECS
 #endif
     public static class ComponentTypeInfo<T> where T : struct
     {
-        public static readonly int TypeIndex;
-        public static readonly Type Type;
+        internal static readonly int TypeIndex;
+        internal static readonly Type Type;
+        internal static ComponentPoolCreator<T> Creator;
 
         private static readonly object _lockObject = new object();
 
@@ -1104,14 +1126,30 @@ namespace Ludaludaed.KECS
             {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
+                Creator = new ComponentPoolCreator<T>();
                 ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsInfos, TypeIndex);
-                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type);
+                EcsTypeManager.ComponentsInfos[TypeIndex] = new EcsTypeManager.TypeInfo(TypeIndex, Type, Creator);
             }
         }
     }
 
 
-    public interface IComponentPool : IDisposable
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+    internal class ComponentPoolCreator<T> : IComponentPoolCreator where T : struct
+    {
+        public IComponentPool CreateInstance(int capacity) => new ComponentPool<T>(capacity); 
+    }
+
+
+    internal interface IComponentPoolCreator
+    {
+        IComponentPool CreateInstance(int capacity);
+    }
+
+    internal interface IComponentPool : IDisposable
     {
         void Remove(int entityId);
         object GetObject(int entityId);
@@ -1131,8 +1169,8 @@ namespace Ludaludaed.KECS
         {
             _components = new HandleMap<T>(capacity);
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId) => ref _components.Get(entityId);
 
