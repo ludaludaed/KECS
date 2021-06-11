@@ -1095,7 +1095,7 @@ namespace Ludaludaed.KECS
         public static bool TryGetTypeInfo(int idx, out TypeInfo info)
         {
             info = default;
-            if (idx >= ComponentTypesCount) return false;
+            if (!Contains(idx)) return false;
             info = ComponentsInfos[idx];
             return true;
         }
