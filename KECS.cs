@@ -1118,7 +1118,7 @@ namespace Ludaludaed.KECS
     {
         internal static readonly int TypeIndex;
         internal static readonly Type Type;
-        internal static ComponentPoolCreator<T> Creator;
+        internal static readonly ComponentPoolCreator<T> Creator;
 
         private static readonly object _lockObject = new object();
 
