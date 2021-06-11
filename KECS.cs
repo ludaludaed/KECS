@@ -499,10 +499,10 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
 #endif
             if (_componentPools.Contains(idx)) return _componentPools.Get(idx);
-            
-            var pool = EcsTypeManager.GetTypeInfo(idx).PoolCreator.CreateInstance(Config.Entities);
+
+            if (!EcsTypeManager.TryGetTypeInfo(idx, out var typeInfo)) return default;
+            var pool = typeInfo.PoolCreator.CreateInstance(Config.Entities);
             _componentPools.Set(idx, pool);
-            
             return _componentPools.Get(idx);
         }
 
@@ -1078,12 +1078,30 @@ namespace Ludaludaed.KECS
         internal static int ComponentTypesCount;
         internal static TypeInfo[] ComponentsInfos = new TypeInfo[WorldConfig.DefaultComponents];
         
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(int idx) => idx < ComponentTypesCount;
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TypeInfo GetTypeInfo(int idx)
         {
-            if (idx >= ComponentTypesCount) return default;
+            if (!Contains(idx)) return default;
             return ComponentsInfos[idx];
         }
         
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetTypeInfo(int idx, out TypeInfo info)
+        {
+            info = default;
+            if (idx >= ComponentTypesCount) return false;
+            info = ComponentsInfos[idx];
+            return true;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TypeInfo[] GetTypeInfos()
         {
             var count = ComponentTypesCount;
@@ -1092,9 +1110,11 @@ namespace Ludaludaed.KECS
             {
                 infos[i] = ComponentsInfos[i];
             }
+
             return infos;
         }
         
+
         public readonly struct TypeInfo
         {
             public readonly int Index;
@@ -1142,7 +1162,7 @@ namespace Ludaludaed.KECS
 #endif
     internal class ComponentPoolCreator<T> : IComponentPoolCreator where T : struct
     {
-        public IComponentPool CreateInstance(int capacity) => new ComponentPool<T>(capacity); 
+        public IComponentPool CreateInstance(int capacity) => new ComponentPool<T>(capacity);
     }
 
 
