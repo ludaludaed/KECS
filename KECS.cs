@@ -680,56 +680,11 @@ namespace Ludaludaed.KECS
         public Archetype Archetype;
     }
 
-    public struct Entity : IEquatable<Entity>
+    public struct Entity
     {
         public int Id;
         public int Age;
         public World World;
-
-        public static readonly Entity Empty = new Entity();
-
-#if DEBUG
-        public override string ToString()
-        {
-            if (!this.IsAlive()) return "Destroyed Entity";
-            return $"Entity {Id} {Age}";
-        }
-#endif
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(in Entity lhs, in Entity rhs)
-        {
-            return lhs.Equals(rhs);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(in Entity lhs, in Entity rhs)
-        {
-            return !lhs.Equals(rhs);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Entity other)
-        {
-            return Id == other.Id && Age == other.Age && Equals(World, other.World);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj)
-        {
-            return obj is Entity other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = Id;
-                hashCode = (hashCode * 397) ^ Age;
-                hashCode = (hashCode * 397) ^ (World != null ? World.GetHashCode() : 0);
-                return hashCode;
-            }
-        }
     }
 
 
@@ -740,9 +695,22 @@ namespace Ludaludaed.KECS
     public static class EntityExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ToString(in this Entity entity)
+        {
+            if (!entity.IsAlive()) return "Destroyed Entity";
+            return $"Entity {entity.Id} {entity.Age}";
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(in this Entity entity)
         {
             return entity.World.EntityIsAlive(in entity);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool AreEqual(in this Entity entityL, in Entity entityR)
+        {
+            return entityL.Id == entityR.Id && entityL.Age == entityR.Age && entityL.World == entityR.World;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1122,8 +1090,6 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    public delegate void ForEachArchetypeHandler(Archetype archetype);
-
     public delegate void ForEachHandler(Entity entity);
 
     public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
@@ -1234,24 +1200,20 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ForEach(this Filter filter, ForEachArchetypeHandler handler)
+        private static void Lock(this Filter filter)
         {
-            filter.World.FindArchetypes(filter);
             var archetypes = filter.Archetypes;
-
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 archetypes.Get(i).Lock();
             }
+        }
 
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
-            {
-                if (archetypes.Get(i).Count > 0)
-                {
-                    handler(archetypes.Get(i));
-                }
-            }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Unlock(this Filter filter)
+        {
+            var archetypes = filter.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 archetypes.Get(i).Unlock();
@@ -1262,14 +1224,21 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach(this Filter filter, ForEachHandler handler)
         {
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity);
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1285,15 +1254,22 @@ namespace Ludaludaed.KECS
 #endif
             var poolT = world.GetPool<T>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1313,16 +1289,23 @@ namespace Ludaludaed.KECS
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1346,17 +1329,24 @@ namespace Ludaludaed.KECS
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
                         ref poolU.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1384,18 +1374,25 @@ namespace Ludaludaed.KECS
             var poolU = world.GetPool<U>();
             var poolI = world.GetPool<I>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
                         ref poolU.Get(entity.Id),
                         ref poolI.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1427,11 +1424,16 @@ namespace Ludaludaed.KECS
             var poolI = world.GetPool<I>();
             var poolO = world.GetPool<O>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1439,7 +1441,9 @@ namespace Ludaludaed.KECS
                         ref poolI.Get(entity.Id),
                         ref poolO.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1475,11 +1479,16 @@ namespace Ludaludaed.KECS
             var poolO = world.GetPool<O>();
             var poolP = world.GetPool<P>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1488,7 +1497,9 @@ namespace Ludaludaed.KECS
                         ref poolO.Get(entity.Id),
                         ref poolP.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1528,11 +1539,16 @@ namespace Ludaludaed.KECS
             var poolP = world.GetPool<P>();
             var poolA = world.GetPool<A>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1542,7 +1558,9 @@ namespace Ludaludaed.KECS
                         ref poolP.Get(entity.Id),
                         ref poolA.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
 
 
@@ -1587,11 +1605,16 @@ namespace Ludaludaed.KECS
             var poolA = world.GetPool<A>();
             var poolS = world.GetPool<S>();
 
-            filter.ForEach(archetype =>
+            filter.World.FindArchetypes(filter);
+            var archetypes = filter.Archetypes;
+            filter.Lock();
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
-                for (int i = 0, lenght = archetype.Count; i < lenght; i++)
+                var archetype = archetypes.Get(i);
+                if (archetypes.Get(i).Count <= 0) continue;
+                for (int j = 0, lenghtJ = archetype.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[i];
+                    var entity = archetype.Entities[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1602,7 +1625,9 @@ namespace Ludaludaed.KECS
                         ref poolA.Get(entity.Id),
                         ref poolS.Get(entity.Id));
                 }
-            });
+            }
+
+            filter.Unlock();
         }
     }
 
