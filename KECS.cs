@@ -877,7 +877,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Archetype : IEnumerable<Entity>, IDisposable
+    public sealed class Archetype : IDisposable
     {
         internal readonly HandleMap<Entity> Entities;
         internal readonly HandleMap<Archetype> Next;
@@ -956,13 +956,6 @@ namespace Ludaludaed.KECS
         public IEnumerator<Entity> GetEnumerator()
         {
             return Entities.GetEnumerator();
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
 
