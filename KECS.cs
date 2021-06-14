@@ -465,17 +465,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public World Registry<T>() where T : struct
-        {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (_componentPools.Contains(idx)) return this;
-            var pool = new ComponentPool<T>(Config.Entities);
-            _componentPools.Set(idx, pool);
-            return this;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ComponentPool<T> GetPool<T>() where T : struct
         {
 #if DEBUG
