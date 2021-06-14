@@ -326,7 +326,7 @@ namespace Ludaludaed.KECS
             _taskPools = new HandleMap<ITaskPool>(config.Components);
 
             _archetypes = new GrowList<Archetype>(Config.Archetypes);
-            _archetypes.Add(new Archetype(this, new BitMask(Config.Components)));
+            _archetypes.Add(new Archetype(new BitMask(Config.Components), Config.Components, Config.Entities));
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -564,7 +564,7 @@ namespace Ludaludaed.KECS
 
                 if (nextArchetype == null)
                 {
-                    nextArchetype = new Archetype(this, newMask);
+                    nextArchetype = new Archetype(newMask, Config.Components, Config.Entities);
                     
 #if DEBUG
                     for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
@@ -689,13 +689,6 @@ namespace Ludaludaed.KECS
 #endif
     public static class EntityExtensions
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string ToString(in this Entity entity)
-        {
-            if (!entity.IsAlive()) return "Destroyed Entity";
-            return $"Entity {entity.Id} {entity.Age}";
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(in this Entity entity)
         {
@@ -886,11 +879,11 @@ namespace Ludaludaed.KECS
 
         public BitMask Mask { get; }
 
-        internal Archetype(World world, BitMask mask)
+        internal Archetype(BitMask mask, int componentsCapacity, int entityCapacity)
         {
-            Next = new HandleMap<Archetype>(world.Config.Components);
-            Prior = new HandleMap<Archetype>(world.Config.Components);
-            Entities = new HandleMap<Entity>(world.Config.Entities);
+            Next = new HandleMap<Archetype>(componentsCapacity);
+            Prior = new HandleMap<Archetype>(componentsCapacity);
+            Entities = new HandleMap<Entity>(entityCapacity);
             _delayedChanges = new DelayedChange[64];
             _lockCount = 0;
             _delayedOpsCount = 0;
