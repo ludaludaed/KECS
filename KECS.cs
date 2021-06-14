@@ -886,7 +886,7 @@ namespace Ludaludaed.KECS
         private DelayedChange[] _delayedChanges;
         private int _lockCount;
         private int _delayedOpsCount;
-        
+
         public int Count => Entities.Count;
 
         public BitMask Mask { get; }
@@ -953,7 +953,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerator<Entity> GetEnumerator()
+        public HandleMap<Entity>.Enumerator GetEnumerator()
         {
             return Entities.GetEnumerator();
         }
@@ -1971,7 +1971,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class HandleMap<T> : IEnumerable<T>
+    public sealed class HandleMap<T>
     {
         private const int None = -1;
         private T[] _instances;
@@ -2076,12 +2076,10 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerator<T> GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator() => new Enumerator(this);
+        
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        private struct Enumerator : IEnumerator<T>
+        public struct Enumerator : IDisposable
         {
             private int _count;
             private int _index;
@@ -2096,16 +2094,6 @@ namespace Ludaludaed.KECS
                 Current = default;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Reset()
-            {
-                _count = 0;
-                _index = 0;
-                _handleMap = null;
-                Current = default;
-            }
-
-            object IEnumerator.Current => Current;
             public T Current { get; private set; }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
