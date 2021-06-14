@@ -704,7 +704,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(in this Entity entity)
         {
-            return entity.World.EntityIsAlive(in entity);
+            return entity.World != null && entity.World.EntityIsAlive(in entity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
