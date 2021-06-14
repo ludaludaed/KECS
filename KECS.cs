@@ -530,17 +530,6 @@ namespace Ludaludaed.KECS
         }
 
 
-        internal void ArchetypeCreated(Archetype archetype)
-        {
-#if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
-            {
-                _debugListeners[i].OnArchetypeCreated(archetype);
-            }
-#endif
-        }
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FindArchetypes(Filter filter)
         {
@@ -576,7 +565,13 @@ namespace Ludaludaed.KECS
                 if (nextArchetype == null)
                 {
                     nextArchetype = new Archetype(this, newMask);
-
+                    
+#if DEBUG
+                    for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+                    {
+                        _debugListeners[i].OnArchetypeCreated(nextArchetype);
+                    }
+#endif
                     nextArchetype.Prior.Set(index, curArchetype);
                     curArchetype.Next.Set(index, nextArchetype);
 
@@ -900,7 +895,6 @@ namespace Ludaludaed.KECS
             _lockCount = 0;
             _delayedOpsCount = 0;
             Mask = mask;
-            world.ArchetypeCreated(this);
         }
 
 
