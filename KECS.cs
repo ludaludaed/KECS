@@ -111,12 +111,23 @@ namespace Ludaludaed.KECS
             var hashName = name.GetHashCode();
             lock (_lockObject)
             {
-                if (_worldsIdx.TryGetValue(hashName, out int worldId))
+                if (_worldsIdx.TryGetValue(hashName, out var worldId))
                 {
                     return _worlds[worldId];
                 }
 
                 throw new Exception($"|KECS| No world with {name} name was found.");
+            }
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(string name)
+        {
+            var hashName = name.GetHashCode();
+            lock (_lockObject)
+            {
+                return _worldsIdx.ContainsKey(hashName);
             }
         }
 
