@@ -323,7 +323,7 @@ namespace Ludaludaed.KECS
         internal readonly WorldConfig Config;
 
         public string Name => _name;
-        public bool IsAlive => _isAlive;
+        public bool IsAlive() => _isAlive;
         public int WorldId => _worldId;
 
         internal World(int worldId, WorldConfig config, string name)
