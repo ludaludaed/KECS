@@ -1136,11 +1136,11 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Filter
     {
-        internal readonly GrowList<Archetype> Archetypes;
+        public readonly GrowList<Archetype> Archetypes;
         internal readonly World World;
-        internal BitMask Include;
-        internal BitMask Exclude;
-        internal int Version;
+        public BitMask Include;
+        public BitMask Exclude;
+        public int Version;
 
         internal Filter(World world)
         {
