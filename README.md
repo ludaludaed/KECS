@@ -36,7 +36,7 @@ The world can be retrieved using its name or id `Worlds.Get()`
 
 ```csharp
 var world = Worlds.Get(worldName);
-world = Worlds.Get(world.WorldId);
+world = Worlds.Get(world.Id);
 ```
 
 The world can be destroyed using the `Destroy ()` method of the `World` class.
