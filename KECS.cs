@@ -44,25 +44,6 @@ namespace Ludaludaed.KECS
         private static readonly Dictionary<int, int> _worldsIdx;
 
 
-        public static World Default
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                lock (_lockObject)
-                {
-                    var hashName = DefaultWorldName.GetHashCode();
-                    if (_worldsIdx.TryGetValue(hashName, out var worldId))
-                    {
-                        return _worlds[worldId];
-                    }
-
-                    return Create();
-                }
-            }
-        }
-
-
         static Worlds()
         {
             _lockObject = new object();
@@ -115,20 +96,8 @@ namespace Ludaludaed.KECS
                 {
                     return _worlds[worldId];
                 }
-
-                throw new Exception($"|KECS| No world with {name} name was found.");
             }
-        }
-        
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Contains(string name)
-        {
-            var hashName = name.GetHashCode();
-            lock (_lockObject)
-            {
-                return _worldsIdx.ContainsKey(hashName);
-            }
+            throw new Exception($"|KECS| No world with {name} name was found.");
         }
 
 
@@ -324,7 +293,7 @@ namespace Ludaludaed.KECS
 
         public string Name => _name;
         public bool IsAlive() => _isAlive;
-        public int WorldId => _worldId;
+        public int Id => _worldId;
 
         internal World(int worldId, WorldConfig config, string name)
         {
