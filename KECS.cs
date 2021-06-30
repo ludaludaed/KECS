@@ -131,7 +131,10 @@ namespace Ludaludaed.KECS
             {
                 foreach (var item in _worlds)
                 {
-                    item?.Destroy();
+                    if (item != null && item.IsAlive())
+                    {
+                        item.Destroy();
+                    }
                 }
 
                 Array.Clear(_worlds, 0, _worlds.Length);
