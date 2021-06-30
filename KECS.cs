@@ -37,7 +37,6 @@ namespace Ludaludaed.KECS
 #endif
     public static class Worlds
     {
-        private const string DefaultWorldName = "DEFAULT";
         private static readonly object _lockObject;
         
         private static readonly HandleMap<World> _worlds;
@@ -55,7 +54,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Create(string name = DefaultWorldName, WorldConfig config = default)
+        public static World Create(string name, WorldConfig config = default)
         {
             lock (_lockObject)
             {
@@ -110,7 +109,8 @@ namespace Ludaludaed.KECS
         {
             lock (_lockObject)
             {
-                _worldsIdx.Remove(_worlds.Get(worldId).Name.GetHashCode());
+                var hash = _worlds.Get(worldId).Name.GetHashCode();
+                _worldsIdx.Remove(hash);
                 _worlds.Remove(worldId);
                 _freeWorldsIds.ReleaseInt(worldId);
             }
