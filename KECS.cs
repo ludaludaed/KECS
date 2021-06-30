@@ -39,8 +39,9 @@ namespace Ludaludaed.KECS
     {
         private const string DefaultWorldName = "DEFAULT";
         private static readonly object _lockObject;
-        private static readonly IntDispenser _freeWorldsIds;
+        
         private static World[] _worlds;
+        private static readonly IntDispenser _freeWorldsIds;
         private static readonly Dictionary<int, int> _worldsIdx;
 
 
@@ -97,6 +98,7 @@ namespace Ludaludaed.KECS
                     return _worlds[worldId];
                 }
             }
+
             throw new Exception($"|KECS| No world with {name} name was found.");
         }
 
@@ -111,22 +113,13 @@ namespace Ludaludaed.KECS
         }
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Destroy(string name)
+        internal static void Recycle(int worldId)
         {
-            var hashName = name.GetHashCode();
             lock (_lockObject)
             {
-                if (_worldsIdx.TryGetValue(hashName, out int worldId))
-                {
-                    _worldsIdx.Remove(hashName);
-                    _worlds[worldId].InternalDestroy();
-                    _worlds[worldId] = null;
-                    _freeWorldsIds.ReleaseInt(worldId);
-                    return;
-                }
-
-                throw new Exception($"|KECS| A world with {name} name has not been found. Unable to delete.");
+                _worldsIdx.Remove(_worlds[worldId].Name.GetHashCode());
+                _worlds[worldId] = null;
+                _freeWorldsIds.ReleaseInt(worldId);
             }
         }
 
@@ -138,7 +131,7 @@ namespace Ludaludaed.KECS
             {
                 foreach (var item in _worlds)
                 {
-                    item?.InternalDestroy();
+                    item?.Destroy();
                 }
 
                 Array.Clear(_worlds, 0, _worlds.Length);
@@ -534,7 +527,7 @@ namespace Ludaludaed.KECS
                 if (nextArchetype == null)
                 {
                     nextArchetype = new Archetype(newMask, Config.Components, Config.Entities);
-                    
+
 #if DEBUG
                     for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
                     {
@@ -580,15 +573,14 @@ namespace Ludaludaed.KECS
 
             return FindOrCreateArchetype(mask);
         }
-
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void InternalDestroy()
+        public void Destroy()
         {
 #if DEBUG
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
 #endif
-
             Entity entity;
             entity.World = this;
             for (int i = 0, lenght = _entities.Length; i < lenght; i++)
@@ -615,15 +607,9 @@ namespace Ludaludaed.KECS
             _archetypes.Clear();
             _freeEntityIds.Clear();
             _entitiesCount = 0;
+            Worlds.Recycle(_worldId);
             _worldId = -1;
             _isAlive = false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Destroy()
-        {
-            Worlds.Destroy(_name);
-
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
@@ -1187,6 +1173,7 @@ namespace Ludaludaed.KECS
                     handler(entity);
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1217,6 +1204,7 @@ namespace Ludaludaed.KECS
                         ref poolT.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1252,6 +1240,7 @@ namespace Ludaludaed.KECS
                         ref poolY.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1292,6 +1281,7 @@ namespace Ludaludaed.KECS
                         ref poolU.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1337,6 +1327,7 @@ namespace Ludaludaed.KECS
                         ref poolI.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1387,6 +1378,7 @@ namespace Ludaludaed.KECS
                         ref poolO.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1442,6 +1434,7 @@ namespace Ludaludaed.KECS
                         ref poolP.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1502,6 +1495,7 @@ namespace Ludaludaed.KECS
                         ref poolA.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
 
@@ -1568,6 +1562,7 @@ namespace Ludaludaed.KECS
                         ref poolS.Get(entity.Id));
                 }
             }
+
             filter.Unlock();
         }
     }
@@ -2024,7 +2019,7 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Enumerator GetEnumerator() => new Enumerator(this);
-        
+
 
         public struct Enumerator : IDisposable
         {
