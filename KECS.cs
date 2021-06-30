@@ -40,7 +40,7 @@ namespace Ludaludaed.KECS
         private const string DefaultWorldName = "DEFAULT";
         private static readonly object _lockObject;
         
-        private static World[] _worlds;
+        private static readonly HandleMap<World> _worlds;
         private static readonly IntDispenser _freeWorldsIds;
         private static readonly Dictionary<int, int> _worldsIdx;
 
@@ -48,7 +48,7 @@ namespace Ludaludaed.KECS
         static Worlds()
         {
             _lockObject = new object();
-            _worlds = new World[2];
+            _worlds = new HandleMap<World>(32);
             _freeWorldsIds = new IntDispenser();
             _worldsIdx = new Dictionary<int, int>(32);
         }
@@ -66,9 +66,8 @@ namespace Ludaludaed.KECS
                 }
 
                 var worldId = _freeWorldsIds.GetFreeInt();
-                ArrayExtension.EnsureLength(ref _worlds, worldId);
                 var newWorld = new World(worldId, CheckConfig(config), name);
-                _worlds[worldId] = newWorld;
+                _worlds.Set(worldId, newWorld);
                 _worldsIdx.Add(hashName, worldId);
                 return newWorld;
             }
@@ -95,7 +94,7 @@ namespace Ludaludaed.KECS
             {
                 if (_worldsIdx.TryGetValue(hashName, out var worldId))
                 {
-                    return _worlds[worldId];
+                    return _worlds.Get(worldId);
                 }
             }
 
@@ -104,21 +103,15 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static World Get(int worldId)
-        {
-            lock (_lockObject)
-            {
-                return worldId < _worlds.Length ? _worlds[worldId] : null;
-            }
-        }
+        internal static World Get(int worldId) => _worlds.Get(worldId);
 
 
         internal static void Recycle(int worldId)
         {
             lock (_lockObject)
             {
-                _worldsIdx.Remove(_worlds[worldId].Name.GetHashCode());
-                _worlds[worldId] = null;
+                _worldsIdx.Remove(_worlds.Get(worldId).Name.GetHashCode());
+                _worlds.Remove(worldId);
                 _freeWorldsIds.ReleaseInt(worldId);
             }
         }
@@ -129,16 +122,13 @@ namespace Ludaludaed.KECS
         {
             lock (_lockObject)
             {
-                foreach (var item in _worlds)
+                for (int i = 0, lenght = _worlds.Count; i < lenght; i++)
                 {
-                    if (item != null && item.IsAlive())
-                    {
-                        item.Destroy();
-                    }
+                    var world = _worlds.Get(i);
+                    world.Destroy();
                 }
 
-                Array.Clear(_worlds, 0, _worlds.Length);
-
+                _worlds.Clear();
                 _worldsIdx.Clear();
                 _freeWorldsIds.Clear();
             }
@@ -490,7 +480,7 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} destroyed");
             for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
             {
-                _taskPools[i].Execute();
+                _taskPools.Instances[i].Execute();
             }
         }
 
@@ -597,7 +587,7 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
-                _componentPools[i].Dispose();
+                _componentPools.Instances[i].Dispose();
             }
 
             _componentPools.Clear();
@@ -1172,7 +1162,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity);
                 }
             }
@@ -1202,7 +1192,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id));
                 }
@@ -1237,7 +1227,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id));
@@ -1277,7 +1267,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1322,7 +1312,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1372,7 +1362,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1427,7 +1417,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1487,7 +1477,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1553,7 +1543,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
-                    var entity = archetype.Entities[j];
+                    var entity = archetype.Entities.Instances[j];
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1919,7 +1909,7 @@ namespace Ludaludaed.KECS
     public sealed class HandleMap<T>
     {
         private const int None = -1;
-        private T[] _instances;
+        public T[] Instances;
         private int[] _dense;
         private int[] _sparse;
         private int _denseCount;
@@ -1932,7 +1922,7 @@ namespace Ludaludaed.KECS
         {
             _dense = new int[capacity];
             _sparse = new int[capacity];
-            _instances = new T[capacity];
+            Instances = new T[capacity];
             _sparse.Fill(None);
             _denseCount = 0;
             _empty = default(T);
@@ -1942,21 +1932,10 @@ namespace Ludaludaed.KECS
         public bool Contains(int sparseIdx) =>
             _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
 
-        public ref T this[int index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (index < _denseCount) return ref _instances[index];
-                throw new Exception($"|KECS| Out of range HandleMap {index}.");
-            }
-        }
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx)
         {
-            if (Contains(sparseIdx)) return ref _instances[_sparse[sparseIdx]];
+            if (Contains(sparseIdx)) return ref Instances[_sparse[sparseIdx]];
             return ref Empty;
         }
 
@@ -1968,18 +1947,18 @@ namespace Ludaludaed.KECS
             {
                 ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
                 ArrayExtension.EnsureLength(ref _dense, _denseCount);
-                ArrayExtension.EnsureLength(ref _instances, _denseCount);
+                ArrayExtension.EnsureLength(ref Instances, _denseCount);
 
                 _sparse[sparseIdx] = _denseCount;
 
                 _dense[_denseCount] = sparseIdx;
-                _instances[_denseCount] = value;
+                Instances[_denseCount] = value;
 
                 _denseCount++;
             }
             else
             {
-                _instances[_sparse[sparseIdx]] = value;
+                Instances[_sparse[sparseIdx]] = value;
             }
         }
 
@@ -1999,14 +1978,14 @@ namespace Ludaludaed.KECS
             if (packedIdx < _denseCount)
             {
                 var lastSparseIdx = _dense[_denseCount];
-                var lastValue = _instances[_denseCount];
+                var lastValue = Instances[_denseCount];
 
                 _dense[packedIdx] = lastSparseIdx;
-                _instances[packedIdx] = lastValue;
+                Instances[packedIdx] = lastValue;
                 _sparse[lastSparseIdx] = packedIdx;
             }
 
-            _instances[_denseCount] = default;
+            Instances[_denseCount] = default;
         }
 
 
@@ -2014,7 +1993,7 @@ namespace Ludaludaed.KECS
         public void Clear()
         {
             _denseCount = 0;
-            Array.Clear(_instances, 0, _instances.Length);
+            Array.Clear(Instances, 0, Instances.Length);
             Array.Clear(_dense, 0, _dense.Length);
             _sparse.Fill(None);
         }
@@ -2045,7 +2024,7 @@ namespace Ludaludaed.KECS
             public bool MoveNext()
             {
                 if (_index >= _count) return false;
-                Current = _handleMap[_index++];
+                Current = _handleMap.Instances[_index++];
                 return true;
             }
 
