@@ -14,10 +14,10 @@ namespace Ludaludaed.KECS
 
     public struct WorldInfo
     {
-        public int ActiveEntities;
-        public int ReservedEntities;
-        public int Archetypes;
-        public int Components;
+        public int EntitiesCount;
+        public int HoldEntitiesCount;
+        public int ArchetypesCount;
+        public int ComponentsCount;
     }
 
 
@@ -26,9 +26,9 @@ namespace Ludaludaed.KECS
         public int Entities;
         public int Archetypes;
         public int Components;
-        public const int DefaultEntities = 256;
-        public const int DefaultArchetypes = 256;
-        public const int DefaultComponents = 256;
+        public const int DefaultEntities = 1024;
+        public const int DefaultArchetypes = 512;
+        public const int DefaultComponents = 512;
     }
 
 #if ENABLE_IL2CPP
@@ -48,8 +48,8 @@ namespace Ludaludaed.KECS
         {
             _lockObject = new object();
             _worlds = new HandleMap<World>(32);
-            _freeWorldsIds = new IntDispenser();
             _worldsIdx = new Dictionary<int, int>(32);
+            _freeWorldsIds = new IntDispenser();
         }
 
 
@@ -194,16 +194,16 @@ namespace Ludaludaed.KECS
 #endif
     internal class TaskPool<T> : ITaskPool where T : struct
     {
-        private TaskItem[] _addTasks;
-        private TaskItem[] _removeTasks;
+        private DelayedTask[] _addTasks;
+        private DelayedTask[] _removeTasks;
         private int _addTasksCount;
         private int _removeTasksCount;
 
 
         internal TaskPool(int capacity)
         {
-            _addTasks = new TaskItem[capacity];
-            _removeTasks = new TaskItem[capacity];
+            _addTasks = new DelayedTask[capacity];
+            _removeTasks = new DelayedTask[capacity];
             _addTasksCount = 0;
             _removeTasksCount = 0;
         }
@@ -217,7 +217,7 @@ namespace Ludaludaed.KECS
 
             ref var task = ref _addTasks[_addTasksCount++];
             task.Entity = entity;
-            task.Item = component;
+            task.Component = component;
         }
 
 
@@ -237,18 +237,18 @@ namespace Ludaludaed.KECS
                 _addTasksCount = 0;
                 ref var task = ref _addTasks[i];
                 if (!task.Entity.IsAlive()) continue;
-                task.Entity.Set(task.Item);
+                task.Entity.Set(task.Component);
 
                 ref var removeTask = ref _removeTasks[_removeTasksCount++];
                 removeTask.Entity = task.Entity;
-                removeTask.Item = task.Item;
+                removeTask.Component = task.Component;
             }
         }
 
 
-        private struct TaskItem
+        private struct DelayedTask
         {
-            public T Item;
+            public T Component;
             public Entity Entity;
         }
     }
@@ -342,10 +342,10 @@ namespace Ludaludaed.KECS
         {
             return new WorldInfo()
             {
-                ActiveEntities = _entitiesCount,
-                ReservedEntities = _freeEntityIds.Count,
-                Archetypes = _archetypes.Count,
-                Components = _componentPools.Count
+                EntitiesCount = _entitiesCount,
+                HoldEntitiesCount = _freeEntityIds.Count,
+                ArchetypesCount = _archetypes.Count,
+                ComponentsCount = _componentPools.Count
             };
         }
 
