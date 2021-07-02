@@ -15,7 +15,7 @@ namespace Ludaludaed.KECS
     public struct WorldInfo
     {
         public int EntitiesCount;
-        public int HoldEntitiesCount;
+        public int FreeEntitiesCount;
         public int ArchetypesCount;
         public int ComponentsCount;
     }
@@ -343,7 +343,7 @@ namespace Ludaludaed.KECS
             return new WorldInfo()
             {
                 EntitiesCount = _entitiesCount,
-                HoldEntitiesCount = _freeEntityIds.Count,
+                FreeEntitiesCount = _freeEntityIds.Count,
                 ArchetypesCount = _archetypes.Count,
                 ComponentsCount = _componentPools.Count
             };
