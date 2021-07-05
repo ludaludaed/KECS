@@ -82,38 +82,38 @@ The system processes entities matching the filter. The system must implement the
 can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateUpdate`.
 
 ```csharp
-    public class SystemTest1 : SystemBase, IUpdate
+public class SystemTest1 : SystemBase, IUpdate
+{
+    private Filter _filter;
+
+    public override void OnLaunch()
     {
-        private Filter _filter;
-
-        public override void OnLaunch()
-        {
-            // Will be called when adding a system.
-        }
-
-        public override void Initialize()
-        {
-            _filter = _world.Filter().With<Component>();
-        }
-
-        public void OnUpdate(float deltaTime)
-        {
-            _filter.ForEach((Entity entity, ref Component comp) =>
-            {
-                comp.Counter++;
-            });
-        }
-
-        public override void OnDestroy()
-        {
-            // Will be called when the system is destroyed.
-        }
-
-        public override void PostDestroy()
-        {
-            //Will be called after the system is destroyed.
-        }
+        // Will be called when adding a system.
     }
+
+    public override void Initialize()
+    {
+        _filter = _world.Filter().With<Component>();
+    }
+
+    public void OnUpdate(float deltaTime)
+    {
+        _filter.ForEach((Entity entity, ref Component comp) =>
+        {
+            comp.Counter++;
+        });
+    }
+
+    public override void OnDestroy()
+    {
+        // Will be called when the system is destroyed.
+    }
+
+    public override void PostDestroy()
+    {
+        //Will be called after the system is destroyed.
+    }
+}
 ```
 
 #### 💡 Events
