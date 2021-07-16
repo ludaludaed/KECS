@@ -818,14 +818,13 @@ namespace Ludaludaed.KECS
         internal readonly HandleMap<Entity> Entities;
         internal readonly HandleMap<Archetype> Next;
         internal readonly HandleMap<Archetype> Prior;
-        private readonly BitMask _mask;
+        internal readonly BitMask Mask;
 
         private DelayedChange[] _delayedChanges;
         private int _lockCount;
         private int _delayedOpsCount;
 
         public int Count => Entities.Count;
-        public BitMask Mask => _mask;
 
         internal Archetype(BitMask mask, int componentsCapacity, int entityCapacity)
         {
@@ -835,7 +834,7 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _lockCount = 0;
             _delayedOpsCount = 0;
-            _mask = mask;
+            Mask = mask;
         }
 
 
@@ -857,7 +856,7 @@ namespace Ludaludaed.KECS
 
             _delayedOpsCount = 0;
         }
-
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool AddDelayedChange(in Entity entity, bool isAdd)
