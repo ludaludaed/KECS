@@ -520,7 +520,6 @@ namespace Ludaludaed.KECS
                 if (nextArchetype == null)
                 {
                     nextArchetype = new Archetype(newMask, Config.Components, Config.Entities);
-
 #if DEBUG
                     for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
                     {
@@ -826,7 +825,7 @@ namespace Ludaludaed.KECS
 
         public int Count => Entities.Count;
 
-        internal Archetype(BitMask mask, int componentsCapacity, int entityCapacity)
+        internal Archetype(in BitMask mask, int componentsCapacity, int entityCapacity)
         {
             Next = new HandleMap<Archetype>(componentsCapacity);
             Prior = new HandleMap<Archetype>(componentsCapacity);
