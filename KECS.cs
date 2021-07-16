@@ -818,7 +818,7 @@ namespace Ludaludaed.KECS
         internal readonly HandleMap<Entity> Entities;
         internal readonly HandleMap<Archetype> Next;
         internal readonly HandleMap<Archetype> Prior;
-        internal readonly BitMask Mask;
+        public readonly BitMask Mask;
 
         private DelayedChange[] _delayedChanges;
         private int _lockCount;
