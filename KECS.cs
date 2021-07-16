@@ -2198,6 +2198,8 @@ namespace Ludaludaed.KECS
         private ulong[] _chunks;
         private int _count;
         public int Count => _count;
+        
+        
         public BitMask(int capacity = 0)
         {
             var newSize = capacity / ChunkCapacity;
@@ -2207,16 +2209,16 @@ namespace Ludaludaed.KECS
         }
 
 
-        public BitMask(in BitMask copy)
+        public BitMask(in BitMask src)
         {
-            var newSize = copy._chunks.Length;
+            var newSize = src._chunks.Length;
             _chunks = new ulong[newSize];
             for (var i = 0; i < newSize; i++)
             {
-                _chunks[i] = copy._chunks[i];
+                _chunks[i] = src._chunks[i];
             }
 
-            _count = copy._count;
+            _count = src._count;
         }
 
 
