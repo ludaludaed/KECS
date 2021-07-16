@@ -818,14 +818,14 @@ namespace Ludaludaed.KECS
         internal readonly HandleMap<Entity> Entities;
         internal readonly HandleMap<Archetype> Next;
         internal readonly HandleMap<Archetype> Prior;
+        private readonly BitMask _mask;
 
         private DelayedChange[] _delayedChanges;
         private int _lockCount;
         private int _delayedOpsCount;
 
         public int Count => Entities.Count;
-
-        public BitMask Mask { get; }
+        public BitMask Mask => _mask;
 
         internal Archetype(BitMask mask, int componentsCapacity, int entityCapacity)
         {
@@ -835,7 +835,7 @@ namespace Ludaludaed.KECS
             _delayedChanges = new DelayedChange[64];
             _lockCount = 0;
             _delayedOpsCount = 0;
-            Mask = mask;
+            _mask = mask;
         }
 
 
@@ -2196,14 +2196,13 @@ namespace Ludaludaed.KECS
     {
         private const int ChunkCapacity = sizeof(ulong) * 8;
         private ulong[] _chunks;
-
-        public int Count { get; private set; }
-
+        private int _count;
+        public int Count => _count;
         public BitMask(int capacity = 0)
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
-            Count = 0;
+            _count = 0;
             _chunks = new ulong[newSize];
         }
 
@@ -2217,7 +2216,7 @@ namespace Ludaludaed.KECS
                 _chunks[i] = copy._chunks[i];
             }
 
-            Count = copy.Count;
+            _count = copy._count;
         }
 
 
@@ -2230,7 +2229,7 @@ namespace Ludaludaed.KECS
             var newValue = oldValue | (1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
-            Count++;
+            _count++;
         }
 
 
@@ -2243,7 +2242,7 @@ namespace Ludaludaed.KECS
             var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
             if (oldValue == newValue) return;
             _chunks[chunk] = newValue;
-            Count--;
+            _count--;
         }
 
 
@@ -2317,7 +2316,7 @@ namespace Ludaludaed.KECS
             public Enumerator(BitMask bitMask)
             {
                 _bitMask = bitMask;
-                _count = bitMask.Count;
+                _count = bitMask._count;
                 _index = -1;
                 _returned = 0;
             }
