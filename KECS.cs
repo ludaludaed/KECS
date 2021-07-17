@@ -267,7 +267,8 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
         private readonly GrowList<Archetype> _archetypes;
-
+        private readonly GrowList<Filter> _filters;
+        
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
         private int _entitiesCount;
@@ -293,6 +294,8 @@ namespace Ludaludaed.KECS
 
             _archetypes = new GrowList<Archetype>(Config.Archetypes);
             _archetypes.Add(new Archetype(new BitMask(Config.Components), Config.Components, Config.Entities));
+
+            _filters = new GrowList<Filter>();
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -333,6 +336,7 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create filter.");
 #endif
             var filter = new Filter(this);
+            _filters.Add(filter);
             return filter;
         }
 
@@ -584,18 +588,23 @@ namespace Ludaludaed.KECS
                 entity.Destroy();
             }
 
+            for (int i = 0,lenght = _filters.Count; i < lenght; i++)
+            {
+                _filters.Get(i).Dispose();
+            }
+
             for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
             {
                 _componentPools.Instances[i].Dispose();
             }
-
-            _componentPools.Clear();
 
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 _archetypes.Get(i).Dispose();
             }
 
+            _filters.Clear();
+            _componentPools.Clear();
             _archetypes.Clear();
             _freeEntityIds.Clear();
             _entitiesCount = 0;
@@ -1082,8 +1091,8 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Filter
     {
-        internal readonly GrowList<Archetype> Archetypes;
-        internal readonly World World;
+        internal GrowList<Archetype> Archetypes;
+        internal World World;
         internal BitMask Include;
         internal BitMask Exclude;
         internal int Version;
@@ -1106,6 +1115,15 @@ namespace Ludaludaed.KECS
 #endif
     public static class FilterExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void Dispose(this Filter filter)
+        {
+            filter.Archetypes.Clear();
+            filter.Version = 0;
+            filter.World = null;
+        }
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Filter With<T>(this Filter filter) where T : struct
         {
