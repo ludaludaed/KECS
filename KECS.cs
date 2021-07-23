@@ -2314,6 +2314,23 @@ namespace Ludaludaed.KECS
                 _chunks[i] |= include._chunks[i];
             }
         }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode()
+        {
+            var power = 1;
+            var hash = 0;
+            unchecked
+            {
+                foreach (var index in this)
+                {
+                    power *= 53;
+                    hash = (hash + index * power);
+                }
+            }
+            return hash;
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
