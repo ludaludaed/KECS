@@ -2275,6 +2275,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(BitMask bitMask)
         {
+            ArrayExtension.EnsureLength(ref bitMask._chunks, _chunks.Length);
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 if ((_chunks[i] & bitMask._chunks[i]) != bitMask._chunks[i]) return false;
@@ -2287,6 +2288,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Intersects(BitMask bitMask)
         {
+            ArrayExtension.EnsureLength(ref bitMask._chunks, _chunks.Length);
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 if ((_chunks[i] & bitMask._chunks[i]) != 0) return true;
@@ -2299,6 +2301,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
+            _count = 0;
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 _chunks[i] = 0;
@@ -2309,6 +2312,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Merge(BitMask include)
         {
+            ArrayExtension.EnsureLength(ref include._chunks, _chunks.Length);
             for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
             {
                 _chunks[i] |= include._chunks[i];
