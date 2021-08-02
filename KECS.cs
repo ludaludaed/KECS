@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -38,17 +37,17 @@ namespace Ludaludaed.KECS
     public static class Worlds
     {
         private static readonly object _lockObject;
-        
+
         private static readonly HandleMap<World> _worlds;
         private static readonly IntDispenser _freeWorldsIds;
-        private static readonly Dictionary<int, int> _worldsIdx;
+        private static readonly HashMap<int> _worldsIdx;
 
 
         static Worlds()
         {
             _lockObject = new object();
             _worlds = new HandleMap<World>(32);
-            _worldsIdx = new Dictionary<int, int>(32);
+            _worldsIdx = new HashMap<int>(32);
             _freeWorldsIds = new IntDispenser();
         }
 
@@ -59,7 +58,7 @@ namespace Ludaludaed.KECS
             lock (_lockObject)
             {
                 var hashName = name.GetHashCode();
-                if (_worldsIdx.ContainsKey(hashName))
+                if (_worldsIdx.Contains(hashName))
                 {
                     throw new Exception($"|KECS| A world with {name} name already exists.");
                 }
@@ -67,7 +66,7 @@ namespace Ludaludaed.KECS
                 var worldId = _freeWorldsIds.GetFreeInt();
                 var newWorld = new World(worldId, CheckConfig(config), name);
                 _worlds.Set(worldId, newWorld);
-                _worldsIdx.Add(hashName, worldId);
+                _worldsIdx.Set(hashName, worldId);
                 return newWorld;
             }
         }
@@ -146,20 +145,20 @@ namespace Ludaludaed.KECS
 #endif
     internal class SharedData
     {
-        private readonly Dictionary<int, object> _data;
+        private readonly HashMap<object> _data;
 
         internal SharedData()
         {
-            _data = new Dictionary<int, object>();
+            _data = new HashMap<object>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal T Add<T>(T data) where T : class
         {
             var hash = typeof(T).GetHashCode();
-            if (_data.ContainsKey(hash))
+            if (_data.Contains(hash))
                 throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
-            _data.Add(hash, data);
+            _data.Set(hash, data);
             return data;
         }
 
@@ -266,9 +265,11 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        private readonly GrowList<Archetype> _archetypes;
         private readonly GrowList<Filter> _filters;
-        
+
+        private readonly GrowList<Archetype> _archetypes;
+        private readonly HashMap<Archetype> _archetypesMap;
+
         private readonly IntDispenser _freeEntityIds;
         private EntityData[] _entities;
         private int _entitiesCount;
@@ -292,8 +293,13 @@ namespace Ludaludaed.KECS
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
 
+            _archetypesMap = new HashMap<Archetype>();
             _archetypes = new GrowList<Archetype>(Config.Archetypes);
-            _archetypes.Add(new Archetype(new BitMask(Config.Components), Config.Components, Config.Entities));
+
+            var emptyArch = new Archetype(new BitMask(Config.Components), Config.Entities);
+
+            _archetypesMap.Set(emptyArch.Hash, emptyArch);
+            _archetypes.Add(emptyArch);
 
             _filters = new GrowList<Filter>();
 
@@ -510,66 +516,22 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Archetype FindOrCreateArchetype(BitMask mask)
+        internal Archetype GetArchetype(BitMask mask)
         {
-            var curArchetype = _archetypes.Get(0);
-            var newMask = new BitMask(Config.Components);
-
-            foreach (var index in mask)
-            {
-                newMask.SetBit(index);
-
-                var nextArchetype = curArchetype.Next.Get(index);
-
-                if (nextArchetype == null)
-                {
-                    nextArchetype = new Archetype(newMask, Config.Components, Config.Entities);
+            var hash = mask.GetHash();
+            if (_archetypesMap.TryGetValue(hash, out var archetype)) return archetype;
+            archetype = new Archetype(mask, Config.Entities);
+            _archetypes.Add(archetype);
+            _archetypesMap.Set(hash, archetype);
 #if DEBUG
-                    for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
-                    {
-                        _debugListeners[i].OnArchetypeCreated(nextArchetype);
-                    }
-#endif
-                    nextArchetype.Prior.Set(index, curArchetype);
-                    curArchetype.Next.Set(index, nextArchetype);
-
-                    _archetypes.Add(nextArchetype);
-                }
-
-                curArchetype = nextArchetype;
+            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            {
+                _debugListeners[i].OnArchetypeCreated(archetype);
             }
-
-            return curArchetype;
+#endif
+            return archetype;
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype FindOrCreatePriorArchetype(Archetype archetype, int removeIndex)
-        {
-            var priorArchetype = archetype.Prior.Get(removeIndex);
-            if (priorArchetype != null)
-                return priorArchetype;
-
-            var mask = new BitMask(archetype.Mask);
-            mask.ClearBit(removeIndex);
-
-            return FindOrCreateArchetype(mask);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype FindOrCreateNextArchetype(Archetype archetype, int addIndex)
-        {
-            var nextArchetype = archetype.Next.Get(addIndex);
-            if (nextArchetype != null)
-                return nextArchetype;
-
-            var mask = new BitMask(archetype.Mask);
-            mask.SetBit(addIndex);
-
-            return FindOrCreateArchetype(mask);
-        }
-        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Destroy()
@@ -588,7 +550,7 @@ namespace Ludaludaed.KECS
                 entity.Destroy();
             }
 
-            for (int i = 0,lenght = _filters.Count; i < lenght; i++)
+            for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
                 _filters.Get(i).Dispose();
             }
@@ -606,6 +568,7 @@ namespace Ludaludaed.KECS
             _filters.Clear();
             _componentPools.Clear();
             _archetypes.Clear();
+            _archetypesMap.Clear();
             _freeEntityIds.Clear();
             _entitiesCount = 0;
             Worlds.Recycle(_worldId);
@@ -624,6 +587,75 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ENTITY
     //=============================================================================
+
+
+    public class EntityBuilder
+    {
+        private HandleMap<IComponentBuilder> _builders;
+
+        public EntityBuilder()
+        {
+            _builders = new HandleMap<IComponentBuilder>(WorldConfig.DefaultComponents);
+        }
+
+        public EntityBuilder Append<T>(in T component = default) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            _builders.Set(idx, new ComponentBuilder<T>(component));
+            return this;
+        }
+
+        public EntityBuilder Remove<T>() where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            if (!_builders.Contains(idx)) return this;
+            _builders.Remove(idx);
+            return this;
+        }
+
+        public Entity Build(World world)
+        {
+            var entity = world.CreateEntity();
+            var mask = new BitMask(world.Config.Components);
+            for (int i = 0, lenght = _builders.Count; i < lenght; i++)
+            {
+                var build = _builders.Instances[i];
+                build.Set(entity);
+                mask.SetBit(build.GetIdx());
+            }
+            entity.SwapArchetype(mask);
+            return entity;
+        }
+
+        private interface IComponentBuilder
+        {
+            void Set(in Entity entity);
+            int GetIdx();
+        }
+
+        private class ComponentBuilder<T> : IComponentBuilder where T : struct
+        {
+            private T _component;
+            private int _idx;
+        
+
+            internal ComponentBuilder(in T component)
+            {
+                _component = component;
+                _idx = ComponentTypeInfo<T>.TypeIndex;
+            }
+        
+            public int GetIdx() => _idx;
+
+            public void Set(in Entity entity)
+            {
+                var world = entity.World;
+                var pool = world.GetPool<T>();
+                pool.Set(entity.Id, in _component);
+            }
+        }
+    }
+    
 
     public struct EntityData
     {
@@ -651,17 +683,20 @@ namespace Ludaludaed.KECS
             return entity.World != null && entity.World.EntityIsAlive(in entity);
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool AreEqual(in this Entity entityL, in Entity entityR)
         {
             return entityL.Id == entityR.Id && entityL.Age == entityR.Age && entityL.World == entityR.World;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsEmpty(in this Entity entity)
         {
             return entity.Id == 0 && entity.Age == 0;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T Set<T>(in this Entity entity, in T value) where T : struct
@@ -675,11 +710,12 @@ namespace Ludaludaed.KECS
 
             if (!entityData.Archetype.Mask.GetBit(idx))
             {
-                GotoNextArchetype(ref entityData, in entity, idx);
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
             }
 
             return ref pool.Get(entity.Id);
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetEvent<T>(in this Entity entity, in T value = default) where T : struct
@@ -687,6 +723,7 @@ namespace Ludaludaed.KECS
             if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Remove<T>(in this Entity entity) where T : struct
@@ -698,7 +735,7 @@ namespace Ludaludaed.KECS
 
             if (entityData.Archetype.Mask.GetBit(idx))
             {
-                GotoPriorArchetype(ref entityData, in entity, idx);
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
                 pool.Remove(entity.Id);
             }
 
@@ -707,6 +744,7 @@ namespace Ludaludaed.KECS
                 entity.Destroy();
             }
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T Get<T>(in this Entity entity) where T : struct
@@ -721,6 +759,7 @@ namespace Ludaludaed.KECS
             return ref pool.Empty;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Has<T>(in this Entity entity) where T : struct
         {
@@ -730,25 +769,17 @@ namespace Ludaludaed.KECS
             return entityData.Archetype.Mask.GetBit(idx);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GotoNextArchetype(ref EntityData entityData, in Entity entity, int index)
-        {
-            var world = entity.World;
-            entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.FindOrCreateNextArchetype(entityData.Archetype, index);
-            entityData.Archetype = newArchetype;
-            entityData.Archetype.AddEntity(entity);
-        }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GotoPriorArchetype(ref EntityData entityData, in Entity entity, int index)
+        internal static void SwapArchetype(in this Entity entity, BitMask newMask)
         {
             var world = entity.World;
-            entityData.Archetype.RemoveEntity(entity);
-            var newArchetype = world.FindOrCreatePriorArchetype(entityData.Archetype, index);
+            ref var entityData = ref world.GetEntityData(entity);
+            var oldArchetype = entityData.Archetype;
+            var newArchetype = world.GetArchetype(newMask);
+            oldArchetype.RemoveEntity(entity);
+            newArchetype.AddEntity(entity);
             entityData.Archetype = newArchetype;
-            entityData.Archetype.AddEntity(entity);
         }
 
 
@@ -824,8 +855,7 @@ namespace Ludaludaed.KECS
     public sealed class Archetype : IDisposable
     {
         internal readonly HandleMap<Entity> Entities;
-        internal readonly HandleMap<Archetype> Next;
-        internal readonly HandleMap<Archetype> Prior;
+        internal readonly int Hash;
         public readonly BitMask Mask;
 
         private DelayedChange[] _delayedChanges;
@@ -834,15 +864,14 @@ namespace Ludaludaed.KECS
 
         public int Count => Entities.Count;
 
-        internal Archetype(in BitMask mask, int componentsCapacity, int entityCapacity)
+        internal Archetype(BitMask mask, int entityCapacity)
         {
-            Next = new HandleMap<Archetype>(componentsCapacity);
-            Prior = new HandleMap<Archetype>(componentsCapacity);
             Entities = new HandleMap<Entity>(entityCapacity);
             _delayedChanges = new DelayedChange[64];
+            Mask = mask;
+            Hash = Mask.GetHash();
             _lockCount = 0;
             _delayedOpsCount = 0;
-            Mask = mask;
         }
 
 
@@ -864,7 +893,7 @@ namespace Ludaludaed.KECS
 
             _delayedOpsCount = 0;
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool AddDelayedChange(in Entity entity, bool isAdd)
@@ -905,9 +934,6 @@ namespace Ludaludaed.KECS
         public void Dispose()
         {
             Entities.Clear();
-            Next.Clear();
-            Prior.Clear();
-
             _lockCount = 0;
             _delayedOpsCount = 0;
         }
@@ -1122,8 +1148,8 @@ namespace Ludaludaed.KECS
             filter.Version = 0;
             filter.World = null;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Filter With<T>(this Filter filter) where T : struct
         {
@@ -1635,7 +1661,7 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Systems : IDisposable
     {
-        private readonly Dictionary<int, SystemData> _systems;
+        private readonly HashMap<SystemData> _systems;
 
         private readonly GrowList<SystemData> _updateSystems;
         private readonly GrowList<SystemData> _fixedSystems;
@@ -1660,7 +1686,7 @@ namespace Ludaludaed.KECS
             _initialized = false;
             _destroyed = false;
             _sharedData = new SharedData();
-            _systems = new Dictionary<int, SystemData>();
+            _systems = new HashMap<SystemData>();
             _allSystems = new GrowList<SystemData>();
             _updateSystems = new GrowList<SystemData>();
             _fixedSystems = new GrowList<SystemData>();
@@ -1748,7 +1774,7 @@ namespace Ludaludaed.KECS
 
             var hash = typeof(T).GetHashCode();
 
-            if (_systems.ContainsKey(hash)) return this;
+            if (_systems.Contains(hash)) return this;
 
             var systemData = new SystemData {IsEnable = true, Base = systemValue};
             _allSystems.Add(systemData);
@@ -1781,7 +1807,7 @@ namespace Ludaludaed.KECS
                 _onlyBaseSystems.Add(systemData);
             }
 
-            _systems.Add(hash, systemData);
+            _systems.Set(hash, systemData);
 
             return this;
         }
@@ -1831,7 +1857,6 @@ namespace Ludaludaed.KECS
             if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
 #endif
-
             for (int i = 0, lenght = _fixedSystems.Count; i < lenght; i++)
             {
                 var update = _fixedSystems.Get(i);
@@ -2208,132 +2233,23 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    public struct BitMask
+    public sealed class BitMask
     {
-        private const int ChunkCapacity = sizeof(ulong) * 8;
-        private ulong[] _chunks;
-        private int _count;
-        public int Count => _count;
-        
-        
-        public BitMask(int capacity = 0)
+        internal const int ChunkCapacity = sizeof(ulong) * 8;
+        internal ulong[] Chunks;
+        internal int Count;
+
+
+        internal BitMask(int capacity)
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
-            _count = 0;
-            _chunks = new ulong[newSize];
+            Count = 0;
+            Chunks = new ulong[newSize];
         }
 
-
-        public BitMask(in BitMask src)
+        internal BitMask()
         {
-            var newSize = src._chunks.Length;
-            _chunks = new ulong[newSize];
-            for (var i = 0; i < newSize; i++)
-            {
-                _chunks[i] = src._chunks[i];
-            }
-
-            _count = src._count;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetBit(int index)
-        {
-            var chunk = index / ChunkCapacity;
-            ArrayExtension.EnsureLength(ref _chunks, chunk);
-            var oldValue = _chunks[chunk];
-            var newValue = oldValue | (1UL << (index % ChunkCapacity));
-            if (oldValue == newValue) return;
-            _chunks[chunk] = newValue;
-            _count++;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ClearBit(int index)
-        {
-            var chunk = index / ChunkCapacity;
-            ArrayExtension.EnsureLength(ref _chunks, chunk);
-            var oldValue = _chunks[chunk];
-            var newValue = oldValue & ~(1UL << (index % ChunkCapacity));
-            if (oldValue == newValue) return;
-            _chunks[chunk] = newValue;
-            _count--;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool GetBit(int index)
-        {
-            var chunk = index / ChunkCapacity;
-            return chunk < _chunks.Length && (_chunks[chunk] & (1UL << (index % ChunkCapacity))) != 0;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(BitMask bitMask)
-        {
-            ArrayExtension.EnsureLength(ref bitMask._chunks, _chunks.Length);
-            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
-            {
-                if ((_chunks[i] & bitMask._chunks[i]) != bitMask._chunks[i]) return false;
-            }
-
-            return true;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Intersects(BitMask bitMask)
-        {
-            ArrayExtension.EnsureLength(ref bitMask._chunks, _chunks.Length);
-            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
-            {
-                if ((_chunks[i] & bitMask._chunks[i]) != 0) return true;
-            }
-
-            return false;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            _count = 0;
-            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
-            {
-                _chunks[i] = 0;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Merge(BitMask include)
-        {
-            ArrayExtension.EnsureLength(ref include._chunks, _chunks.Length);
-            for (int i = 0, lenght = _chunks.Length; i < lenght; i++)
-            {
-                _chunks[i] |= include._chunks[i];
-            }
-        }
-        
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            var power = 1;
-            var hash = 0;
-            unchecked
-            {
-                foreach (var index in this)
-                {
-                    power *= 53;
-                    hash = (hash + index * power);
-                }
-            }
-            return hash;
         }
 
 
@@ -2346,8 +2262,8 @@ namespace Ludaludaed.KECS
 
         public ref struct Enumerator
         {
-            private readonly BitMask _bitMask;
             private readonly int _count;
+            private readonly BitMask _bitMask;
             private int _index;
             private int _returned;
 
@@ -2355,7 +2271,7 @@ namespace Ludaludaed.KECS
             public Enumerator(BitMask bitMask)
             {
                 _bitMask = bitMask;
-                _count = bitMask._count;
+                _count = bitMask.Count;
                 _index = -1;
                 _returned = 0;
             }
@@ -2378,6 +2294,357 @@ namespace Ludaludaed.KECS
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _returned < _count;
+        }
+    }
+
+    public static class BitMaskExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BitMask SetBit(this BitMask mask, int index)
+        {
+            var chunk = index / BitMask.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref mask.Chunks, chunk);
+            var oldValue = mask.Chunks[chunk];
+            var newValue = oldValue | (1UL << (index % BitMask.ChunkCapacity));
+            if (oldValue == newValue) return mask;
+            mask.Chunks[chunk] = newValue;
+            mask.Count++;
+            return mask;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BitMask ClearBit(this BitMask mask, int index)
+        {
+            var chunk = index / BitMask.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref mask.Chunks, chunk);
+            var oldValue = mask.Chunks[chunk];
+            var newValue = oldValue & ~(1UL << (index % BitMask.ChunkCapacity));
+            if (oldValue == newValue) return mask;
+            mask.Chunks[chunk] = newValue;
+            mask.Count--;
+            return mask;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool GetBit(this BitMask mask, int index)
+        {
+            var chunk = index / BitMask.ChunkCapacity;
+            return chunk < mask.Chunks.Length && (mask.Chunks[chunk] & (1UL << (index % BitMask.ChunkCapacity))) != 0;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(this BitMask mask, BitMask bitMask)
+        {
+            ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
+            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            {
+                if ((mask.Chunks[i] & bitMask.Chunks[i]) != bitMask.Chunks[i]) return false;
+            }
+
+            return true;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Intersects(this BitMask mask, BitMask bitMask)
+        {
+            ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
+            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            {
+                if ((mask.Chunks[i] & bitMask.Chunks[i]) != 0) return true;
+            }
+
+            return false;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Clear(this BitMask mask)
+        {
+            mask.Count = 0;
+            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            {
+                mask.Chunks[i] = 0;
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Merge(this BitMask mask, BitMask include)
+        {
+            ArrayExtension.EnsureLength(ref include.Chunks, mask.Chunks.Length);
+            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            {
+                mask.Chunks[i] |= include.Chunks[i];
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BitMask Copy(this BitMask src)
+        {
+            var newMask = new BitMask();
+            var newSize = src.Chunks.Length;
+            newMask.Chunks = new ulong[newSize];
+            for (var i = 0; i < newSize; i++)
+            {
+                newMask.Chunks[i] = src.Chunks[i];
+            }
+
+            newMask.Count = src.Count;
+            return newMask;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetHash(this BitMask mask)
+        {
+            ulong h = 1234;
+            for (var i = mask.Chunks.Length - 1; i >= 0; i--)
+            {
+                h ^= ((ulong) i + 1) * mask.Chunks[i];
+            }
+
+            return (int) ((h >> 32) ^ h);
+        }
+    }
+    
+    
+    internal static class HashHelpers
+    {
+        private static readonly int[] capacities =
+        {
+            3,
+            15,
+            63,
+            255,
+            1023,
+            4095,
+            16383,
+            65535,
+            262143,
+            1048575,
+            4194303,
+        };
+
+        public static int ExpandCapacity(int oldSize)
+        {
+            var min = oldSize << 1;
+            return min > 2146435069U && 2146435069 > oldSize ? 2146435069 : GetCapacity(min);
+        }
+
+        public static int GetCapacity(int min)
+        {
+            for (int index = 0, length = capacities.Length; index < length; ++index)
+            {
+                var prime = capacities[index];
+                if (prime >= min)
+                {
+                    return prime;
+                }
+            }
+
+            throw new Exception("Prime is too big");
+        }
+    }
+
+    public sealed class HashMap<T>
+    {
+        private int[] _sparse;
+        private T[] _instances;
+        private Bucket[] _buckets;
+
+        private int[] _freeIndexes;
+        private int _freeIndexesCount;
+
+        private int _capacity;
+        private int _lenght;
+        private int _count;
+        private T _empty;
+        
+        
+        public int Count => _count;
+        
+
+        public HashMap(int capacity = 0)
+        {
+            _lenght = 0;
+            _count = 0;
+            _freeIndexesCount = 0;
+
+            _capacity = HashHelpers.GetCapacity(capacity) + 1;
+            _empty = default;
+            _sparse = new int[_capacity];
+            _instances = new T[_capacity];
+            _freeIndexes = new int[_capacity];
+            _buckets = new Bucket[_capacity];
+
+            _sparse.Fill(-1);
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int IndexFor(int key, int lenght) => key & (lenght - 1);
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Set(int key, T value)
+        {
+            var index = IndexFor(key, _capacity);
+
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                if (_buckets[i].Key != key) continue;
+                _instances[i] = value;
+                return;
+            }
+
+            if (_lenght >= _capacity)
+            {
+                var newCapacity = HashHelpers.ExpandCapacity(_lenght) + 1;
+                Array.Resize(ref _instances, newCapacity);
+                Array.Resize(ref _buckets, newCapacity);
+                Array.Resize(ref _freeIndexes, newCapacity);
+                var newSparse = new int[newCapacity];
+                newSparse.Fill(-1);
+
+                for (int i = 0, lenght = _lenght; i < lenght; i++)
+                {
+                    ref var rehashBucket = ref _buckets[i];
+                    var rehashIdx = IndexFor(rehashBucket.Key, newCapacity);
+                    rehashBucket.Next = newSparse[rehashIdx];
+                    newSparse[rehashIdx] = i;
+                }
+
+                _sparse = newSparse;
+                _capacity = newCapacity;
+
+                index = IndexFor(key, _capacity);
+            }
+
+            var bucketIdx = _lenght;
+
+            if (_freeIndexesCount > 0) bucketIdx = _freeIndexes[--_freeIndexesCount];
+            else _lenght++;
+            
+            ref var bucket = ref _buckets[bucketIdx];
+            var priorIdx = _sparse[index];
+            
+            bucket.Next = priorIdx;
+            bucket.Key = key;
+            _instances[bucketIdx] = value;
+            _sparse[index] = bucketIdx;
+            _count++;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Remove(int key)
+        {
+            var index = IndexFor(key, _capacity);
+
+            var priorBucket = -1;
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                ref var bucket = ref _buckets[i];
+                if (bucket.Key == key)
+                {
+                    if (priorBucket < 0) _sparse[index] = bucket.Next;
+                    else _buckets[priorBucket].Next = bucket.Next;
+                    _instances[i] = default;
+                    bucket.Key = -1;
+                    bucket.Next = -1;
+                    _freeIndexes[_freeIndexesCount++] = i;
+                    _count--;
+                    if (_count > 0) return;
+                    _lenght = 0;
+                    return;
+                }
+
+                priorBucket = i;
+            }
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(int key)
+        {
+            var index = IndexFor(key, _capacity);
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                if (_buckets[i].Key == key) return true;
+            }
+
+            return false;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetRefValue(int key, ref T value)
+        {
+            var index = IndexFor(key, _capacity);
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                if (_buckets[i].Key != key) continue;
+                value = ref _instances[i];
+                return true;
+            }
+
+            return false;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetValue(int key, out T value)
+        {
+            var index = IndexFor(key, _capacity);
+            value = default;
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                if (_buckets[i].Key != key) continue;
+                value = _instances[i];
+                return true;
+            }
+
+            return false;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T Get(int key)
+        {
+            var index = IndexFor(key, _capacity);
+            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            {
+                if (_buckets[i].Key != key) continue;
+                return ref _instances[i];
+            }
+
+            return ref _empty;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            Array.Clear(_buckets, 0, _lenght);
+            Array.Clear(_instances, 0, _lenght);
+            Array.Clear(_freeIndexes, 0, _freeIndexes.Length);
+            _sparse.Fill(-1);
+
+            _lenght = 0;
+            _count = 0;
+            _freeIndexesCount = 0;
+        }
+        
+        
+        private struct Bucket
+        {
+            public int Next;
+            public int Key;
         }
     }
 
