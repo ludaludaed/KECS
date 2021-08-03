@@ -264,9 +264,9 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        private readonly FastList<Filter> _filters;
+        private readonly GrowList<Filter> _filters;
 
-        private readonly FastList<Archetype> _archetypes;
+        private readonly GrowList<Archetype> _archetypes;
         private readonly HashMap<Archetype> _archetypesMap;
 
         private readonly IntDispenser _freeEntityIds;
@@ -293,14 +293,14 @@ namespace Ludaludaed.KECS
             _taskPools = new HandleMap<ITaskPool>(config.Components);
 
             _archetypesMap = new HashMap<Archetype>();
-            _archetypes = new FastList<Archetype>(Config.Archetypes);
+            _archetypes = new GrowList<Archetype>(Config.Archetypes);
 
             var emptyArch = new Archetype(new BitMask(Config.Components), Config.Entities);
 
             _archetypesMap.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
 
-            _filters = new FastList<Filter>();
+            _filters = new GrowList<Filter>();
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -2570,6 +2570,7 @@ namespace Ludaludaed.KECS
             _count = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int index)
         {
 #if DEBUG
