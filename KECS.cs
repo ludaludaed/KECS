@@ -2174,65 +2174,16 @@ namespace Ludaludaed.KECS
         }
     }
 
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    public static class ArrayExtension
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InnerEnsureLength<T>(ref T[] array, int index)
-        {
-            var newLength = Math.Max(1, array.Length);
-
-            while (index >= newLength)
-            {
-                newLength <<= 1;
-            }
-
-            Array.Resize(ref array, newLength);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Fill<T>(this T[] array, in T value, int start = 0)
-        {
-            for (int i = start, lenght = array.Length; i < lenght; ++i)
-            {
-                array[i] = value;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureLength<T>(ref T[] array, int index)
-        {
-            if (index >= array.Length)
-            {
-                InnerEnsureLength(ref array, index);
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue)
-        {
-            if (index >= array.Length)
-            {
-                var oldLength = array.Length;
-
-                InnerEnsureLength(ref array, index);
-                array.Fill(defaultValue, oldLength);
-            }
-        }
-    }
-
 
     //=============================================================================
     // BIT MASK
     //=============================================================================
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class BitMask
     {
         internal const int ChunkCapacity = sizeof(ulong) * 8;
@@ -2297,6 +2248,11 @@ namespace Ludaludaed.KECS
         }
     }
 
+    
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public static class BitMaskExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2411,46 +2367,12 @@ namespace Ludaludaed.KECS
             return (int) ((h >> 32) ^ h);
         }
     }
-    
-    
-    internal static class HashHelpers
-    {
-        private static readonly int[] capacities =
-        {
-            3,
-            15,
-            63,
-            255,
-            1023,
-            4095,
-            16383,
-            65535,
-            262143,
-            1048575,
-            4194303,
-        };
 
-        public static int ExpandCapacity(int oldSize)
-        {
-            var min = oldSize << 1;
-            return min > 2146435069U && 2146435069 > oldSize ? 2146435069 : GetCapacity(min);
-        }
 
-        public static int GetCapacity(int min)
-        {
-            for (int index = 0, length = capacities.Length; index < length; ++index)
-            {
-                var prime = capacities[index];
-                if (prime >= min)
-                {
-                    return prime;
-                }
-            }
-
-            throw new Exception("Prime is too big");
-        }
-    }
-
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class HashMap<T>
     {
         private int[] _buckets;
@@ -2473,7 +2395,7 @@ namespace Ludaludaed.KECS
             _count = 0;
             _freeEntry = -1;
 
-            _capacity = HashHelpers.GetCapacity(capacity) + 1;
+            _capacity = HashHelpers.GetCapacity(capacity);
             _empty = default;
             _buckets = new int[_capacity];
             _instances = new T[_capacity];
@@ -2501,7 +2423,7 @@ namespace Ludaludaed.KECS
 
             if (_lenght >= _capacity)
             {
-                var newCapacity = HashHelpers.ExpandCapacity(_lenght) + 1;
+                var newCapacity = HashHelpers.ExpandCapacity(_lenght);
                 Array.Resize(ref _instances, newCapacity);
                 Array.Resize(ref _entries, newCapacity);
                 var newSparse = new int[newCapacity];
@@ -2630,6 +2552,102 @@ namespace Ludaludaed.KECS
         {
             public int Next;
             public int Key;
+        }
+    }
+    
+    
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+    public static class ArrayExtension
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InnerEnsureLength<T>(ref T[] array, int index)
+        {
+            var newLength = Math.Max(1, array.Length);
+
+            while (index >= newLength)
+            {
+                newLength <<= 1;
+            }
+
+            Array.Resize(ref array, newLength);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Fill<T>(this T[] array, in T value, int start = 0)
+        {
+            for (int i = start, lenght = array.Length; i < lenght; ++i)
+            {
+                array[i] = value;
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void EnsureLength<T>(ref T[] array, int index)
+        {
+            if (index >= array.Length)
+            {
+                InnerEnsureLength(ref array, index);
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue)
+        {
+            if (index >= array.Length)
+            {
+                var oldLength = array.Length;
+
+                InnerEnsureLength(ref array, index);
+                array.Fill(defaultValue, oldLength);
+            }
+        }
+    }
+    
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+    internal static class HashHelpers
+    {
+        private static readonly int[] capacities =
+        {
+            4,
+            16,
+            64,
+            256,
+            1024,
+            4096,
+            16384,
+            65536,
+            262144,
+            1048576,
+            4194304,
+        };
+
+        public static int ExpandCapacity(int oldSize)
+        {
+            var min = oldSize << 1;
+            return min > 2146435069U && 2146435069 > oldSize ? 2146435069 : GetCapacity(min);
+        }
+
+        public static int GetCapacity(int min)
+        {
+            for (int index = 0, length = capacities.Length; index < length; ++index)
+            {
+                var prime = capacities[index];
+                if (prime >= min)
+                {
+                    return prime;
+                }
+            }
+
+            throw new Exception("Prime is too big");
         }
     }
 
