@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -2554,21 +2555,33 @@ namespace Ludaludaed.KECS
             public int Key;
         }
     }
-    
-    
+
+
     public sealed class FastList<T>
     {
         private T[] _data;
         private const int MinCapacity = 16;
         private int _count;
-        
+        private EqualityComparer<T> _comparer;
+
 
         public FastList(int capacity = 0)
         {
             if (capacity < MinCapacity) capacity = MinCapacity;
             _data = new T[capacity];
             _count = 0;
+            _comparer = EqualityComparer<T>.Default;
         }
+
+
+        public FastList(EqualityComparer<T> comparer, int capacity = 0)
+        {
+            if (capacity < MinCapacity) capacity = MinCapacity;
+            _data = new T[capacity];
+            _count = 0;
+            _comparer = comparer;
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int index)
@@ -2578,8 +2591,10 @@ namespace Ludaludaed.KECS
 #endif
             return ref _data[index];
         }
-        
+
+
         public int Count => _count;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T value)
@@ -2588,8 +2603,10 @@ namespace Ludaludaed.KECS
             _data[_count++] = value;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(T value) => RemoveAt(_data.IndexOf(value));
+        public void Remove(T value) => RemoveAt(_data.IndexOf(value, _comparer));
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAt(int index)
@@ -2597,13 +2614,15 @@ namespace Ludaludaed.KECS
 #if DEBUG
             if (index >= _count || index < 0) throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
-            if (index < --_count) 
+            if (index < --_count)
                 Array.Copy(_data, index + 1, _data, index, _count - index);
             _data[_count] = default;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveSwap(T value) => RemoveAtSwap(_data.IndexOf(value));
+        public void RemoveSwap(T value) => RemoveAtSwap(_data.IndexOf(value, _comparer));
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAtSwap(int index)
@@ -2615,12 +2634,12 @@ namespace Ludaludaed.KECS
             _data[_count - 1] = default;
             _count--;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            Array.Clear(_data,0,_data.Length);
+            Array.Clear(_data, 0, _data.Length);
             _count = 0;
         }
     }
@@ -2647,14 +2666,11 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IndexOf<T>(this T[] array, T value)
+        public static int IndexOf<T>(this T[] array, T value, EqualityComparer<T> comparer)
         {
             for (int i = 0, length = array.Length; i < length; ++i)
             {
-                if (array[i].Equals(value))
-                {
-                    return i;
-                }
+                if (comparer.Equals(array[i], value)) return i;
             }
 
             return -1;
