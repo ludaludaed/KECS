@@ -856,7 +856,7 @@ namespace Ludaludaed.KECS
     public sealed class Archetype : IDisposable
     {
         internal readonly HandleMap<Entity> Entities;
-        internal readonly int Hash;
+        public readonly int Hash;
         public readonly BitMask Mask;
 
         private DelayedChange[] _delayedChanges;
@@ -2395,6 +2395,7 @@ namespace Ludaludaed.KECS
 
             entry.Next = priorIdx;
             entry.Key = key;
+            entry.IsActive = true;
             _data[entryIdx] = value;
             _buckets[index] = entryIdx;
             _count++;
@@ -2416,6 +2417,7 @@ namespace Ludaludaed.KECS
                     else _entries[priorEntry].Next = entry.Next;
                     _data[i] = default;
                     entry.Key = -1;
+                    entry.IsActive = false;
                     entry.Next = _freeListIdx;
                     _freeListIdx = i;
                     _count--;
@@ -2510,8 +2512,8 @@ namespace Ludaludaed.KECS
             {
                 while (++_index < _hashMap._lenght)
                 {
-                    ref var slot = ref _hashMap._entries[_index];
-                    if (slot.Key < 0) continue;
+                    ref var entry = ref _hashMap._entries[_index];
+                    if (!entry.IsActive) continue;
                     _current = _index;
                     return true;
                 }
@@ -2526,6 +2528,7 @@ namespace Ludaludaed.KECS
 
         private struct Entry
         {
+            public bool IsActive;
             public int Next;
             public int Key;
         }
