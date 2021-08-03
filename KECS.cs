@@ -265,9 +265,9 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        private readonly GrowList<Filter> _filters;
+        private readonly FastList<Filter> _filters;
 
-        private readonly GrowList<Archetype> _archetypes;
+        private readonly FastList<Archetype> _archetypes;
         private readonly HashMap<Archetype> _archetypesMap;
 
         private readonly IntDispenser _freeEntityIds;
@@ -294,14 +294,14 @@ namespace Ludaludaed.KECS
             _taskPools = new HandleMap<ITaskPool>(config.Components);
 
             _archetypesMap = new HashMap<Archetype>();
-            _archetypes = new GrowList<Archetype>(Config.Archetypes);
+            _archetypes = new FastList<Archetype>(Config.Archetypes);
 
             var emptyArch = new Archetype(new BitMask(Config.Components), Config.Entities);
 
             _archetypesMap.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
 
-            _filters = new GrowList<Filter>();
+            _filters = new FastList<Filter>();
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new IntDispenser();
@@ -1118,7 +1118,7 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Filter
     {
-        internal GrowList<Archetype> Archetypes;
+        internal FastList<Archetype> Archetypes;
         internal World World;
         internal BitMask Include;
         internal BitMask Exclude;
@@ -1128,7 +1128,7 @@ namespace Ludaludaed.KECS
         {
             Include = new BitMask(world.Config.Components);
             Exclude = new BitMask(world.Config.Components);
-            Archetypes = new GrowList<Archetype>(world.Config.Archetypes);
+            Archetypes = new FastList<Archetype>(world.Config.Archetypes);
 
             World = world;
             Version = 0;
@@ -1664,11 +1664,11 @@ namespace Ludaludaed.KECS
     {
         private readonly HashMap<SystemData> _systems;
 
-        private readonly GrowList<SystemData> _updateSystems;
-        private readonly GrowList<SystemData> _fixedSystems;
-        private readonly GrowList<SystemData> _lateSystems;
-        private readonly GrowList<SystemData> _allSystems;
-        private readonly GrowList<SystemData> _onlyBaseSystems;
+        private readonly FastList<SystemData> _updateSystems;
+        private readonly FastList<SystemData> _fixedSystems;
+        private readonly FastList<SystemData> _lateSystems;
+        private readonly FastList<SystemData> _allSystems;
+        private readonly FastList<SystemData> _onlyBaseSystems;
 
         private readonly SharedData _sharedData;
 
@@ -1688,11 +1688,11 @@ namespace Ludaludaed.KECS
             _destroyed = false;
             _sharedData = new SharedData();
             _systems = new HashMap<SystemData>();
-            _allSystems = new GrowList<SystemData>();
-            _updateSystems = new GrowList<SystemData>();
-            _fixedSystems = new GrowList<SystemData>();
-            _lateSystems = new GrowList<SystemData>();
-            _onlyBaseSystems = new GrowList<SystemData>();
+            _allSystems = new FastList<SystemData>();
+            _updateSystems = new FastList<SystemData>();
+            _fixedSystems = new FastList<SystemData>();
+            _lateSystems = new FastList<SystemData>();
+            _onlyBaseSystems = new FastList<SystemData>();
         }
 
 #if DEBUG
@@ -1742,25 +1742,25 @@ namespace Ludaludaed.KECS
         }
 
 
-        public GrowList<SystemData> GetUpdateSystems()
+        public FastList<SystemData> GetUpdateSystems()
         {
             return _updateSystems;
         }
 
 
-        public GrowList<SystemData> GetFixedUpdateSystems()
+        public FastList<SystemData> GetFixedUpdateSystems()
         {
             return _fixedSystems;
         }
 
 
-        public GrowList<SystemData> GetLateUpdateSystems()
+        public FastList<SystemData> GetLateUpdateSystems()
         {
             return _lateSystems;
         }
 
 
-        public GrowList<SystemData> GetOnlyBaseSystems()
+        public FastList<SystemData> GetOnlyBaseSystems()
         {
             return _onlyBaseSystems;
         }
@@ -1941,7 +1941,7 @@ namespace Ludaludaed.KECS
 
 
     //=============================================================================
-    // HANDLE MAP
+    // HELPER
     //=============================================================================
 
 #if ENABLE_IL2CPP
@@ -2040,88 +2040,30 @@ namespace Ludaludaed.KECS
             _sparse.Fill(None);
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Enumerator GetEnumerator() => new Enumerator(this);
 
 
         public struct Enumerator : IDisposable
         {
-            private int _count;
             private int _index;
-            private HandleMap<T> _handleMap;
-
+            private HandleMap<T> _list;
 
             public Enumerator(HandleMap<T> handleMap)
             {
-                _handleMap = handleMap;
-                _count = handleMap.Count;
+                _list = handleMap;
                 _index = 0;
-                Current = default;
             }
 
-            public T Current { get; private set; }
+            public ref T Current => ref _list.Data[_index++];
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                if (_index >= _count) return false;
-                Current = _handleMap.Data[_index++];
-                return true;
-            }
+            public bool MoveNext() => _index < _list.Count;
 
             public void Dispose()
             {
             }
         }
-    }
-
-
-    //=============================================================================
-    // HELPER
-    //=============================================================================
-
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    public class GrowList<T>
-    {
-        private const int DefaultCapacity = 16;
-        private T[] _data;
-        private T _empty;
-        private int _lenght;
-        public int Count => _lenght;
-
-        public GrowList(int capacity = DefaultCapacity)
-        {
-            if (capacity < DefaultCapacity) capacity = DefaultCapacity;
-            _data = new T[capacity];
-            _empty = default;
-            _lenght = 0;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(in T value)
-        {
-            var index = _lenght++;
-            ArrayExtension.EnsureLength(ref _data, index);
-            _data[index] = value;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int idx)
-        {
-            if (idx < _lenght) return ref _data[idx];
-            return ref _empty;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() => Array.Clear(_data, 0, _data.Length);
     }
 
 
@@ -2174,11 +2116,6 @@ namespace Ludaludaed.KECS
             _lastInt = _startInt;
         }
     }
-
-
-    //=============================================================================
-    // BIT MASK
-    //=============================================================================
 
 
 #if ENABLE_IL2CPP
