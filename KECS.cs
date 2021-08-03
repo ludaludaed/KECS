@@ -2549,6 +2549,44 @@ namespace Ludaludaed.KECS
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+
+        public struct Enumerator : IDisposable
+        {
+            private HashMap<T> _hashMap;
+            private int _current;
+            private int _index;
+
+            public Enumerator(HashMap<T> hashMap)
+            {
+                _hashMap = hashMap;
+                _current = 0;
+                _index = -1;
+            }
+
+            public ref T Current => ref _hashMap._data[_current];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext()
+            {
+                while (++_index < _hashMap._lenght)
+                {
+                    ref var slot = ref _hashMap._entries[_index];
+                    if (slot.Key < 0) continue;
+                    _current = _index;
+                    return true;
+                }
+
+                return false;
+            }
+
+            public void Dispose()
+            {
+            }
+        }
+
         private struct Entry
         {
             public int Next;
@@ -2613,6 +2651,10 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveSwap(T value) => RemoveAtSwap(_data.IndexOf(value, _comparer));
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAt(int index)
         {
 #if DEBUG
@@ -2622,10 +2664,6 @@ namespace Ludaludaed.KECS
                 Array.Copy(_data, index + 1, _data, index, _count - index);
             _data[_count] = default;
         }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveSwap(T value) => RemoveAtSwap(_data.IndexOf(value, _comparer));
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2645,6 +2683,32 @@ namespace Ludaludaed.KECS
         {
             Array.Clear(_data, 0, _data.Length);
             _count = 0;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+
+        public struct Enumerator : IDisposable
+        {
+            private int _index;
+            private FastList<T> _list;
+
+            public Enumerator(FastList<T> list)
+            {
+                _list = list;
+                _index = 0;
+            }
+
+            public ref T Current => ref _list._data[_index++];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext() => _index < _list.Count;
+
+            public void Dispose()
+            {
+            }
         }
     }
 
