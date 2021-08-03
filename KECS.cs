@@ -2584,21 +2584,6 @@ namespace Ludaludaed.KECS
         
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetRefValue(int key, ref T value)
-        {
-            var index = IndexFor(key, _capacity);
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
-                if (_entries[i].Key != key) continue;
-                value = ref _instances[i];
-                return true;
-            }
-
-            return false;
-        }
-        
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetValue(int key, out T value)
         {
             var index = IndexFor(key, _capacity);
