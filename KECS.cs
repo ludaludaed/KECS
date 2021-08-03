@@ -2364,18 +2364,18 @@ namespace Ludaludaed.KECS
                 var newCapacity = HashHelpers.ExpandCapacity(_lenght);
                 Array.Resize(ref _data, newCapacity);
                 Array.Resize(ref _entries, newCapacity);
-                var newSparse = new int[newCapacity];
-                newSparse.Fill(-1);
+                var newBuckets = new int[newCapacity];
+                newBuckets.Fill(-1);
 
                 for (int i = 0, lenght = _lenght; i < lenght; i++)
                 {
                     ref var rehashEntry = ref _entries[i];
                     var rehashIdx = IndexFor(rehashEntry.Key, newCapacity);
-                    rehashEntry.Next = newSparse[rehashIdx];
-                    newSparse[rehashIdx] = i;
+                    rehashEntry.Next = newBuckets[rehashIdx];
+                    newBuckets[rehashIdx] = i;
                 }
 
-                _buckets = newSparse;
+                _buckets = newBuckets;
                 _capacity = newCapacity;
 
                 index = IndexFor(key, _capacity);
