@@ -2391,9 +2391,7 @@ namespace Ludaludaed.KECS
             else _lenght++;
 
             ref var entry = ref _entries[entryIdx];
-            var priorIdx = _buckets[index];
-
-            entry.Next = priorIdx;
+            entry.Next = _buckets[index];
             entry.Key = key;
             entry.IsActive = true;
             _data[entryIdx] = value;
