@@ -2471,7 +2471,7 @@ namespace Ludaludaed.KECS
         {
             _lenght = 0;
             _count = 0;
-            _freeEntry = 0;
+            _freeEntry = -1;
 
             _capacity = HashHelpers.GetCapacity(capacity) + 1;
             _empty = default;
