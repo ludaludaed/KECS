@@ -9,6 +9,7 @@ KECS is a fast and easy C# Entity Component System framework for writing your ow
     * [World](#-world)
     * [Component](#-component)
     * [Entity](#-entity)
+        * [Entity builder](#-entitybuilder)
     * [System](#-system)
         * [Events](#-events)
         * [Filter](#-filter)
@@ -64,7 +65,7 @@ An entity is a container for components. The entity has methods for adding, remo
 ```csharp
 Entity entity = _world.CreateEntity();
 
-ref var settedSpeedComponent = ref entity.Set(new SpeedComponent);
+ref var settedSpeedComponent  = ref entity.Set(new SpeedComponent);
 ref var gottenSpeedComponent = ref entity.Get<SpeedComponent>();
 
 entity.Remove<SpeedComponent>();
@@ -76,44 +77,62 @@ entity.Destroy ();
 
 > **Important!** An entity without components will be automatically deleted.
 
+
+#### 🚧 EntityBuilder
+
+EntityBuilder allows you to create entities according to a template you define.
+
+```csharp
+var builder = new EntityBuilder();
+
+builder.Append(new FooComponent())
+    .Append(new BarComponent())
+    .Append(new BazComponent());
+    
+var entity = builder.Build(World);
+```
+The `Append()` method allows you to add a component to the entity template and the `Remove<>()` method can be removed.
+The `Build(world)` method allows you to create an entity from this template in the world.
+> **NOTE:**
+This way of creating an entity allows you to reduce the number of side archetypes at the initial sequential assignment of entity components.
 ### 🕹️ System
 
 The system processes entities matching the filter. The system must implement the abstract class `SystemBase`. The system
 can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateUpdate`.
 
 ```csharp
-public class SystemTest1 : SystemBase, IUpdate
-{
-    private Filter _filter;
-
-    public override void OnLaunch()
+    public class SystemTest1 : SystemBase, IUpdate
     {
-        // Will be called when adding a system.
-    }
+        private Filter _filter;
 
-    public override void Initialize()
-    {
-        _filter = _world.Filter().With<Component>();
-    }
-
-    public void OnUpdate(float deltaTime)
-    {
-        _filter.ForEach((Entity entity, ref Component comp) =>
+        public override void OnLaunch()
         {
-            comp.Counter++;
-        });
-    }
+            // Will be called when adding a system.
+        }
 
-    public override void OnDestroy()
-    {
-        // Will be called when the system is destroyed.
-    }
+        public override void Initialize()
+        {
+            _filter = _world.Filter().With<Component>();
+        }
 
-    public override void PostDestroy()
-    {
-        //Will be called after the system is destroyed.
+        public void OnUpdate(float deltaTime)
+        {
+            _filter.ForEach((Entity entity, ref Component comp) =>
+            {
+                comp.Counter++;
+            });
+        }
+
+        public override void OnDestroy()
+        {
+            // Will be called when the system is destroyed.
+        }
+
+        public override void PostDestroy()
+        {
+            //Will be called after the system is destroyed.
+        }
     }
-}
 ```
 
 #### 💡 Events
