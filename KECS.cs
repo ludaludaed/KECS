@@ -2380,7 +2380,7 @@ namespace Ludaludaed.KECS
         private T[] _data;
         private Entry[] _entries;
 
-        private int _freeEntry;
+        private int _freeListIdx;
         private int _capacity;
         private int _lenght;
         private int _count;
@@ -2394,7 +2394,7 @@ namespace Ludaludaed.KECS
         {
             _lenght = 0;
             _count = 0;
-            _freeEntry = -1;
+            _freeListIdx = -1;
 
             _capacity = HashHelpers.GetCapacity(capacity);
             _empty = default;
@@ -2446,9 +2446,9 @@ namespace Ludaludaed.KECS
 
             var entryIdx = _lenght;
 
-            if (_freeEntry > 0)
+            if (_freeListIdx > 0)
             {
-                entryIdx = _freeEntry;
+                entryIdx = _freeListIdx;
                 _buckets[entryIdx] = _entries[entryIdx].Next;
             }
             else _lenght++;
@@ -2479,11 +2479,11 @@ namespace Ludaludaed.KECS
                     else _entries[priorEntry].Next = entry.Next;
                     _data[i] = default;
                     entry.Key = -1;
-                    entry.Next = _freeEntry;
-                    _freeEntry = i;
+                    entry.Next = _freeListIdx;
+                    _freeListIdx = i;
                     _count--;
                     if (_count > 0) return;
-                    _freeEntry = -1;
+                    _freeListIdx = -1;
                     _lenght = 0;
                     return;
                 }
@@ -2545,7 +2545,7 @@ namespace Ludaludaed.KECS
 
             _lenght = 0;
             _count = 0;
-            _freeEntry = -1;
+            _freeListIdx = -1;
         }
 
 
@@ -2557,6 +2557,10 @@ namespace Ludaludaed.KECS
     }
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public sealed class FastList<T>
     {
         private T[] _data;
