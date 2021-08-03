@@ -2383,10 +2383,10 @@ namespace Ludaludaed.KECS
 
             var entryIdx = _lenght;
 
-            if (_freeListIdx > 0)
+            if (_freeListIdx >= 0)
             {
                 entryIdx = _freeListIdx;
-                _buckets[entryIdx] = _entries[entryIdx].Next;
+                _freeListIdx = _entries[entryIdx].Next;
             }
             else _lenght++;
 
@@ -2421,9 +2421,6 @@ namespace Ludaludaed.KECS
                     entry.Next = _freeListIdx;
                     _freeListIdx = i;
                     _count--;
-                    if (_count > 0) return;
-                    _freeListIdx = -1;
-                    _lenght = 0;
                     return;
                 }
 
