@@ -2456,10 +2456,8 @@ namespace Ludaludaed.KECS
         private int[] _buckets;
         private T[] _instances;
         private Entry[] _entries;
-
-        private int[] _freeIndexes;
-        private int _freeIndexesCount;
-
+        
+        private int _freeEntry;
         private int _capacity;
         private int _lenght;
         private int _count;
@@ -2473,13 +2471,12 @@ namespace Ludaludaed.KECS
         {
             _lenght = 0;
             _count = 0;
-            _freeIndexesCount = 0;
+            _freeEntry = 0;
 
             _capacity = HashHelpers.GetCapacity(capacity) + 1;
             _empty = default;
             _buckets = new int[_capacity];
             _instances = new T[_capacity];
-            _freeIndexes = new int[_capacity];
             _entries = new Entry[_capacity];
 
             _buckets.Fill(-1);
@@ -2507,7 +2504,6 @@ namespace Ludaludaed.KECS
                 var newCapacity = HashHelpers.ExpandCapacity(_lenght) + 1;
                 Array.Resize(ref _instances, newCapacity);
                 Array.Resize(ref _entries, newCapacity);
-                Array.Resize(ref _freeIndexes, newCapacity);
                 var newSparse = new int[newCapacity];
                 newSparse.Fill(-1);
 
@@ -2527,7 +2523,11 @@ namespace Ludaludaed.KECS
 
             var entryIdx = _lenght;
 
-            if (_freeIndexesCount > 0) entryIdx = _freeIndexes[--_freeIndexesCount];
+            if (_freeEntry > 0)
+            {
+                entryIdx = _freeEntry;
+                _buckets[entryIdx] = _entries[entryIdx].Next;
+            }
             else _lenght++;
             
             ref var entry = ref _entries[entryIdx];
@@ -2556,10 +2556,11 @@ namespace Ludaludaed.KECS
                     else _entries[priorEntry].Next = entry.Next;
                     _instances[i] = default;
                     entry.Key = -1;
-                    entry.Next = -1;
-                    _freeIndexes[_freeIndexesCount++] = i;
+                    entry.Next = _freeEntry;
+                    _freeEntry = i;
                     _count--;
                     if (_count > 0) return;
+                    _freeEntry = -1;
                     _lenght = 0;
                     return;
                 }
@@ -2632,12 +2633,11 @@ namespace Ludaludaed.KECS
         {
             Array.Clear(_entries, 0, _lenght);
             Array.Clear(_instances, 0, _lenght);
-            Array.Clear(_freeIndexes, 0, _freeIndexes.Length);
             _buckets.Fill(-1);
 
             _lenght = 0;
             _count = 0;
-            _freeIndexesCount = 0;
+            _freeEntry = -1;
         }
         
         
