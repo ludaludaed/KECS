@@ -2453,9 +2453,9 @@ namespace Ludaludaed.KECS
 
     public sealed class HashMap<T>
     {
-        private int[] _sparse;
+        private int[] _buckets;
         private T[] _instances;
-        private Bucket[] _buckets;
+        private Entry[] _entries;
 
         private int[] _freeIndexes;
         private int _freeIndexesCount;
@@ -2477,12 +2477,12 @@ namespace Ludaludaed.KECS
 
             _capacity = HashHelpers.GetCapacity(capacity) + 1;
             _empty = default;
-            _sparse = new int[_capacity];
+            _buckets = new int[_capacity];
             _instances = new T[_capacity];
             _freeIndexes = new int[_capacity];
-            _buckets = new Bucket[_capacity];
+            _entries = new Entry[_capacity];
 
-            _sparse.Fill(-1);
+            _buckets.Fill(-1);
         }
         
         
@@ -2495,9 +2495,9 @@ namespace Ludaludaed.KECS
         {
             var index = IndexFor(key, _capacity);
 
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                if (_buckets[i].Key != key) continue;
+                if (_entries[i].Key != key) continue;
                 _instances[i] = value;
                 return;
             }
@@ -2506,37 +2506,37 @@ namespace Ludaludaed.KECS
             {
                 var newCapacity = HashHelpers.ExpandCapacity(_lenght) + 1;
                 Array.Resize(ref _instances, newCapacity);
-                Array.Resize(ref _buckets, newCapacity);
+                Array.Resize(ref _entries, newCapacity);
                 Array.Resize(ref _freeIndexes, newCapacity);
                 var newSparse = new int[newCapacity];
                 newSparse.Fill(-1);
 
                 for (int i = 0, lenght = _lenght; i < lenght; i++)
                 {
-                    ref var rehashBucket = ref _buckets[i];
-                    var rehashIdx = IndexFor(rehashBucket.Key, newCapacity);
-                    rehashBucket.Next = newSparse[rehashIdx];
+                    ref var rehashEntry = ref _entries[i];
+                    var rehashIdx = IndexFor(rehashEntry.Key, newCapacity);
+                    rehashEntry.Next = newSparse[rehashIdx];
                     newSparse[rehashIdx] = i;
                 }
 
-                _sparse = newSparse;
+                _buckets = newSparse;
                 _capacity = newCapacity;
 
                 index = IndexFor(key, _capacity);
             }
 
-            var bucketIdx = _lenght;
+            var entryIdx = _lenght;
 
-            if (_freeIndexesCount > 0) bucketIdx = _freeIndexes[--_freeIndexesCount];
+            if (_freeIndexesCount > 0) entryIdx = _freeIndexes[--_freeIndexesCount];
             else _lenght++;
             
-            ref var bucket = ref _buckets[bucketIdx];
-            var priorIdx = _sparse[index];
+            ref var entry = ref _entries[entryIdx];
+            var priorIdx = _buckets[index];
             
-            bucket.Next = priorIdx;
-            bucket.Key = key;
-            _instances[bucketIdx] = value;
-            _sparse[index] = bucketIdx;
+            entry.Next = priorIdx;
+            entry.Key = key;
+            _instances[entryIdx] = value;
+            _buckets[index] = entryIdx;
             _count++;
         }
         
@@ -2546,17 +2546,17 @@ namespace Ludaludaed.KECS
         {
             var index = IndexFor(key, _capacity);
 
-            var priorBucket = -1;
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            var priorEntry = -1;
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                ref var bucket = ref _buckets[i];
-                if (bucket.Key == key)
+                ref var entry = ref _entries[i];
+                if (entry.Key == key)
                 {
-                    if (priorBucket < 0) _sparse[index] = bucket.Next;
-                    else _buckets[priorBucket].Next = bucket.Next;
+                    if (priorEntry < 0) _buckets[index] = entry.Next;
+                    else _entries[priorEntry].Next = entry.Next;
                     _instances[i] = default;
-                    bucket.Key = -1;
-                    bucket.Next = -1;
+                    entry.Key = -1;
+                    entry.Next = -1;
                     _freeIndexes[_freeIndexesCount++] = i;
                     _count--;
                     if (_count > 0) return;
@@ -2564,7 +2564,7 @@ namespace Ludaludaed.KECS
                     return;
                 }
 
-                priorBucket = i;
+                priorEntry = i;
             }
         }
         
@@ -2573,9 +2573,9 @@ namespace Ludaludaed.KECS
         public bool Contains(int key)
         {
             var index = IndexFor(key, _capacity);
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                if (_buckets[i].Key == key) return true;
+                if (_entries[i].Key == key) return true;
             }
 
             return false;
@@ -2586,9 +2586,9 @@ namespace Ludaludaed.KECS
         public bool TryGetRefValue(int key, ref T value)
         {
             var index = IndexFor(key, _capacity);
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                if (_buckets[i].Key != key) continue;
+                if (_entries[i].Key != key) continue;
                 value = ref _instances[i];
                 return true;
             }
@@ -2602,9 +2602,9 @@ namespace Ludaludaed.KECS
         {
             var index = IndexFor(key, _capacity);
             value = default;
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                if (_buckets[i].Key != key) continue;
+                if (_entries[i].Key != key) continue;
                 value = _instances[i];
                 return true;
             }
@@ -2617,9 +2617,9 @@ namespace Ludaludaed.KECS
         public ref T Get(int key)
         {
             var index = IndexFor(key, _capacity);
-            for (var i = _sparse[index]; i != -1; i = _buckets[i].Next)
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
             {
-                if (_buckets[i].Key != key) continue;
+                if (_entries[i].Key != key) continue;
                 return ref _instances[i];
             }
 
@@ -2630,10 +2630,10 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            Array.Clear(_buckets, 0, _lenght);
+            Array.Clear(_entries, 0, _lenght);
             Array.Clear(_instances, 0, _lenght);
             Array.Clear(_freeIndexes, 0, _freeIndexes.Length);
-            _sparse.Fill(-1);
+            _buckets.Fill(-1);
 
             _lenght = 0;
             _count = 0;
@@ -2641,7 +2641,7 @@ namespace Ludaludaed.KECS
         }
         
         
-        private struct Bucket
+        private struct Entry
         {
             public int Next;
             public int Key;
