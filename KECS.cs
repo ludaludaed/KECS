@@ -293,7 +293,7 @@ namespace Ludaludaed.KECS
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
 
-            _archetypesMap = new HashMap<Archetype>();
+            _archetypesMap = new HashMap<Archetype>(Config.Archetypes);
             _archetypes = new FastList<Archetype>(Config.Archetypes);
 
             var emptyArch = new Archetype(new BitMask(Config.Components), Config.Entities);
