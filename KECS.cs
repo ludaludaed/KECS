@@ -352,7 +352,7 @@ namespace Ludaludaed.KECS
             ref var emptyArchetype = ref _archetypes.Get(0);
             Entity entity;
 
-            if (_freeEntityCount > 0)
+            if (_freeEntityCount <= 0)
             {
                 var newEntityId = _entitiesLenght++;
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
