@@ -352,7 +352,16 @@ namespace Ludaludaed.KECS
             ref var emptyArchetype = ref _archetypes.Get(0);
             Entity entity;
 
-            if (_freeEntityCount <= 0)
+            if (_freeEntityCount > 0)
+            {
+                var newEntityId = _freeEntityIds[--_freeEntityCount];
+                ref var entityData = ref _entities[newEntityId];
+                entity.Id = newEntityId;
+                entityData.Archetype = emptyArchetype;
+                entity.Age = entityData.Age;
+                entity.World = this;
+            }
+            else
             {
                 var newEntityId = _entitiesLenght++;
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
@@ -361,15 +370,6 @@ namespace Ludaludaed.KECS
                 entityData.Archetype = emptyArchetype;
                 entity.Age = 1;
                 entityData.Age = 1;
-                entity.World = this;
-            }
-            else
-            {
-                var newEntityId = _freeEntityIds[--_freeEntityCount];
-                ref var entityData = ref _entities[newEntityId];
-                entity.Id = newEntityId;
-                entityData.Archetype = emptyArchetype;
-                entity.Age = entityData.Age;
                 entity.World = this;
             }
 
