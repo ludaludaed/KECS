@@ -41,6 +41,7 @@ namespace Ludaludaed.KECS
         {
             var hashName = name.GetHashCode();
 #if DEBUG
+            if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| World name cant be null or empty.");
             if (_worlds.Contains(hashName))
                 throw new Exception($"|KECS| A world with {name} name already exists.");
 #endif
@@ -1624,39 +1625,40 @@ namespace Ludaludaed.KECS
         private readonly SharedData _sharedData;
 
         private readonly World _world;
+        private readonly string _name;
         private bool _initialized;
         private bool _destroyed;
 
-
-        public string Name { get; private set; }
+        public string Name => _name;
 
 
         public Systems(World world, string name = "DEFAULT")
         {
-            Name = name;
-            _world = world;
-            _initialized = false;
-            _destroyed = false;
-            _sharedData = new SharedData();
-            _systems = new HashMap<SystemData>();
+#if DEBUG
+            if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| Systems name cant be null or empty.");
+#endif
             _allSystems = new FastList<SystemData>();
             _updateSystems = new FastList<SystemData>();
             _fixedSystems = new FastList<SystemData>();
             _lateSystems = new FastList<SystemData>();
             _onlyBaseSystems = new FastList<SystemData>();
+            _systems = new HashMap<SystemData>();
+            _sharedData = new SharedData();
+            _initialized = false;
+            _destroyed = false;
+            _name = name;
+            _world = world;
         }
 
 #if DEBUG
         private readonly FastList<ISystemsDebugListener> _debugListeners = new FastList<ISystemsDebugListener>();
-
-
+        
         public void AddDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null) throw new Exception("|KECS| Listener is null.");
             _debugListeners.Add(listener);
         }
-
-
+        
         public void RemoveDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null) throw new Exception("|KECS| Listener is null.");
