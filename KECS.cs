@@ -229,7 +229,7 @@ namespace Ludaludaed.KECS
 
         private readonly FastList<Archetype> _archetypes;
         private readonly HashMap<Archetype> _archetypesMap;
-        
+
         private EntityData[] _entities;
         private int[] _freeEntityIds;
         private int _entitiesLenght;
@@ -237,7 +237,7 @@ namespace Ludaludaed.KECS
 
         private readonly string _name;
         private readonly int _hashName;
-        
+
         private bool _isAlive;
         internal readonly WorldConfig Config;
 
@@ -2035,10 +2035,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
+        public Enumerator GetEnumerator() => new Enumerator(this);
 
 
         public ref struct Enumerator
@@ -2057,24 +2054,22 @@ namespace Ludaludaed.KECS
                 _returned = 0;
             }
 
+            public int Current => _index;
 
-            public int Current
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get
-                {
-                    while (true)
-                    {
-                        _index++;
-                        if (!_bitMask.GetBit(_index)) continue;
-                        _returned++;
-                        return _index;
-                    }
-                }
-            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => _returned < _count;
+            public bool MoveNext()
+            {
+                while (_returned < _count)
+                {
+                    _index++;
+                    if (!_bitMask.GetBit(_index)) continue;
+                    _returned++;
+                    return true;
+                }
+
+                return false;
+            }
         }
     }
 
