@@ -97,8 +97,7 @@ The `Build(world)` method allows you to create an entity from this template in t
 This way of creating an entity allows you to reduce the number of side archetypes at the initial sequential assignment of entity components.
 ### 🕹️ System
 
-The system processes entities matching the filter. The system must implement the abstract class `SystemBase`. The system
-can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateUpdate`.
+The system processes entities matching the filter. The system must implement the abstract class `SystemBase`.
 
 ```csharp
     public class SystemTest1 : SystemBase, IUpdate
@@ -241,8 +240,6 @@ public class SystemTest1 : SystemBase, IUpdate
 Systems are added using the `Add<>()` method of the `Systems` class.
 After adding all systems, you must call the `Intitalize()` method.
 
-You can disable and enable systems using the `Enable<>()` and `Disable<>()` methods of the `Systems` class.
-
 ```csharp
 public class StartUp : MonoBehaviour
 {
@@ -262,16 +259,6 @@ public class StartUp : MonoBehaviour
     {
         _world.ExecuteTasks();
         _systems.Update(Time.deltaTime);
-    }
-
-    public void FixedUpdate()
-    {
-        _systems.FixedUpdate(Time.fixedDeltaTime);
-    }
-
-    public void LateUpdate()
-    {
-        _systems.LateUpdate(Time.deltaTime);
     }
 
     public void OnDestroy()
