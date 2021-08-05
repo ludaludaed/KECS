@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Ludaludaed.KECS
 {
@@ -275,21 +273,13 @@ namespace Ludaludaed.KECS
 
         public void AddDebugListener(IWorldDebugListener listener)
         {
-            if (listener == null)
-            {
-                throw new Exception("Listener is null.");
-            }
-
+            if (listener == null) throw new Exception("Listener is null.");
             _debugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(IWorldDebugListener listener)
         {
-            if (listener == null)
-            {
-                throw new Exception("Listener is null.");
-            }
-
+            if (listener == null) throw new Exception("Listener is null.");
             _debugListeners.Remove(listener);
         }
 #endif
@@ -1662,22 +1652,14 @@ namespace Ludaludaed.KECS
 
         public void AddDebugListener(ISystemsDebugListener listener)
         {
-            if (listener == null)
-            {
-                throw new Exception("|KECS| Listener is null.");
-            }
-
+            if (listener == null) throw new Exception("|KECS| Listener is null.");
             _debugListeners.Add(listener);
         }
 
 
         public void RemoveDebugListener(ISystemsDebugListener listener)
         {
-            if (listener == null)
-            {
-                throw new Exception("|KECS| Listener is null.");
-            }
-
+            if (listener == null) throw new Exception("|KECS| Listener is null.");
             _debugListeners.Remove(listener);
         }
 #endif
