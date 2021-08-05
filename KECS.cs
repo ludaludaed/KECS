@@ -226,10 +226,10 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        private readonly FastList<Filter> _filters;
 
-        private readonly FastList<Archetype> _archetypes;
         private readonly HashMap<Archetype> _archetypesMap;
+        private readonly FastList<Archetype> _archetypes;
+        private readonly FastList<Filter> _filters;
 
         private EntityData[] _entities;
         private int[] _freeEntityIds;
@@ -1652,13 +1652,13 @@ namespace Ludaludaed.KECS
 
 #if DEBUG
         private readonly FastList<ISystemsDebugListener> _debugListeners = new FastList<ISystemsDebugListener>();
-        
+
         public void AddDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null) throw new Exception("|KECS| Listener is null.");
             _debugListeners.Add(listener);
         }
-        
+
         public void RemoveDebugListener(ISystemsDebugListener listener)
         {
             if (listener == null) throw new Exception("|KECS| Listener is null.");
