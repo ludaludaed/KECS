@@ -196,7 +196,7 @@ namespace Ludaludaed.KECS
             {
                 _addTasksCount = 0;
                 ref var task = ref _addTasks[i];
-                if (!task.Entity.IsAlive()) continue;
+                if (!task.Entity.IsAlive() || !removeTask.Entity.Has<T>()) continue;
                 task.Entity.Set(task.Component);
 
                 ref var removeTask = ref _removeTasks[_removeTasksCount++];
@@ -2202,10 +2202,10 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class HashMap<T>
     {
+        private Entry[] _entries;
         private int[] _buckets;
         private T[] _data;
-        private Entry[] _entries;
-
+        
         private int _freeListIdx;
         private int _capacity;
         private int _lenght;
