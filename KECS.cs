@@ -1574,7 +1574,7 @@ namespace Ludaludaed.KECS
     {
     }
 
-    public abstract class SystemBase : IDisposable
+    public abstract class SystemBase
     {
         protected World _world;
         protected Systems _systems;
@@ -1602,9 +1602,6 @@ namespace Ludaludaed.KECS
         public virtual void PostDestroy()
         {
         }
-
-
-        public void Dispose() => OnDestroy();
     }
 
 
