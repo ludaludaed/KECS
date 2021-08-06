@@ -188,7 +188,7 @@ namespace Ludaludaed.KECS
             {
                 _removeTasksCount = 0;
                 ref var removeTask = ref _removeTasks[i];
-                if (!removeTask.Entity.IsAlive()) continue;
+                if (!removeTask.Entity.IsAlive() || !removeTask.Entity.Has<T>()) continue;
                 removeTask.Entity.Remove<T>();
             }
 
@@ -196,7 +196,7 @@ namespace Ludaludaed.KECS
             {
                 _addTasksCount = 0;
                 ref var task = ref _addTasks[i];
-                if (!task.Entity.IsAlive() || !removeTask.Entity.Has<T>()) continue;
+                if (!task.Entity.IsAlive()) continue;
                 task.Entity.Set(task.Component);
 
                 ref var removeTask = ref _removeTasks[_removeTasksCount++];
