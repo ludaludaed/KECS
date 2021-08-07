@@ -1561,6 +1561,8 @@ namespace Ludaludaed.KECS
         public World _world;
         public SystemGroup _systemGroup;
         internal bool IsEnable;
+        
+        
         public abstract void Initialize();
 
         
