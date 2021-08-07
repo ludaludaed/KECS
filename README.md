@@ -105,11 +105,6 @@ The system must implement the abstract class `SystemBase` or `UpdateSystem`.
     {
         private Filter _filter;
 
-        public override void OnLaunch()
-        {
-            // Will be called when adding a system.
-        }
-
         public override void Initialize()
         {
             _filter = _world.Filter().With<Component>();
