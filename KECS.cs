@@ -1731,10 +1731,11 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class HandleMap<T>
     {
+        private const int MinCapacity = 16;
         private const int None = -1;
-        public T[] Data;
         private int[] _dense;
         private int[] _sparse;
+        public T[] Data;
         private int _denseCount;
 
         private T _empty;
@@ -1743,6 +1744,7 @@ namespace Ludaludaed.KECS
 
         public HandleMap(int capacity)
         {
+            if (capacity < MinCapacity) capacity = MinCapacity;
             _dense = new int[capacity];
             _sparse = new int[capacity];
             Data = new T[capacity];
@@ -1754,6 +1756,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int sparseIdx) =>
             _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx)
@@ -1789,11 +1792,11 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Remove(int sparseIdx)
         {
+#if DEBUG
             if (!Contains(sparseIdx))
-            {
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
-            }
-
+#endif
+            
             var packedIdx = _sparse[sparseIdx];
             _sparse[sparseIdx] = None;
             _denseCount--;
@@ -2261,8 +2264,8 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class FastList<T>
     {
-        private T[] _data;
         private const int MinCapacity = 16;
+        private T[] _data;
         private int _count;
         private EqualityComparer<T> _comparer;
 
