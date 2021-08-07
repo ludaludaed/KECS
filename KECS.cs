@@ -2063,10 +2063,10 @@ namespace Ludaludaed.KECS
 
             _capacity = HashHelpers.GetCapacity(capacity);
             _empty = default;
+            _entries = new Entry[_capacity];
             _buckets = new int[_capacity];
             _data = new T[_capacity];
-            _entries = new Entry[_capacity];
-
+            
             _buckets.Fill(-1);
         }
 
