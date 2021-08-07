@@ -246,9 +246,11 @@ public class StartUp : MonoBehaviour
     {
         _world = Worlds.Create();
         _systems = new Systems(_world);
-        _systems.Add(new SystemTest()).
-                 Add(new SystemTest1());
-        _systems.Initialize();
+        _systems
+             .Add(new SystemFoo())
+             .Add(new SystemBar())
+             .Add(new SystemBaz())
+             .Initialize();
     }
 
     public void Update()
