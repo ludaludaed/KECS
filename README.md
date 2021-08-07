@@ -97,11 +97,11 @@ The `Build(world)` method allows you to create an entity from this template in t
 This way of creating an entity allows you to reduce the number of side archetypes at the initial sequential assignment of entity components.
 ### 🕹️ System
 
-The system processes entities matching the filter. The system must implement the abstract class `SystemBase`. The system
-can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateUpdate`.
+The system processes entities matching the filter.
+The system must implement the abstract class `SystemBase` or `UpdateSystem`.
 
 ```csharp
-    public class SystemTest1 : SystemBase, IUpdate
+    public class SystemTest1 : UpdateSystem
     {
         private Filter _filter;
 
@@ -115,7 +115,7 @@ can also implement one of three interfaces `IUpdate`,` IFixedUpdate` and `ILateU
             _filter = _world.Filter().With<Component>();
         }
 
-        public void OnUpdate(float deltaTime)
+        public override void OnUpdate(float deltaTime)
         {
             _filter.ForEach((Entity entity, ref Component comp) =>
             {
@@ -150,7 +150,7 @@ entity.SetEvent<EventComponent>();
 Receiving an event.
 
 ```csharp
-public class SystemTest1 : SystemBase, IUpdate
+public class SystemTest1 : UpdateSystem
 {
     private Filter _filter;
     
@@ -159,7 +159,7 @@ public class SystemTest1 : SystemBase, IUpdate
         _filter = _world.Filter().With<EventComponent>();
     }
 
-    public void OnUpdate(float deltaTime)
+    public override void OnUpdate(float deltaTime)
     {
         _filter.ForEach((Entity entity, ref EventComponent event) =>
         {
@@ -175,7 +175,7 @@ public class SystemTest1 : SystemBase, IUpdate
 You can create a filter using a chain of commands which contain two methods `With<>()` / `.Without<>()`.
 
 ```csharp
-public class SystemTest1 : SystemBase, IUpdate
+public class SystemTest1 : UpdateSystem
 {
     private Filter _filter;
     
@@ -184,7 +184,7 @@ public class SystemTest1 : SystemBase, IUpdate
         _filter = _world.Filter().With<FooComponent>().With<BarComponent>().Without<BazComponent>();
     }
 
-    public void OnUpdate(float deltaTime)
+    public override void OnUpdate(float deltaTime)
     {
         _filter.ForEach((Entity entity, ref FooComponent fooComp, ref BarComponent barComp) =>
         {
@@ -215,7 +215,7 @@ systems.Initialize();
 Shared data for the system is obtained by calling the `GetShared<>()` method.
 
 ```csharp
-public class SystemTest1 : SystemBase, IUpdate
+public class SystemTest1 : UpdateSystem
 {
     private Filter _filter;
     private SharedData _configuration;
@@ -223,10 +223,10 @@ public class SystemTest1 : SystemBase, IUpdate
     public override void Initialize()
     {
         _filter = _world.Filter().With<Component>();
-        _configuration = _systems.GetShared<SharedData>();
+        _configuration = _systemGroup.GetShared<SharedData>();
     }
 
-    public void OnUpdate(float deltaTime)
+    public override void OnUpdate(float deltaTime)
     {
         _filter.ForEach((Entity entity, ref Component comp) =>
         {
@@ -241,8 +241,6 @@ public class SystemTest1 : SystemBase, IUpdate
 Systems are added using the `Add<>()` method of the `Systems` class.
 After adding all systems, you must call the `Intitalize()` method.
 
-You can disable and enable systems using the `Enable<>()` and `Disable<>()` methods of the `Systems` class.
-
 ```csharp
 public class StartUp : MonoBehaviour
 {
@@ -253,8 +251,8 @@ public class StartUp : MonoBehaviour
     {
         _world = Worlds.Create();
         _systems = new Systems(_world);
-        _systems.Add<SystemTest>().
-                 Add<SystemTest1>().
+        _systems.Add(new SystemTest()).
+                 Add(new SystemTest1()).
         _systems.Initialize();
     }
 
@@ -262,16 +260,6 @@ public class StartUp : MonoBehaviour
     {
         _world.ExecuteTasks();
         _systems.Update(Time.deltaTime);
-    }
-
-    public void FixedUpdate()
-    {
-        _systems.FixedUpdate(Time.fixedDeltaTime);
-    }
-
-    public void LateUpdate()
-    {
-        _systems.LateUpdate(Time.deltaTime);
     }
 
     public void OnDestroy()

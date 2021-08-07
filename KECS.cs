@@ -507,16 +507,6 @@ namespace Ludaludaed.KECS
                 _filters.Get(i).Dispose();
             }
 
-            for (int i = 0, lenght = _componentPools.Count; i < lenght; i++)
-            {
-                _componentPools.Data[i].Clear();
-            }
-
-            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
-            {
-                _archetypes.Get(i).Clear();
-            }
-
             _filters.Clear();
             _componentPools.Clear();
             _archetypes.Clear();
@@ -1561,39 +1551,19 @@ namespace Ludaludaed.KECS
     //=============================================================================
 
 
-    public interface IUpdate
+    public abstract class UpdateSystem : SystemBase
     {
-        void OnUpdate(float deltaTime);
-    }
-
-    public interface IFixedUpdate : IUpdate
-    {
-    }
-
-    public interface ILateUpdate : IUpdate
-    {
+        public abstract void OnUpdate(float deltaTime);
     }
 
     public abstract class SystemBase
     {
-        protected World _world;
-        protected Systems _systems;
+        public World _world;
+        public SystemGroup _systemGroup;
+        internal bool IsEnable;
         public abstract void Initialize();
 
-
-        internal void Ctor(World world, Systems systems)
-        {
-            _world = world;
-            _systems = systems;
-            OnLaunch();
-        }
-
-
-        public virtual void OnLaunch()
-        {
-        }
-
-
+        
         public virtual void OnDestroy()
         {
         }
@@ -1609,45 +1579,33 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Systems : IDisposable
+    public sealed class SystemGroup
     {
-        private readonly HashMap<SystemData> _systems;
-
-        private readonly FastList<SystemData> _updateSystems;
-        private readonly FastList<SystemData> _fixedSystems;
-        private readonly FastList<SystemData> _lateSystems;
-        private readonly FastList<SystemData> _allSystems;
-        private readonly FastList<SystemData> _onlyBaseSystems;
+        private readonly FastList<UpdateSystem> _updateSystems;
+        private readonly FastList<SystemBase> _allSystems;
 
         private readonly SharedData _sharedData;
 
         private readonly World _world;
         private readonly string _name;
-        private bool _initialized;
-        private bool _destroyed;
 
         public string Name => _name;
 
-
-        public Systems(World world, string name = "DEFAULT")
+        public SystemGroup(World world, string name = "DEFAULT")
         {
 #if DEBUG
             if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
-            _allSystems = new FastList<SystemData>();
-            _updateSystems = new FastList<SystemData>();
-            _fixedSystems = new FastList<SystemData>();
-            _lateSystems = new FastList<SystemData>();
-            _onlyBaseSystems = new FastList<SystemData>();
-            _systems = new HashMap<SystemData>();
+            _allSystems = new FastList<SystemBase>();
+            _updateSystems = new FastList<UpdateSystem>();
             _sharedData = new SharedData();
-            _initialized = false;
-            _destroyed = false;
             _name = name;
             _world = world;
         }
 
 #if DEBUG
+        private bool _initialized;
+        private bool _destroyed;
         private readonly FastList<ISystemsDebugListener> _debugListeners = new FastList<ISystemsDebugListener>();
 
         public void AddDebugListener(ISystemsDebugListener listener)
@@ -1663,7 +1621,7 @@ namespace Ludaludaed.KECS
         }
 #endif
 
-        public Systems AddShared<T>(T data) where T : class
+        public SystemGroup AddShared<T>(T data) where T : class
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
@@ -1682,100 +1640,23 @@ namespace Ludaludaed.KECS
 #endif
             return _sharedData.Get<T>();
         }
-
-
-        public FastList<SystemData> GetUpdateSystems()
-        {
-            return _updateSystems;
-        }
-
-
-        public FastList<SystemData> GetFixedUpdateSystems()
-        {
-            return _fixedSystems;
-        }
-
-
-        public FastList<SystemData> GetLateUpdateSystems()
-        {
-            return _lateSystems;
-        }
-
-
-        public FastList<SystemData> GetOnlyBaseSystems()
-        {
-            return _onlyBaseSystems;
-        }
-
-        public Systems Add<T>() where T : SystemBase, new()
+        
+        public void SetActive(int idx, bool value) => _allSystems.Get(idx).IsEnable = value;
+        public bool GetActive(int idx) => _allSystems.Get(idx).IsEnable;
+        public FastList<SystemBase> GetSystems() => _allSystems;
+        
+        public SystemGroup Add<T>(T systemValue) where T : SystemBase, new()
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
 #endif
-
-            var systemValue = new T();
-
-            var hash = typeof(T).GetHashCode();
-
-            if (_systems.Contains(hash)) return this;
-
-            var systemData = new SystemData {IsEnable = true, Base = systemValue};
-            _allSystems.Add(systemData);
-            systemValue.Ctor(_world, this);
-
-            if (systemValue is IUpdate system)
-            {
-                var collection = _updateSystems;
-                var impl = system;
-
-                if (systemValue is IFixedUpdate fixedSystem)
-                {
-                    collection = _fixedSystems;
-                    impl = fixedSystem;
-                }
-                else
-                {
-                    if (systemValue is ILateUpdate lateSystem)
-                    {
-                        collection = _lateSystems;
-                        impl = lateSystem;
-                    }
-                }
-
-                systemData.UpdateImpl = impl;
-                collection.Add(systemData);
-            }
-            else
-            {
-                _onlyBaseSystems.Add(systemData);
-            }
-
-            _systems.Set(hash, systemData);
-
-            return this;
-        }
-
-
-        public Systems Disable<T>() where T : SystemBase
-        {
-#if DEBUG
-            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-#endif
-            var hash = typeof(T).GetHashCode();
-            if (_systems.TryGetValue(hash, out var systemValue)) systemValue.IsEnable = false;
-            return this;
-        }
-
-
-        public Systems Enable<T>() where T : SystemBase
-        {
-#if DEBUG
-            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-#endif
-            var hash = typeof(T).GetHashCode();
-            if (_systems.TryGetValue(hash, out var systemValue)) systemValue.IsEnable = true;
+            _allSystems.Add(systemValue);
+            systemValue._systemGroup = this;
+            systemValue._world = _world;
+            systemValue.IsEnable = true;
+            
+            if (!(systemValue is UpdateSystem system)) return this;
+            _updateSystems.Add(system);
             return this;
         }
 
@@ -1789,35 +1670,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = _updateSystems.Count; i < lenght; i++)
             {
                 var update = _updateSystems.Get(i);
-                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
-            }
-        }
-
-
-        public void FixedUpdate(float deltaTime)
-        {
-#if DEBUG
-            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-#endif
-            for (int i = 0, lenght = _fixedSystems.Count; i < lenght; i++)
-            {
-                var update = _fixedSystems.Get(i);
-                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
-            }
-        }
-
-
-        public void LateUpdate(float deltaTime)
-        {
-#if DEBUG
-            if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-#endif
-            for (int i = 0, lenght = _lateSystems.Count; i < lenght; i++)
-            {
-                var update = _lateSystems.Get(i);
-                if (update.IsEnable) update.UpdateImpl?.OnUpdate(deltaTime);
+                if (update.IsEnable) update.OnUpdate(deltaTime);
             }
         }
 
@@ -1826,12 +1679,11 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
-#endif
             _initialized = true;
-
+#endif
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
-                _allSystems.Get(i).Base.Initialize();
+                _allSystems.Get(i).Initialize();
             }
         }
 
@@ -1840,44 +1692,29 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
-#endif
             _destroyed = true;
-
+#endif
+            
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
                 var destroy = _allSystems.Get(i);
-                if (destroy.IsEnable) destroy.Base.OnDestroy();
+                if (destroy.IsEnable) destroy.OnDestroy();
             }
 
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
                 var destroy = _allSystems.Get(i);
-                if (destroy.IsEnable) destroy.Base.PostDestroy();
+                if (destroy.IsEnable) destroy.PostDestroy();
             }
+            _allSystems.Clear();
+            _updateSystems.Clear();
+            _sharedData.Dispose();
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
                 _debugListeners.Get(i).OnSystemsDestroyed(this);
             }
 #endif
-        }
-
-
-        public void Dispose()
-        {
-            _systems.Clear();
-            _allSystems.Clear();
-            _updateSystems.Clear();
-            _fixedSystems.Clear();
-            _lateSystems.Clear();
-            _sharedData.Dispose();
-        }
-
-        public sealed class SystemData
-        {
-            public bool IsEnable;
-            public SystemBase Base;
-            public IUpdate UpdateImpl;
         }
     }
 
@@ -2202,7 +2039,7 @@ namespace Ludaludaed.KECS
         private Entry[] _entries;
         private int[] _buckets;
         private T[] _data;
-        
+
         private int _freeListIdx;
         private int _capacity;
         private int _lenght;
@@ -2653,7 +2490,7 @@ namespace Ludaludaed.KECS
 
     public interface ISystemsDebugListener
     {
-        void OnSystemsDestroyed(Systems systems);
+        void OnSystemsDestroyed(SystemGroup systemGroup);
     }
 #endif
 }
