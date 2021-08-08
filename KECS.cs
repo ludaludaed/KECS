@@ -381,9 +381,9 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
-            foreach (var comp in entityData.Archetype.Signature)
+            foreach (var idx in entityData.Signature)
             {
-                _componentPools.Get(comp).Remove(entity.Id);
+                _componentPools.Get(idx).Remove(entity.Id);
             }
 
             entityData.Archetype.RemoveEntity(entity);
