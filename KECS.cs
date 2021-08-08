@@ -381,7 +381,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref _entities[entity.Id];
             foreach (var comp in entityData.Archetype.Mask)
             {
-                GetPool(comp).Remove(entity.Id);
+                _componentPools.Get(comp).Remove(entity.Id);
             }
             
             entityData.Archetype.RemoveEntity(entity);
@@ -734,7 +734,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Destroy(in this Entity entity) => entity.World.RecycleEntity(entity);
+        public static void Destroy(in this Entity entity) => entity.World.RecycleEntity(in entity);
         
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
