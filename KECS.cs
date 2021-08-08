@@ -226,7 +226,7 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        
+
         private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
@@ -251,7 +251,7 @@ namespace Ludaludaed.KECS
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-            
+
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
@@ -376,6 +376,40 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RemoveComponent<T>(in Entity entity) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            ref var entityData = ref GetEntityData(entity);
+            var pool = GetPool<T>();
+
+            if (entityData.Archetype.Mask.GetBit(idx))
+            {
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
+                pool.Remove(entity.Id);
+            }
+
+            if (entityData.Archetype.Mask.Count == 0)
+                RecycleEntity(in entity);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ref T SetComponent<T>(in Entity entity, in T value) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            ref var entityData = ref GetEntityData(entity);
+
+            var pool = GetPool<T>();
+            pool.Set(entity.Id, value);
+
+            if (!entityData.Archetype.Mask.GetBit(idx))
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
+
+            return ref pool.Get(entity.Id);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
@@ -383,13 +417,13 @@ namespace Ludaludaed.KECS
             {
                 _componentPools.Get(comp).Remove(entity.Id);
             }
-            
+
             entityData.Archetype.RemoveEntity(entity);
             entityData.Archetype = null;
-            
+
             entityData.Age++;
             if (entityData.Age == 0) entityData.Age = 1;
-            
+
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
@@ -531,7 +565,7 @@ namespace Ludaludaed.KECS
 #endif
         }
     }
-    
+
 
     //=============================================================================
     // ENTITY
@@ -649,22 +683,13 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T Set<T>(in this Entity entity, in T value) where T : struct
-        {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
+        public static ref T Set<T>(in this Entity entity, in T value) where T : struct =>
+            ref entity.World.SetComponent(in entity, in value);
 
-            var pool = world.GetPool<T>();
-            pool.Set(entity.Id, value);
 
-            if (!entityData.Archetype.Mask.GetBit(idx))
-            {
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
-            }
-
-            return ref pool.Get(entity.Id);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Remove<T>(in this Entity entity) where T : struct =>
+            entity.World.RemoveComponent<T>(in entity);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -676,36 +701,10 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Remove<T>(in this Entity entity) where T : struct
-        {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-            var pool = world.GetPool<T>();
-
-            if (entityData.Archetype.Mask.GetBit(idx))
-            {
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
-                pool.Remove(entity.Id);
-            }
-
-            if (entityData.Archetype.Mask.Count == 0)
-            {
-                entity.Destroy();
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T Get<T>(in this Entity entity) where T : struct
         {
             var pool = entity.World.GetPool<T>();
-
-            if (entity.Has<T>())
-            {
-                return ref pool.Get(entity.Id);
-            }
-
+            if (entity.Has<T>()) return ref pool.Get(entity.Id);
             return ref pool.Empty;
         }
 
@@ -735,7 +734,7 @@ namespace Ludaludaed.KECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(in this Entity entity) => entity.World.RecycleEntity(in entity);
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
@@ -1557,11 +1556,11 @@ namespace Ludaludaed.KECS
         public World _world;
         public SystemGroup _systemGroup;
         internal bool IsEnable;
-        
-        
+
+
         public abstract void Initialize();
 
-        
+
         public virtual void OnDestroy()
         {
         }
@@ -1638,11 +1637,11 @@ namespace Ludaludaed.KECS
 #endif
             return _sharedData.Get<T>();
         }
-        
+
         public void SetActive(int idx, bool value) => _allSystems.Get(idx).IsEnable = value;
         public bool GetActive(int idx) => _allSystems.Get(idx).IsEnable;
         public FastList<SystemBase> GetSystems() => _allSystems;
-        
+
         public SystemGroup Add<T>(T systemValue) where T : SystemBase, new()
         {
 #if DEBUG
@@ -1652,13 +1651,13 @@ namespace Ludaludaed.KECS
             systemValue._systemGroup = this;
             systemValue._world = _world;
             systemValue.IsEnable = true;
-            
+
             if (!(systemValue is UpdateSystem system)) return this;
             _updateSystems.Add(system);
             return this;
         }
-        
-        
+
+
         public void Initialize()
         {
 #if DEBUG
@@ -1703,6 +1702,7 @@ namespace Ludaludaed.KECS
                 var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.PostDestroy();
             }
+
             _allSystems.Clear();
             _updateSystems.Clear();
             _sharedData.Dispose();
@@ -1751,7 +1751,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int sparseIdx) =>
             _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx)
@@ -1791,7 +1791,7 @@ namespace Ludaludaed.KECS
             if (!Contains(sparseIdx))
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
 #endif
-            
+
             var packedIdx = _sparse[sparseIdx];
             _sparse[sparseIdx] = None;
             _denseCount--;
@@ -2061,7 +2061,7 @@ namespace Ludaludaed.KECS
             _entries = new Entry[_capacity];
             _buckets = new int[_capacity];
             _data = new T[_capacity];
-            
+
             _buckets.Fill(-1);
         }
 
