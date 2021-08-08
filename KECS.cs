@@ -226,8 +226,8 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-
-        private readonly HashMap<Archetype> _archetypesMap;
+        
+        private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
 
@@ -251,11 +251,11 @@ namespace Ludaludaed.KECS
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-
-            _archetypesMap = new HashMap<Archetype>(config.Archetypes);
+            
+            _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
-            _archetypesMap.Set(emptyArch.Hash, emptyArch);
+            _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
             _filters = new FastList<Filter>();
 
@@ -471,10 +471,10 @@ namespace Ludaludaed.KECS
         internal Archetype GetArchetype(BitMask mask)
         {
             var hash = mask.GetHash();
-            if (_archetypesMap.TryGetValue(hash, out var archetype)) return archetype;
+            if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
             archetype = new Archetype(mask, Config.Entities);
             _archetypes.Add(archetype);
-            _archetypesMap.Set(hash, archetype);
+            _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
@@ -510,7 +510,7 @@ namespace Ludaludaed.KECS
             _filters.Clear();
             _componentPools.Clear();
             _archetypes.Clear();
-            _archetypesMap.Clear();
+            _archetypeSignatures.Clear();
             _freeEntityCount = 0;
             _entitiesLenght = 0;
             Worlds.Recycle(_hashName);
@@ -1661,6 +1661,19 @@ namespace Ludaludaed.KECS
             _updateSystems.Add(system);
             return this;
         }
+        
+        
+        public void Initialize()
+        {
+#if DEBUG
+            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
+            _initialized = true;
+#endif
+            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
+            {
+                _allSystems.Get(i).Initialize();
+            }
+        }
 
 
         public void Update(float deltaTime)
@@ -1677,26 +1690,12 @@ namespace Ludaludaed.KECS
         }
 
 
-        public void Initialize()
-        {
-#if DEBUG
-            if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
-            _initialized = true;
-#endif
-            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
-            {
-                _allSystems.Get(i).Initialize();
-            }
-        }
-
-
         public void Destroy()
         {
 #if DEBUG
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
             _destroyed = true;
 #endif
-            
             for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
             {
                 var destroy = _allSystems.Get(i);
