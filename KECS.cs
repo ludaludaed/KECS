@@ -348,6 +348,7 @@ namespace Ludaludaed.KECS
                 var newEntityId = _freeEntityIds[--_freeEntityCount];
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
+                entityData.Signature.Clear();
                 entityData.Archetype = emptyArchetype;
                 entity.Age = entityData.Age;
                 entity.World = this;
@@ -358,6 +359,7 @@ namespace Ludaludaed.KECS
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
+                entityData.Signature = new BitMask(Config.Components);
                 entityData.Archetype = emptyArchetype;
                 entity.Age = 1;
                 entityData.Age = 1;
@@ -379,13 +381,14 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
-            foreach (var comp in entityData.Archetype.Mask)
+            foreach (var comp in entityData.Archetype.Signature)
             {
                 _componentPools.Get(comp).Remove(entity.Id);
             }
 
             entityData.Archetype.RemoveEntity(entity);
             entityData.Archetype = null;
+            entityData.Signature.Clear();
 
             entityData.Age++;
             if (entityData.Age == 0) entityData.Age = 1;
@@ -465,7 +468,7 @@ namespace Ludaludaed.KECS
             for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes.Get(i);
-                if (archetype.Mask.Contains(include) && (exclude.Count == 0 || !archetype.Mask.Intersects(exclude)))
+                if (archetype.Signature.Contains(include) && (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
                 {
                     filter.Archetypes.Add(archetype);
                 }
@@ -476,11 +479,11 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype GetArchetype(BitMask mask)
+        internal Archetype GetArchetype(BitMask signature)
         {
-            var hash = mask.GetHash();
+            var hash = signature.GetHash();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
-            archetype = new Archetype(mask, Config.Entities);
+            archetype = new Archetype(signature.Copy(), Config.Entities);
             _archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
@@ -565,15 +568,14 @@ namespace Ludaludaed.KECS
         public Entity Build(World world)
         {
             var entity = world.CreateEntity();
-            var mask = new BitMask(world.Config.Components);
+            ref var entityData = ref world.GetEntityData(entity);
             for (int i = 0, lenght = _builders.Count; i < lenght; i++)
             {
                 var build = _builders.Data[i];
                 build.Set(entity);
-                mask.SetBit(build.GetIdx());
+                entityData.Signature.SetBit(build.GetIdx());
             }
-
-            entity.SwapArchetype(mask);
+            entity.UpdateArchetype();
             return entity;
         }
 
@@ -610,6 +612,7 @@ namespace Ludaludaed.KECS
     public struct EntityData
     {
         public int Age;
+        public BitMask Signature;
         public Archetype Archetype;
     }
 
@@ -658,8 +661,11 @@ namespace Ludaludaed.KECS
             var pool = world.GetPool<T>();
             pool.Set(entity.Id, value);
 
-            if (!entityData.Archetype.Mask.GetBit(idx)) 
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
+            if (!entityData.Archetype.Signature.GetBit(idx))
+            {
+                entityData.Signature.SetBit(idx);
+                entity.UpdateArchetype();
+            }
             
             return ref pool.Get(entity.Id);
         }
@@ -673,13 +679,14 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             var pool = world.GetPool<T>();
 
-            if (entityData.Archetype.Mask.GetBit(idx))
+            if (entityData.Archetype.Signature.GetBit(idx))
             {
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
+                entityData.Signature.ClearBit(idx);
+                entity.UpdateArchetype();
                 pool.Remove(entity.Id);
             }
 
-            if (entityData.Archetype.Mask.Count == 0) 
+            if (entityData.Archetype.Signature.Count == 0) 
                 entity.Destroy();
         }
 
@@ -706,17 +713,17 @@ namespace Ludaludaed.KECS
         public static bool Has<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            return entity.World.GetEntityData(entity).Archetype.Mask.GetBit(idx);
+            return entity.World.GetEntityData(entity).Archetype.Signature.GetBit(idx);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void SwapArchetype(in this Entity entity, BitMask newMask)
+        internal static void UpdateArchetype(in this Entity entity)
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             var oldArchetype = entityData.Archetype;
-            var newArchetype = world.GetArchetype(newMask);
+            var newArchetype = world.GetArchetype(entityData.Signature);
             oldArchetype.RemoveEntity(entity);
             newArchetype.AddEntity(entity);
             entityData.Archetype = newArchetype;
@@ -732,7 +739,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
-            var mask = entityData.Archetype.Mask;
+            var mask = entityData.Archetype.Signature;
             var lenght = mask.Count;
             if (typeIndexes == null || typeIndexes.Length < lenght)
             {
@@ -754,7 +761,7 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
-            var mask = entityData.Archetype.Mask;
+            var mask = entityData.Archetype.Signature;
             var lenght = mask.Count;
             if (objects == null || objects.Length < lenght)
             {
@@ -784,7 +791,7 @@ namespace Ludaludaed.KECS
     {
         internal readonly HandleMap<Entity> Entities;
         public readonly int Hash;
-        public readonly BitMask Mask;
+        public readonly BitMask Signature;
 
         private DelayedChange[] _delayedChanges;
         private int _lockCount;
@@ -792,12 +799,12 @@ namespace Ludaludaed.KECS
 
         public int Count => Entities.Count;
 
-        internal Archetype(BitMask mask, int entityCapacity)
+        internal Archetype(BitMask signature, int entityCapacity)
         {
             Entities = new HandleMap<Entity>(entityCapacity);
             _delayedChanges = new DelayedChange[64];
-            Mask = mask;
-            Hash = Mask.GetHash();
+            Signature = signature;
+            Hash = Signature.GetHash();
             _lockCount = 0;
             _delayedOpsCount = 0;
         }
