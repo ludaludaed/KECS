@@ -661,7 +661,7 @@ namespace Ludaludaed.KECS
             var pool = world.GetPool<T>();
             pool.Set(entity.Id, value);
 
-            if (!entityData.Archetype.Signature.GetBit(idx))
+            if (!entityData.Signature.GetBit(idx))
             {
                 entityData.Signature.SetBit(idx);
                 entity.UpdateArchetype();
@@ -679,14 +679,14 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             var pool = world.GetPool<T>();
 
-            if (entityData.Archetype.Signature.GetBit(idx))
+            if (entityData.Signature.GetBit(idx))
             {
                 entityData.Signature.ClearBit(idx);
                 entity.UpdateArchetype();
                 pool.Remove(entity.Id);
             }
 
-            if (entityData.Archetype.Signature.Count == 0) 
+            if (entityData.Signature.Count == 0) 
                 entity.Destroy();
         }
 
@@ -713,7 +713,7 @@ namespace Ludaludaed.KECS
         public static bool Has<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            return entity.World.GetEntityData(entity).Archetype.Signature.GetBit(idx);
+            return entity.World.GetEntityData(entity).Signature.GetBit(idx);
         }
 
 
@@ -739,15 +739,15 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
-            var mask = entityData.Archetype.Signature;
-            var lenght = mask.Count;
+            var signature = entityData.Signature;
+            var lenght = signature.Count;
             if (typeIndexes == null || typeIndexes.Length < lenght)
             {
                 typeIndexes = new int[lenght];
             }
 
             var counter = 0;
-            foreach (var idx in mask)
+            foreach (var idx in signature)
             {
                 typeIndexes[counter++] = idx;
             }
@@ -761,15 +761,15 @@ namespace Ludaludaed.KECS
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
-            var mask = entityData.Archetype.Signature;
-            var lenght = mask.Count;
+            var signature = entityData.Signature;
+            var lenght = signature.Count;
             if (objects == null || objects.Length < lenght)
             {
                 objects = new object[lenght];
             }
 
             var counter = 0;
-            foreach (var idx in mask)
+            foreach (var idx in signature)
             {
                 objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
             }
