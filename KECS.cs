@@ -379,9 +379,17 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
+            foreach (var comp in entityData.Archetype.Mask)
+            {
+                GetPool(comp).Remove(entity.Id);
+            }
+            
+            entityData.Archetype.RemoveEntity(entity);
             entityData.Archetype = null;
+            
             entityData.Age++;
             if (entityData.Age == 0) entityData.Age = 1;
+            
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
@@ -726,20 +734,8 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Destroy(in this Entity entity)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-
-            foreach (var comp in entityData.Archetype.Mask)
-            {
-                world.GetPool(comp).Remove(entity.Id);
-            }
-
-            entityData.Archetype.RemoveEntity(entity);
-            world.RecycleEntity(entity);
-        }
-
+        public static void Destroy(in this Entity entity) => entity.World.RecycleEntity(entity);
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
