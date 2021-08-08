@@ -376,40 +376,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RemoveComponent<T>(in Entity entity) where T : struct
-        {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            ref var entityData = ref GetEntityData(entity);
-            var pool = GetPool<T>();
-
-            if (entityData.Archetype.Mask.GetBit(idx))
-            {
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
-                pool.Remove(entity.Id);
-            }
-
-            if (entityData.Archetype.Mask.Count == 0)
-                RecycleEntity(in entity);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref T SetComponent<T>(in Entity entity, in T value) where T : struct
-        {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            ref var entityData = ref GetEntityData(entity);
-
-            var pool = GetPool<T>();
-            pool.Set(entity.Id, value);
-
-            if (!entityData.Archetype.Mask.GetBit(idx))
-                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
-
-            return ref pool.Get(entity.Id);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
@@ -683,13 +649,40 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T Set<T>(in this Entity entity, in T value) where T : struct =>
-            ref entity.World.SetComponent(in entity, in value);
+        public static ref T Set<T>(in this Entity entity, in T value) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+
+            var pool = world.GetPool<T>();
+            pool.Set(entity.Id, value);
+
+            if (!entityData.Archetype.Mask.GetBit(idx)) 
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().SetBit(idx));
+            
+            return ref pool.Get(entity.Id);
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Remove<T>(in this Entity entity) where T : struct =>
-            entity.World.RemoveComponent<T>(in entity);
+        public static void Remove<T>(in this Entity entity) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+            var pool = world.GetPool<T>();
+
+            if (entityData.Archetype.Mask.GetBit(idx))
+            {
+                entity.SwapArchetype(entityData.Archetype.Mask.Copy().ClearBit(idx));
+                pool.Remove(entity.Id);
+            }
+
+            if (entityData.Archetype.Mask.Count == 0) 
+                entity.Destroy();
+        }
+
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -713,9 +706,7 @@ namespace Ludaludaed.KECS
         public static bool Has<T>(in this Entity entity) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-            return entityData.Archetype.Mask.GetBit(idx);
+            return entity.World.GetEntityData(entity).Archetype.Mask.GetBit(idx);
         }
 
 
