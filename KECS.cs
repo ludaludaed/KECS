@@ -387,6 +387,7 @@ namespace Ludaludaed.KECS
                 entity.Id = newEntityId;
                 entityData.Signature.Clear();
                 entityData.Archetype = emptyArchetype;
+                entityData.IsDirty = false;
                 entity.Age = entityData.Age;
                 entity.World = this;
             }
@@ -398,6 +399,7 @@ namespace Ludaludaed.KECS
                 entity.Id = newEntityId;
                 entityData.Signature = new BitMask(Config.Components);
                 entityData.Archetype = emptyArchetype;
+                entityData.IsDirty = false;
                 entity.Age = 1;
                 entityData.Age = 1;
                 entity.World = this;
