@@ -576,8 +576,28 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ENTITY
     //=============================================================================
+    
+    
+    public struct EntityData
+    {
+        public int Age;
+        public bool IsDirty;
+        public BitMask Signature;
+        public Archetype Archetype;
+    }
+
+    public struct Entity
+    {
+        public int Id;
+        public int Age;
+        public World World;
+    }
 
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
     public class EntityBuilder
     {
         private HandleMap<IComponentBuilder> _builders;
@@ -623,6 +643,10 @@ namespace Ludaludaed.KECS
             int GetIdx();
         }
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
         private class ComponentBuilder<T> : IComponentBuilder where T : struct
         {
             private T _component;
@@ -644,22 +668,6 @@ namespace Ludaludaed.KECS
                 pool.Set(entity.Id, in _component);
             }
         }
-    }
-
-
-    public struct EntityData
-    {
-        public int Age;
-        public bool IsDirty;
-        public BitMask Signature;
-        public Archetype Archetype;
-    }
-
-    public struct Entity
-    {
-        public int Id;
-        public int Age;
-        public World World;
     }
 
 
