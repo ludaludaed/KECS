@@ -231,12 +231,12 @@ namespace Ludaludaed.KECS
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
 
+        private readonly FastList<Entity> _dirtyEntities;
+
         private EntityData[] _entities;
         private int[] _freeEntityIds;
         private int _freeEntityCount;
         private int _entitiesLenght;
-
-        private FastList<Entity> _dirtyEntities;
 
         private readonly string _name;
         private readonly int _hashName;
@@ -272,8 +272,8 @@ namespace Ludaludaed.KECS
             _isAlive = true;
             Config = config;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Lock() => _lockCount++;
 
@@ -290,10 +290,11 @@ namespace Ludaludaed.KECS
                 entityData.IsDirty = false;
                 entity.UpdateArchetype();
             }
+
             _dirtyEntities.Clear();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddDelayedChange(in Entity entity)
         {
@@ -420,15 +421,6 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
-            
-            foreach (var idx in entityData.Signature)
-            {
-                _componentPools.Get(idx).Remove(entity.Id);
-            }
-            entityData.Signature.Clear();
-            
-            if(AddDelayedChange(in entity)) return;
-            
             entityData.Archetype.RemoveEntity(entity);
             entityData.Archetype = null;
             entityData.IsDirty = false;
@@ -510,7 +502,8 @@ namespace Ludaludaed.KECS
             for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes.Get(i);
-                if (archetype.Signature.Contains(include) && (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
+                if (archetype.Signature.Contains(include) &&
+                    (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
                 {
                     filter.Archetypes.Add(archetype);
                 }
@@ -619,6 +612,7 @@ namespace Ludaludaed.KECS
                 build.Set(entity);
                 entityData.Signature.SetBit(build.GetIdx());
             }
+
             entity.UpdateArchetype();
             return entity;
         }
@@ -711,7 +705,7 @@ namespace Ludaludaed.KECS
                 entityData.Signature.SetBit(idx);
                 entity.UpdateArchetype();
             }
-            
+
             return ref pool.Get(entity.Id);
         }
 
@@ -728,7 +722,6 @@ namespace Ludaludaed.KECS
             pool.Remove(entity.Id);
             entity.UpdateArchetype();
         }
-
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -760,7 +753,7 @@ namespace Ludaludaed.KECS
         internal static void UpdateArchetype(in this Entity entity)
         {
             var world = entity.World;
-            if(world.AddDelayedChange(in entity)) return;
+            if (world.AddDelayedChange(in entity)) return;
             ref var entityData = ref world.GetEntityData(entity);
             if (entityData.Signature.Count == 0)
             {
@@ -776,7 +769,17 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Destroy(in this Entity entity) => entity.World.RecycleEntity(in entity);
+        public static void Destroy(in this Entity entity)
+        {
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+            foreach (var idx in entityData.Signature)
+            {
+                world.GetPool(idx).Remove(entity.Id);
+            }
+            entityData.Signature.Clear();
+            entity.UpdateArchetype();
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
