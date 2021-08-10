@@ -286,7 +286,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = _dirtyEntities.Count; i < lenght; i++)
             {
                 var entity = _dirtyEntities.Get(i);
-                ref var entityData = ref GetEntityData(entity);
+                ref var entityData = ref _entities[entity.Id];
                 entityData.IsDirty = false;
                 entity.UpdateArchetype();
             }
@@ -298,7 +298,7 @@ namespace Ludaludaed.KECS
         internal bool AddDelayedChange(in Entity entity)
         {
             if (_lockCount <= 0) return false;
-            ref var entityData = ref GetEntityData(entity);
+            ref var entityData = ref _entities[entity.Id];
             if (entityData.IsDirty) return true;
             entityData.IsDirty = true;
             _dirtyEntities.Add(entity);
