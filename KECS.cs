@@ -226,7 +226,7 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        
+
         private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
@@ -255,7 +255,7 @@ namespace Ludaludaed.KECS
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-            
+
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
@@ -1066,7 +1066,7 @@ namespace Ludaludaed.KECS
         internal BitMask Include;
         internal BitMask Exclude;
         internal int Version;
-        
+
 
         internal Filter(World world)
         {
@@ -1077,8 +1077,8 @@ namespace Ludaludaed.KECS
             World = world;
             Version = 0;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Filter With<T>() where T : struct
         {
@@ -1095,8 +1095,8 @@ namespace Ludaludaed.KECS
             if (!Include.GetBit(typeIdx)) Exclude.SetBit(typeIdx);
             return this;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Destroy()
         {
