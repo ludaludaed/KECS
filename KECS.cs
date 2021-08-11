@@ -226,7 +226,7 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-
+        
         private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
@@ -255,7 +255,7 @@ namespace Ludaludaed.KECS
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-
+            
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
@@ -552,7 +552,7 @@ namespace Ludaludaed.KECS
 
             for (int i = 0, lenght = _filters.Count; i < lenght; i++)
             {
-                _filters.Get(i).Dispose();
+                _filters.Get(i).Destroy();
             }
 
             _filters.Clear();
@@ -576,8 +576,8 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // ENTITY
     //=============================================================================
-    
-    
+
+
     public struct EntityData
     {
         public int Age;
@@ -768,6 +768,7 @@ namespace Ludaludaed.KECS
                 entity.World.RecycleEntity(in entity);
                 return;
             }
+
             var oldArchetype = entityData.Archetype;
             var newArchetype = world.GetArchetype(entityData.Signature);
             oldArchetype.RemoveEntity(entity);
@@ -785,6 +786,7 @@ namespace Ludaludaed.KECS
             {
                 world.GetPool(idx).Remove(entity.Id);
             }
+
             entityData.Signature.Clear();
             entity.UpdateArchetype();
         }
@@ -846,8 +848,8 @@ namespace Ludaludaed.KECS
     public sealed class Archetype
     {
         internal readonly HandleMap<Entity> Entities;
-        public readonly int Hash;
         public readonly BitMask Signature;
+        public readonly int Hash;
 
         public int Count => Entities.Count;
 
@@ -1064,6 +1066,7 @@ namespace Ludaludaed.KECS
         internal BitMask Include;
         internal BitMask Exclude;
         internal int Version;
+        
 
         internal Filter(World world)
         {
@@ -1074,6 +1077,33 @@ namespace Ludaludaed.KECS
             World = world;
             Version = 0;
         }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Filter With<T>() where T : struct
+        {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (!Exclude.GetBit(typeIdx)) Include.SetBit(typeIdx);
+            return this;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Filter Without<T>() where T : struct
+        {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (!Include.GetBit(typeIdx)) Exclude.SetBit(typeIdx);
+            return this;
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Destroy()
+        {
+            Archetypes.Clear();
+            Version = 0;
+            World = null;
+        }
     }
 
 
@@ -1083,35 +1113,6 @@ namespace Ludaludaed.KECS
 #endif
     public static class FilterExtensions
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Dispose(this Filter filter)
-        {
-            filter.Archetypes.Clear();
-            filter.Version = 0;
-            filter.World = null;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Filter With<T>(this Filter filter) where T : struct
-        {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (filter.Exclude.GetBit(typeIdx)) return filter;
-            filter.Include.SetBit(typeIdx);
-            return filter;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Filter Without<T>(this Filter filter) where T : struct
-        {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (filter.Include.GetBit(typeIdx)) return filter;
-            filter.Exclude.SetBit(typeIdx);
-            return filter;
-        }
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach(this Filter filter, ForEachHandler handler)
         {
