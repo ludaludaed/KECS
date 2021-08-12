@@ -231,13 +231,14 @@ namespace Ludaludaed.KECS
         private readonly FastList<Archetype> _archetypes;
         private readonly FastList<Filter> _filters;
 
-        private readonly FastList<Entity> _dirtyEntities;
-
         private EntityData[] _entities;
         private int[] _freeEntityIds;
         private int _freeEntityCount;
         private int _entitiesLenght;
 
+        private int[] _dirtyEntities;
+        private int _dirtyCount;
+        
         private readonly string _name;
         private readonly int _hashName;
 
@@ -265,7 +266,8 @@ namespace Ludaludaed.KECS
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new int[config.Entities];
-            _dirtyEntities = new FastList<Entity>(config.Entities);
+            _dirtyEntities = new int[config.Entities];
+            
 
             _name = name;
             _hashName = name.GetHashCode();
@@ -282,27 +284,35 @@ namespace Ludaludaed.KECS
         internal void Unlock()
         {
             _lockCount--;
-            if (_lockCount != 0 || _dirtyEntities.Count <= 0 || !_isAlive) return;
-            for (int i = 0, lenght = _dirtyEntities.Count; i < lenght; i++)
+            if (_lockCount != 0 || _dirtyCount <= 0 || !_isAlive) return;
+            
+            Entity entity;
+            entity.World = this;
+            for (int i = 0, lenght = _dirtyCount; i < lenght; i++)
             {
-                var entity = _dirtyEntities.Get(i);
-                ref var entityData = ref _entities[entity.Id];
+                var entityId = _dirtyEntities[i];
+                ref var entityData = ref _entities[entityId];
                 entityData.IsDirty = false;
+                entity.Id = entityId;
+                entity.Age = entityData.Age;
                 entity.UpdateArchetype();
             }
 
-            _dirtyEntities.Clear();
+            _dirtyCount = 0;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool AddDelayedChange(in Entity entity)
+        internal bool AddDelayedChange(in int entityId)
         {
             if (_lockCount <= 0) return false;
-            ref var entityData = ref _entities[entity.Id];
+            ref var entityData = ref _entities[entityId];
+            
             if (entityData.IsDirty) return true;
+            
             entityData.IsDirty = true;
-            _dirtyEntities.Add(entity);
+            ArrayExtension.EnsureLength(ref _dirtyEntities, _dirtyCount);
+            _dirtyEntities[_dirtyCount++] = entityId;
             return true;
         }
 
@@ -538,7 +548,7 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
 #endif
             _lockCount = 0;
-            _dirtyEntities.Clear();
+            _dirtyCount = 0;
             Entity entity;
             entity.World = this;
             for (int i = 0, lenght = _entities.Length; i < lenght; i++)
@@ -761,7 +771,7 @@ namespace Ludaludaed.KECS
         internal static void UpdateArchetype(in this Entity entity)
         {
             var world = entity.World;
-            if (world.AddDelayedChange(in entity)) return;
+            if (world.AddDelayedChange(in entity.Id)) return;
             ref var entityData = ref world.GetEntityData(entity);
             if (entityData.Signature.Count == 0)
             {
