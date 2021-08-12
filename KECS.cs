@@ -232,10 +232,11 @@ namespace Ludaludaed.KECS
         private readonly FastList<Filter> _filters;
 
         private EntityData[] _entities;
+        private int _entitiesLenght;
+        
         private int[] _freeEntityIds;
         private int _freeEntityCount;
-        private int _entitiesLenght;
-
+        
         private int[] _dirtyEntities;
         private int _dirtyCount;
         
