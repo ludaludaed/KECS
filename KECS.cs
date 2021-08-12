@@ -871,32 +871,20 @@ namespace Ludaludaed.KECS
             Hash = Signature.GetHash();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddEntity(in Entity entity) => Entities.Set(entity.Id, entity);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntity(in Entity entity)
-        {
-            Entities.Set(entity.Id, entity);
-        }
-
+        internal void RemoveEntity(in Entity entity) => Entities.Remove(entity.Id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RemoveEntity(in Entity entity)
-        {
-            Entities.Remove(entity.Id);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public HandleMap<Entity>.Enumerator GetEnumerator()
-        {
-            return Entities.GetEnumerator();
-        }
-
+        public HandleMap<Entity>.Enumerator GetEnumerator() => Entities.GetEnumerator();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
             Entities.Clear();
+            Signature.Clear();
         }
     }
 
