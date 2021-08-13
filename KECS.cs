@@ -23,9 +23,11 @@ namespace Ludaludaed.KECS
         public int Entities;
         public int Archetypes;
         public int Components;
+        public int Queries;
         public const int DefaultEntities = 1024;
         public const int DefaultArchetypes = 512;
         public const int DefaultComponents = 512;
+        public const int DefaultQueries = 32;
     }
 
 #if ENABLE_IL2CPP
@@ -59,6 +61,7 @@ namespace Ludaludaed.KECS
                 Archetypes = config.Archetypes > 0 ? config.Archetypes : WorldConfig.DefaultArchetypes,
                 Entities = config.Entities > 0 ? config.Entities : WorldConfig.DefaultEntities,
                 Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents,
+                Queries = config.Queries > 0 ? config.Queries : WorldConfig.DefaultQueries,
             };
         }
 
@@ -226,10 +229,12 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-
+        
         private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
-        private readonly FastList<Filter> _filters;
+
+        private Query[] _queries;
+        private int _queriesCount;
 
         private EntityData[] _entities;
         private int _entitiesLenght;
@@ -257,19 +262,17 @@ namespace Ludaludaed.KECS
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
-            var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
-            _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
-            _archetypes.Add(emptyArch);
-            _filters = new FastList<Filter>();
-
+            
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new int[config.Entities];
             _dirtyEntities = new int[config.Entities];
+            _queries = new Query[config.Queries];
             
-
+            var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
+            _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
+            _archetypes.Add(emptyArch);
             _name = name;
             _hashName = name.GetHashCode();
             _isAlive = true;
@@ -336,19 +339,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter Filter()
-        {
-#if DEBUG
-            if (!_isAlive)
-                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create filter.");
-#endif
-            var filter = new Filter(this);
-            _filters.Add(filter);
-            return filter;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public WorldInfo GetInfo()
         {
             return new WorldInfo()
@@ -356,7 +346,7 @@ namespace Ludaludaed.KECS
                 EntitiesCount = _entitiesLenght - _freeEntityCount,
                 FreeEntitiesCount = _freeEntityCount,
                 ArchetypesCount = _archetypes.Count,
-                ComponentsCount = _componentPools.Count
+                ComponentsCount = _componentPools.Count,
             };
         }
 
@@ -501,26 +491,39 @@ namespace Ludaludaed.KECS
                 _taskPools.Data[i].Execute();
             }
         }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Query CreateQuery()
+        {
+            if (_queriesCount > 0) return _queries[--_queriesCount];
+            return new Query(this);
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RecycleQuery(Query query)
+        {
+            ArrayExtension.EnsureLength(ref _queries, _queriesCount);
+            _queries[_queriesCount++] = query;
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FindArchetypes(Filter filter)
+        internal void FindArchetypes(Query query)
         {
-            var include = filter.Include;
-            var exclude = filter.Exclude;
-            var version = filter.Version;
+            var include = query.Include;
+            var exclude = query.Exclude;
 
-            for (int i = version, lenght = _archetypes.Count; i < lenght; i++)
+            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes.Get(i);
                 if (archetype.Signature.Contains(include) &&
                     (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
                 {
-                    filter.Archetypes.Add(archetype);
+                    query.Archetypes.Add(archetype);
                 }
             }
-
-            filter.Version = _archetypes.Count;
         }
 
 
@@ -560,13 +563,7 @@ namespace Ludaludaed.KECS
                 entity.Age = entityData.Age;
                 entity.Destroy();
             }
-
-            for (int i = 0, lenght = _filters.Count; i < lenght; i++)
-            {
-                _filters.Get(i).Destroy();
-            }
-
-            _filters.Clear();
+            
             _componentPools.Clear();
             _archetypes.Clear();
             _archetypeSignatures.Clear();
@@ -774,6 +771,7 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             if (world.AddDelayedChange(in entity.Id)) return;
             ref var entityData = ref world.GetEntityData(entity);
+            
             if (entityData.Signature.Count == 0)
             {
                 entity.World.RecycleEntity(in entity);
@@ -1054,54 +1052,73 @@ namespace Ludaludaed.KECS
         where A : struct
         where S : struct;
 
-#if ENABLE_IL2CPP
+    
+    #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Filter
+    public sealed class Query
     {
-        internal FastList<Archetype> Archetypes;
-        internal World World;
-        internal BitMask Include;
-        internal BitMask Exclude;
-        internal int Version;
+        internal readonly FastList<Archetype> Archetypes;
+        internal readonly BitMask Include;
+        internal readonly BitMask Exclude;
+        internal readonly World World;
+        
 
-
-        internal Filter(World world)
+        internal Query(World world)
         {
+            World = world;
             Include = new BitMask(world.Config.Components);
             Exclude = new BitMask(world.Config.Components);
             Archetypes = new FastList<Archetype>(world.Config.Archetypes);
-
-            World = world;
-            Version = 0;
         }
 
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter With<T>() where T : struct
+        public Query With<T>() where T : struct
         {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
             if (!Exclude.GetBit(typeIdx)) Include.SetBit(typeIdx);
+#if DEBUG
+            if (Exclude.GetBit(typeIdx))
+                throw new Exception($"|KECS| The component ({typeof(T).Name}) was excluded from the request.");
+#endif
             return this;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Filter Without<T>() where T : struct
+        public Query Without<T>() where T : struct
         {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
             if (!Include.GetBit(typeIdx)) Exclude.SetBit(typeIdx);
+#if DEBUG
+            if (Include.GetBit(typeIdx))
+                throw new Exception($"|KECS| The component ({typeof(T).Name}) was included in the request.");
+#endif
             return this;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Destroy()
+        public override int GetHashCode()
         {
+            var hashResult = Include.Count + Exclude.Count;
+            foreach (var idx in Include)
+                hashResult = unchecked(hashResult * 31459 + idx);
+            foreach (var idx in Exclude)
+                hashResult = unchecked(hashResult * 31459 - idx);
+            return hashResult;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Recycle()
+        {
+            Include.Clear();
+            Exclude.Clear();
             Archetypes.Clear();
-            Version = 0;
-            World = null;
+            World.RecycleQuery(this);
         }
     }
 
@@ -1110,14 +1127,14 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class FilterExtensions
+    public static class QueryExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach(this Filter filter, ForEachHandler handler)
+        public static void ForEach(this Query query, ForEachHandler handler)
         {
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            query.World.Lock();
+            query.World.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1128,26 +1145,24 @@ namespace Ludaludaed.KECS
                     handler(entity);
                 }
             }
-
-            filter.World.Unlock();
+            query.World.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T>(this Filter filter, ForEachHandler<T> handler)
+        public static void ForEach<T>(this Query query,
+            ForEachHandler<T> handler)
             where T : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>();
+            
             var poolT = world.GetPool<T>();
-
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1159,30 +1174,26 @@ namespace Ludaludaed.KECS
                         ref poolT.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y>(this Filter filter, ForEachHandler<T, Y> handler)
+        public static void ForEach<T, Y>(this Query query,
+            ForEachHandler<T, Y> handler)
             where T : struct
             where Y : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1195,34 +1206,28 @@ namespace Ludaludaed.KECS
                         ref poolY.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U>(this Filter filter, ForEachHandler<T, Y, U> handler)
+        public static void ForEach<T, Y, U>(this Query query,
+            ForEachHandler<T, Y, U> handler)
             where T : struct
             where Y : struct
             where U : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1236,38 +1241,30 @@ namespace Ludaludaed.KECS
                         ref poolU.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U, I>(this Filter filter, ForEachHandler<T, Y, U, I> handler)
+        public static void ForEach<T, Y, U, I>(this Query query,
+            ForEachHandler<T, Y, U, I> handler)
             where T : struct
             where Y : struct
             where U : struct
             where I : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<I>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
             var poolI = world.GetPool<I>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1282,42 +1279,32 @@ namespace Ludaludaed.KECS
                         ref poolI.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U, I, O>(this Filter filter, ForEachHandler<T, Y, U, I, O> handler)
+        public static void ForEach<T, Y, U, I, O>(this Query query,
+            ForEachHandler<T, Y, U, I, O> handler)
             where T : struct
             where Y : struct
             where U : struct
             where I : struct
             where O : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<I>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<O>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
             var poolI = world.GetPool<I>();
             var poolO = world.GetPool<O>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1333,13 +1320,14 @@ namespace Ludaludaed.KECS
                         ref poolO.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U, I, O, P>(this Filter filter, ForEachHandler<T, Y, U, I, O, P> handler)
+        public static void ForEach<T, Y, U, I, O, P>(this Query query,
+            ForEachHandler<T, Y, U, I, O, P> handler)
             where T : struct
             where Y : struct
             where U : struct
@@ -1347,22 +1335,9 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<I>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<O>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<P>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1370,9 +1345,9 @@ namespace Ludaludaed.KECS
             var poolO = world.GetPool<O>();
             var poolP = world.GetPool<P>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1389,13 +1364,14 @@ namespace Ludaludaed.KECS
                         ref poolP.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U, I, O, P, A>(this Filter filter, ForEachHandler<T, Y, U, I, O, P, A> handler)
+        public static void ForEach<T, Y, U, I, O, P, A>(this Query query,
+            ForEachHandler<T, Y, U, I, O, P, A> handler)
             where T : struct
             where Y : struct
             where U : struct
@@ -1404,24 +1380,9 @@ namespace Ludaludaed.KECS
             where P : struct
             where A : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<I>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<O>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<P>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<A>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1430,9 +1391,9 @@ namespace Ludaludaed.KECS
             var poolP = world.GetPool<P>();
             var poolA = world.GetPool<A>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1450,13 +1411,13 @@ namespace Ludaludaed.KECS
                         ref poolA.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
-
-
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach<T, Y, U, I, O, P, A, S>(this Filter filter,
+        public static void ForEach<T, Y, U, I, O, P, A, S>(this Query query,
             ForEachHandler<T, Y, U, I, O, P, A, S> handler)
             where T : struct
             where Y : struct
@@ -1467,26 +1428,9 @@ namespace Ludaludaed.KECS
             where A : struct
             where S : struct
         {
-            var world = filter.World;
-#if DEBUG
-            ref var include = ref filter.Include;
-            if (!include.GetBit(ComponentTypeInfo<T>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<Y>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<U>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<I>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<O>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<P>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<A>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-            if (!include.GetBit(ComponentTypeInfo<S>.TypeIndex))
-                throw new Exception("|KECS| There is no such component in the filter.");
-#endif
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>();
+            
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1496,9 +1440,9 @@ namespace Ludaludaed.KECS
             var poolA = world.GetPool<A>();
             var poolS = world.GetPool<S>();
 
-            filter.World.FindArchetypes(filter);
-            filter.World.Lock();
-            var archetypes = filter.Archetypes;
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1517,11 +1461,11 @@ namespace Ludaludaed.KECS
                         ref poolS.Get(entity.Id));
                 }
             }
-
-            filter.World.Unlock();
+            world.Unlock();
+            query.Recycle();
         }
     }
-
+    
 
     //=============================================================================
     // SYSTEMS
@@ -1540,7 +1484,9 @@ namespace Ludaludaed.KECS
         internal bool IsEnable;
 
 
-        public abstract void Initialize();
+        public virtual void Initialize()
+        {
+        }
 
 
         public virtual void OnDestroy()
