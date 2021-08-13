@@ -1560,7 +1560,7 @@ namespace Ludaludaed.KECS
             where F : struct
         {
             var world = query.World;
-            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>();
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>().With<F>();
 
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
