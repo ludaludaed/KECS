@@ -12,7 +12,7 @@ KECS is a fast and easy C# Entity Component System framework for writing your ow
         * [Entity builder](#-entitybuilder)
     * [System](#-system)
         * [Events](#-events)
-        * [Filter](#-filter)
+        * [Query](#-query)
         * [Data injection](#-data-injection)
     * [Systems](#-systems)
 * [License](#-license)
@@ -103,19 +103,18 @@ The system must implement the abstract class `SystemBase` or `UpdateSystem`.
 ```csharp
     public class SystemTest1 : UpdateSystem
     {
-        private Filter _filter;
-
         public override void Initialize()
         {
-            _filter = _world.Filter().With<Component>();
+            // Will be called when the system is initialized.
         }
 
         public override void OnUpdate(float deltaTime)
         {
-            _filter.ForEach((Entity entity, ref Component comp) =>
-            {
-                comp.Counter++;
-            });
+            _world.CreateQuery()
+                .ForEach((Entity entity, ref Component comp) =>
+                {
+                    comp.Counter++;
+                });
         }
 
         public override void OnDestroy()
@@ -147,44 +146,37 @@ Receiving an event.
 ```csharp
 public class SystemTest1 : UpdateSystem
 {
-    private Filter _filter;
-    
-    public override void Initialize()
-    {
-        _filter = _world.Filter().With<EventComponent>();
-    }
-
     public override void OnUpdate(float deltaTime)
     {
-        _filter.ForEach((Entity entity, ref EventComponent event) =>
-        {
-            ...
-        });
+        _world.CreateQuery()
+            .ForEach((Entity entity, ref EventComponent event) =>
+            {
+                ...
+            });
     }
 }
 ```
 > **Important!** The event hangs on the entity on exactly one frame, so the event appears only on the next frame and deleted after it.
 
-#### 🎰 Filter
+#### 🎰 Query
 
-You can create a filter using a chain of commands which contain two methods `With<>()` / `.Without<>()`.
+To create a query to the world you need to call the `CreateQuery()` method.
+In order to include or exclude a set of components from iteration. You can use a method chain for the request, consisting of `With<>()` or `Without<>()`.
+In order to iterate over this set, you need to call the `Foreach()` method from the request. Components specified in
+delegate arguments will automatically be considered as included in the selection.
 
 ```csharp
 public class SystemTest1 : UpdateSystem
 {
-    private Filter _filter;
-    
-    public override void Initialize()
-    {
-        _filter = _world.Filter().With<FooComponent>().With<BarComponent>().Without<BazComponent>();
-    }
-
     public override void OnUpdate(float deltaTime)
     {
-        _filter.ForEach((Entity entity, ref FooComponent fooComp, ref BarComponent barComp) =>
-        {
-            ...
-        });
+        _world.CreateQuery()
+            .With<BarComponent>()
+            .Without<BazComponent>()
+            .ForEach((Entity entity, ref FooComponent fooComp) =>
+            {
+                ...
+            });
     }
 }
 ```
@@ -201,8 +193,8 @@ public class SharedData
 ...
 var world = Worlds.Create();
 var systems = new Systems(world);
-systems.Add<SystemTest>().
-        Add<SystemTest1>().
+systems.Add(new SystemTest()).
+        Add(new SystemTest1()).
         AddShared(new SharedData());
 systems.Initialize();
 ```
@@ -212,21 +204,20 @@ Shared data for the system is obtained by calling the `GetShared<>()` method.
 ```csharp
 public class SystemTest1 : UpdateSystem
 {
-    private Filter _filter;
     private SharedData _configuration;
 
     public override void Initialize()
     {
-        _filter = _world.Filter().With<Component>();
         _configuration = _systemGroup.GetShared<SharedData>();
     }
 
     public override void OnUpdate(float deltaTime)
     {
-        _filter.ForEach((Entity entity, ref Component comp) =>
-        {
-            comp.Counter++;
-        });
+        _world.CreateQuery()
+            .ForEach((Entity entity, ref Component comp) =>
+            {
+                comp.Counter++;
+            });
     }
 }
 ```
@@ -246,11 +237,9 @@ public class StartUp : MonoBehaviour
     {
         _world = Worlds.Create();
         _systems = new Systems(_world);
-        _systems
-             .Add(new SystemFoo())
-             .Add(new SystemBar())
-             .Add(new SystemBaz())
-             .Initialize();
+        _systems.Add(new SystemTest()).
+                 Add(new SystemTest1()).
+        _systems.Initialize();
     }
 
     public void Update()
