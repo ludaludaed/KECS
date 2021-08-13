@@ -84,9 +84,10 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Recycle(int hash)
+        internal static void Recycle(string name)
         {
-            _worlds.Remove(hash);
+            var hashName = name.GetHashCode();
+            _worlds.Remove(hashName);
         }
 
 
@@ -246,7 +247,6 @@ namespace Ludaludaed.KECS
         private int _dirtyCount;
 
         private readonly string _name;
-        private readonly int _hashName;
         private int _lockCount;
         private bool _isAlive;
         internal readonly WorldConfig Config;
@@ -565,7 +565,7 @@ namespace Ludaludaed.KECS
             _archetypeSignatures.Clear();
             _freeEntityCount = 0;
             _entitiesLenght = 0;
-            Worlds.Recycle(_hashName);
+            Worlds.Recycle(_name);
             _isAlive = false;
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
