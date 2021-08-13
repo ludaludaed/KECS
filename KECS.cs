@@ -247,15 +247,11 @@ namespace Ludaludaed.KECS
 
         private readonly string _name;
         private readonly int _hashName;
-
         private int _lockCount;
-
         private bool _isAlive;
         internal readonly WorldConfig Config;
-
+        
         public string Name => _name;
-
-        public int HashName => _hashName;
         public bool IsAlive() => _isAlive;
 
         internal World(WorldConfig config, string name)
@@ -274,7 +270,6 @@ namespace Ludaludaed.KECS
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
             _name = name;
-            _hashName = name.GetHashCode();
             _isAlive = true;
             Config = config;
         }
