@@ -229,7 +229,7 @@ namespace Ludaludaed.KECS
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
-        
+
         private readonly HashMap<Archetype> _archetypeSignatures;
         private readonly FastList<Archetype> _archetypes;
 
@@ -238,13 +238,13 @@ namespace Ludaludaed.KECS
 
         private EntityData[] _entities;
         private int _entitiesLenght;
-        
+
         private int[] _freeEntityIds;
         private int _freeEntityCount;
-        
+
         private int[] _dirtyEntities;
         private int _dirtyCount;
-        
+
         private readonly string _name;
         private readonly int _hashName;
 
@@ -264,12 +264,12 @@ namespace Ludaludaed.KECS
             _taskPools = new HandleMap<ITaskPool>(config.Components);
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
             _archetypes = new FastList<Archetype>(config.Archetypes);
-            
+
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new int[config.Entities];
             _dirtyEntities = new int[config.Entities];
             _queries = new Query[config.Queries];
-            
+
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
@@ -289,7 +289,7 @@ namespace Ludaludaed.KECS
         {
             _lockCount--;
             if (_lockCount != 0 || _dirtyCount <= 0 || !_isAlive) return;
-            
+
             Entity entity;
             entity.World = this;
             for (int i = 0, lenght = _dirtyCount; i < lenght; i++)
@@ -311,9 +311,9 @@ namespace Ludaludaed.KECS
         {
             if (_lockCount <= 0) return false;
             ref var entityData = ref _entities[entityId];
-            
+
             if (entityData.IsDirty) return true;
-            
+
             entityData.IsDirty = true;
             ArrayExtension.EnsureLength(ref _dirtyEntities, _dirtyCount);
             _dirtyEntities[_dirtyCount++] = entityId;
@@ -491,16 +491,16 @@ namespace Ludaludaed.KECS
                 _taskPools.Data[i].Execute();
             }
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Query CreateQuery()
         {
             if (_queriesCount > 0) return _queries[--_queriesCount];
             return new Query(this);
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RecycleQuery(Query query)
         {
@@ -564,7 +564,7 @@ namespace Ludaludaed.KECS
                 entity.Age = entityData.Age;
                 entity.Destroy();
             }
-            
+
             _componentPools.Clear();
             _archetypes.Clear();
             _archetypeSignatures.Clear();
@@ -772,7 +772,7 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             if (world.AddDelayedChange(in entity.Id)) return;
             ref var entityData = ref world.GetEntityData(entity);
-            
+
             if (entityData.Signature.Count == 0)
             {
                 entity.World.RecycleEntity(in entity);
@@ -1053,8 +1053,33 @@ namespace Ludaludaed.KECS
         where A : struct
         where S : struct;
 
-    
-    #if ENABLE_IL2CPP
+    public delegate void ForEachHandler<T, Y, U, I, O, P, A, S, D>(Entity entity, ref T comp0, ref Y comp1,
+        ref U comp2, ref I comp3, ref O comp4, ref P comp5, ref A comp6, ref S comp7, ref D comp8)
+        where T : struct
+        where Y : struct
+        where U : struct
+        where I : struct
+        where O : struct
+        where P : struct
+        where A : struct
+        where S : struct
+        where D : struct;
+
+    public delegate void ForEachHandler<T, Y, U, I, O, P, A, S, D, F>(Entity entity, ref T comp0, ref Y comp1,
+        ref U comp2, ref I comp3, ref O comp4, ref P comp5, ref A comp6, ref S comp7, ref D comp8, ref F comp9)
+        where T : struct
+        where Y : struct
+        where U : struct
+        where I : struct
+        where O : struct
+        where P : struct
+        where A : struct
+        where S : struct
+        where D : struct
+        where F : struct;
+
+
+#if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
@@ -1064,7 +1089,7 @@ namespace Ludaludaed.KECS
         internal readonly BitMask Include;
         internal readonly BitMask Exclude;
         internal readonly World World;
-        
+
 
         internal Query(World world)
         {
@@ -1074,7 +1099,7 @@ namespace Ludaludaed.KECS
             Archetypes = new FastList<Archetype>(world.Config.Archetypes);
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Query With<T>() where T : struct
         {
@@ -1145,11 +1170,12 @@ namespace Ludaludaed.KECS
                     handler(entity);
                 }
             }
+
             query.World.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T>(this Query query,
             ForEachHandler<T> handler)
@@ -1157,9 +1183,9 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>();
-            
+
             var poolT = world.GetPool<T>();
-            
+
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.Archetypes;
@@ -1173,11 +1199,12 @@ namespace Ludaludaed.KECS
                         ref poolT.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y>(this Query query,
             ForEachHandler<T, Y> handler)
@@ -1186,7 +1213,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
 
@@ -1204,11 +1231,12 @@ namespace Ludaludaed.KECS
                         ref poolY.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U>(this Query query,
             ForEachHandler<T, Y, U> handler)
@@ -1218,7 +1246,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1238,11 +1266,12 @@ namespace Ludaludaed.KECS
                         ref poolU.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U, I>(this Query query,
             ForEachHandler<T, Y, U, I> handler)
@@ -1253,7 +1282,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1275,11 +1304,12 @@ namespace Ludaludaed.KECS
                         ref poolI.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U, I, O>(this Query query,
             ForEachHandler<T, Y, U, I, O> handler)
@@ -1291,7 +1321,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1315,11 +1345,12 @@ namespace Ludaludaed.KECS
                         ref poolO.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U, I, O, P>(this Query query,
             ForEachHandler<T, Y, U, I, O, P> handler)
@@ -1332,7 +1363,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1358,11 +1389,12 @@ namespace Ludaludaed.KECS
                         ref poolP.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U, I, O, P, A>(this Query query,
             ForEachHandler<T, Y, U, I, O, P, A> handler)
@@ -1376,7 +1408,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1404,11 +1436,12 @@ namespace Ludaludaed.KECS
                         ref poolA.Get(entity.Id));
                 }
             }
+
             world.Unlock();
             query.Recycle();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T, Y, U, I, O, P, A, S>(this Query query,
             ForEachHandler<T, Y, U, I, O, P, A, S> handler)
@@ -1423,7 +1456,7 @@ namespace Ludaludaed.KECS
         {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>();
-            
+
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
@@ -1453,11 +1486,121 @@ namespace Ludaludaed.KECS
                         ref poolS.Get(entity.Id));
                 }
             }
+
+            world.Unlock();
+            query.Recycle();
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ForEach<T, Y, U, I, O, P, A, S, D>(this Query query,
+            ForEachHandler<T, Y, U, I, O, P, A, S, D> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+            where S : struct
+            where D : struct
+        {
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>();
+
+            var poolT = world.GetPool<T>();
+            var poolY = world.GetPool<Y>();
+            var poolU = world.GetPool<U>();
+            var poolI = world.GetPool<I>();
+            var poolO = world.GetPool<O>();
+            var poolP = world.GetPool<P>();
+            var poolA = world.GetPool<A>();
+            var poolS = world.GetPool<S>();
+            var poolD = world.GetPool<D>();
+
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            {
+                var archetype = archetypes.Get(i);
+                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                {
+                    var entity = archetype.Entities.Data[j];
+                    handler(entity,
+                        ref poolT.Get(entity.Id),
+                        ref poolY.Get(entity.Id),
+                        ref poolU.Get(entity.Id),
+                        ref poolI.Get(entity.Id),
+                        ref poolO.Get(entity.Id),
+                        ref poolP.Get(entity.Id),
+                        ref poolA.Get(entity.Id),
+                        ref poolS.Get(entity.Id),
+                        ref poolD.Get(entity.Id));
+                }
+            }
+
+            world.Unlock();
+            query.Recycle();
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ForEach<T, Y, U, I, O, P, A, S, D, F>(this Query query,
+            ForEachHandler<T, Y, U, I, O, P, A, S, D, F> handler)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+            where S : struct
+            where D : struct
+            where F : struct
+        {
+            var world = query.World;
+            query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>();
+
+            var poolT = world.GetPool<T>();
+            var poolY = world.GetPool<Y>();
+            var poolU = world.GetPool<U>();
+            var poolI = world.GetPool<I>();
+            var poolO = world.GetPool<O>();
+            var poolP = world.GetPool<P>();
+            var poolA = world.GetPool<A>();
+            var poolS = world.GetPool<S>();
+            var poolD = world.GetPool<D>();
+            var poolF = world.GetPool<F>();
+
+            world.Lock();
+            world.FindArchetypes(query);
+            var archetypes = query.Archetypes;
+            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            {
+                var archetype = archetypes.Get(i);
+                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                {
+                    var entity = archetype.Entities.Data[j];
+                    handler(entity,
+                        ref poolT.Get(entity.Id),
+                        ref poolY.Get(entity.Id),
+                        ref poolU.Get(entity.Id),
+                        ref poolI.Get(entity.Id),
+                        ref poolO.Get(entity.Id),
+                        ref poolP.Get(entity.Id),
+                        ref poolA.Get(entity.Id),
+                        ref poolS.Get(entity.Id),
+                        ref poolD.Get(entity.Id),
+                        ref poolF.Get(entity.Id));
+                }
+            }
+
             world.Unlock();
             query.Recycle();
         }
     }
-    
+
 
     //=============================================================================
     // SYSTEMS
