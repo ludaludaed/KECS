@@ -518,6 +518,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
             {
                 var archetype = _archetypes.Get(i);
+                if (archetype.Entities.Count <= 0) continue;
                 if (archetype.Signature.Contains(include) &&
                     (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
                 {
@@ -1138,7 +1139,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1166,7 +1166,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1197,7 +1196,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1231,7 +1229,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1268,7 +1265,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1308,7 +1304,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1351,7 +1346,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1397,7 +1391,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1446,7 +1439,6 @@ namespace Ludaludaed.KECS
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0) continue;
                 for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
