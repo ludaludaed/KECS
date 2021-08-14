@@ -376,7 +376,7 @@ namespace Ludaludaed.KECS
 #endif
             ref var emptyArchetype = ref _archetypes.Get(0);
             Entity entity;
-
+            entity.World = this;
             if (_freeEntityCount > 0)
             {
                 var newEntityId = _freeEntityIds[--_freeEntityCount];
@@ -386,7 +386,6 @@ namespace Ludaludaed.KECS
                 entityData.Archetype = emptyArchetype;
                 entityData.IsDirty = false;
                 entity.Age = entityData.Age;
-                entity.World = this;
             }
             else
             {
@@ -399,7 +398,6 @@ namespace Ludaludaed.KECS
                 entityData.IsDirty = false;
                 entity.Age = 1;
                 entityData.Age = 1;
-                entity.World = this;
             }
 
             emptyArchetype.AddEntity(entity);
