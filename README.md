@@ -201,8 +201,9 @@ public class SharedData
 ...
 var world = Worlds.Create();
 var systems = new Systems(world);
-systems.Add<SystemTest>().
-        Add<SystemTest1>().
+_systems.Add(new SystemFoo())
+        .Add(new SystemBar())
+        .Add(new SystemBaz())
         AddShared(new SharedData());
 systems.Initialize();
 ```
