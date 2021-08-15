@@ -91,7 +91,7 @@ builder.Append(new FooComponent())
     
 var entity = builder.Build(World);
 ```
-The `Append()` method allows you to add a component to the entity template and the `Remove<>()` method can remove component from template.
+The `Append()` method allows you to add a component to the entity template.
 The `Build(world)` method allows you to create an entity from this template in the world.
 > **NOTE:**
 This way of creating an entity allows you to reduce the number of side archetypes at the initial sequential assignment of entity components.
