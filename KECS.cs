@@ -515,7 +515,7 @@ namespace Ludaludaed.KECS
                 if (archetype.Signature.Contains(include) &&
                     (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
                 {
-                    query.Archetypes.Add(archetype);
+                    query.ArchetypeBuffer.Add(archetype);
                 }
             }
         }
@@ -1083,7 +1083,7 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Query
     {
-        internal readonly FastList<Archetype> Archetypes;
+        internal readonly FastList<Archetype> ArchetypeBuffer;
         internal readonly BitMask Include;
         internal readonly BitMask Exclude;
         internal readonly World World;
@@ -1094,7 +1094,7 @@ namespace Ludaludaed.KECS
             World = world;
             Include = new BitMask(world.Config.Components);
             Exclude = new BitMask(world.Config.Components);
-            Archetypes = new FastList<Archetype>(world.Config.Archetypes);
+            ArchetypeBuffer = new FastList<Archetype>(world.Config.Archetypes);
         }
 
 
@@ -1141,7 +1141,7 @@ namespace Ludaludaed.KECS
         {
             Include.Clear();
             Exclude.Clear();
-            Archetypes.Clear();
+            ArchetypeBuffer.Clear();
             World.RecycleQuery(this);
         }
     }
@@ -1158,7 +1158,7 @@ namespace Ludaludaed.KECS
         {
             query.World.Lock();
             query.World.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1186,7 +1186,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1217,7 +1217,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1251,7 +1251,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1288,7 +1288,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1328,7 +1328,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1371,7 +1371,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1417,7 +1417,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1466,7 +1466,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1518,7 +1518,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1573,7 +1573,7 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             world.FindArchetypes(query);
-            var archetypes = query.Archetypes;
+            var archetypes = query.ArchetypeBuffer;
             for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
             {
                 var archetype = archetypes.Get(i);
