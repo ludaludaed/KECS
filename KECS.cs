@@ -250,7 +250,7 @@ namespace Ludaludaed.KECS
         private int _lockCount;
         private bool _isAlive;
         internal readonly WorldConfig Config;
-        
+
         public string Name => _name;
         public bool IsAlive() => _isAlive;
 
@@ -317,18 +317,18 @@ namespace Ludaludaed.KECS
 
 
 #if DEBUG
-        private readonly FastList<IWorldDebugListener> _debugListeners = new FastList<IWorldDebugListener>();
+        public readonly FastList<IWorldDebugListener> DebugListeners = new FastList<IWorldDebugListener>(16);
 
         public void AddDebugListener(IWorldDebugListener listener)
         {
             if (listener == null) throw new Exception("Listener is null.");
-            _debugListeners.Add(listener);
+            DebugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(IWorldDebugListener listener)
         {
             if (listener == null) throw new Exception("Listener is null.");
-            _debugListeners.Remove(listener);
+            DebugListeners.Remove(listener);
         }
 #endif
 
@@ -402,9 +402,9 @@ namespace Ludaludaed.KECS
 
             emptyArchetype.AddEntity(entity);
 #if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
             {
-                _debugListeners.Get(i).OnEntityCreated(entity);
+                DebugListeners.Get(i).OnEntityCreated(entity);
             }
 #endif
             return entity;
@@ -424,9 +424,9 @@ namespace Ludaludaed.KECS
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
             {
-                _debugListeners.Get(i).OnEntityDestroyed(entity);
+                DebugListeners.Get(i).OnEntityDestroyed(entity);
             }
 #endif
         }
@@ -530,9 +530,9 @@ namespace Ludaludaed.KECS
             _archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
             {
-                _debugListeners.Get(i).OnArchetypeCreated(archetype);
+                DebugListeners.Get(i).OnArchetypeCreated(archetype);
             }
 #endif
             return archetype;
@@ -566,9 +566,9 @@ namespace Ludaludaed.KECS
             Worlds.Recycle(_name);
             _isAlive = false;
 #if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
             {
-                _debugListeners.Get(i).OnWorldDestroyed(this);
+                DebugListeners.Get(i).OnWorldDestroyed(this);
             }
 #endif
         }
@@ -616,12 +616,9 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        public EntityBuilder Remove<T>() where T : struct
+        public void Clear()
         {
-            var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (!_builders.Contains(idx)) return this;
-            _builders.Remove(idx);
-            return this;
+            _builders.Clear();
         }
 
         public Entity Build(World world)
@@ -777,6 +774,14 @@ namespace Ludaludaed.KECS
             oldArchetype.RemoveEntity(entity);
             newArchetype.AddEntity(entity);
             entityData.Archetype = newArchetype;
+
+#if DEBUG
+            var debugListeners = world.DebugListeners;
+            for (int i = 0, lenght = debugListeners.Count; i < lenght; i++)
+            {
+                debugListeners.Get(i).OnEntityChanged(entity);
+            }
+#endif
         }
 
 
@@ -2538,6 +2543,7 @@ namespace Ludaludaed.KECS
     public interface IWorldDebugListener
     {
         void OnEntityCreated(in Entity entity);
+        void OnEntityChanged(in Entity entity);
         void OnEntityDestroyed(in Entity entity);
         void OnArchetypeCreated(Archetype archetype);
         void OnWorldDestroyed(World world);
