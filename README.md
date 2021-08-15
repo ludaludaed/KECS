@@ -201,27 +201,6 @@ systems.Initialize();
 
 Shared data for the system is obtained by calling the `GetShared<>()` method.
 
-```csharp
-public class SystemTest1 : UpdateSystem
-{
-    private SharedData _configuration;
-
-    public override void Initialize()
-    {
-        _configuration = _systemGroup.GetShared<SharedData>();
-    }
-
-    public override void OnUpdate(float deltaTime)
-    {
-        _world.CreateQuery()
-            .ForEach((Entity entity, ref Component comp) =>
-            {
-                comp.Counter++;
-            });
-    }
-}
-```
-
 ### 🎮 Systems
 
 Systems are added using the `Add<>()` method of the `Systems` class.
