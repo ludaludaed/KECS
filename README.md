@@ -200,6 +200,20 @@ systems.Initialize();
 ```
 
 Shared data for the system is obtained by calling the `GetShared<>()` method.
+```csharp
+public class SystemTest1 : UpdateSystem
+{
+    public override void OnUpdate(float deltaTime)
+    {
+        var sharedData = _systemGroup.GetShared<SharedData>();
+        _world.CreateQuery()
+            .ForEach((Entity entity, ref FooComponent fooComp) =>
+            {
+                ...
+            });
+    }
+}
+```
 
 ### 🎮 Systems
 
