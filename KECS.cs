@@ -138,7 +138,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Dispose() => _data.Clear();
+        internal void Clear() => _data.Clear();
     }
 
 
@@ -1766,7 +1766,7 @@ namespace Ludaludaed.KECS
 
             _allSystems.Clear();
             _updateSystems.Clear();
-            _sharedData.Dispose();
+            _sharedData.Clear();
 #if DEBUG
             for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
             {
@@ -1884,7 +1884,7 @@ namespace Ludaludaed.KECS
         public Enumerator GetEnumerator() => new Enumerator(this);
 
 
-        public struct Enumerator : IDisposable
+        public struct Enumerator
         {
             private int _index;
             private HandleMap<T> _list;
@@ -1899,10 +1899,6 @@ namespace Ludaludaed.KECS
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _index < _list.Count;
-
-            public void Dispose()
-            {
-            }
         }
     }
 
@@ -2271,7 +2267,7 @@ namespace Ludaludaed.KECS
         public Enumerator GetEnumerator() => new Enumerator(this);
 
 
-        public struct Enumerator : IDisposable
+        public struct Enumerator
         {
             private HashMap<T> _hashMap;
             private int _current;
@@ -2297,11 +2293,10 @@ namespace Ludaludaed.KECS
                     return true;
                 }
 
+                _hashMap = null;
+                _current = 0;
+                _index = -1;
                 return false;
-            }
-
-            public void Dispose()
-            {
             }
         }
 
@@ -2409,7 +2404,7 @@ namespace Ludaludaed.KECS
         public Enumerator GetEnumerator() => new Enumerator(this);
 
 
-        public struct Enumerator : IDisposable
+        public struct Enumerator
         {
             private int _index;
             private FastList<T> _list;
@@ -2424,10 +2419,6 @@ namespace Ludaludaed.KECS
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _index < _list.Count;
-
-            public void Dispose()
-            {
-            }
         }
     }
 
