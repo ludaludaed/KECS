@@ -1914,7 +1914,7 @@ namespace Ludaludaed.KECS
         internal int Count;
 
 
-        internal BitMask(int capacity)
+        public BitMask(int capacity)
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
