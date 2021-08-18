@@ -674,7 +674,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class EntityExtensions
+    public static partial class EntityExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(in this Entity entity)
@@ -757,7 +757,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void UpdateArchetype(in this Entity entity)
+        public static void UpdateArchetype(in this Entity entity)
         {
             var world = entity.World;
             if (world.AddDelayedChange(in entity.Id)) return;
@@ -841,6 +841,203 @@ namespace Ludaludaed.KECS
             }
 
             return lenght;
+        }
+    }
+
+
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+
+    public static partial class EntityExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SetFast<T>(in this Entity entity, in T value) where T : struct
+        {
+            var idx = ComponentTypeInfo<T>.TypeIndex;
+            var world = entity.World;
+            ref var entityData = ref world.GetEntityData(entity);
+            world.GetPool<T>().Set(entity.Id, value);
+            entityData.Signature.SetBit(idx);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y>(in this Entity entity, in T valueT, in Y valueY)
+            where T : struct
+            where Y : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.UpdateArchetype();
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U>(in this Entity entity, in T valueT, in Y valueY, in U valueU)
+            where T : struct
+            where Y : struct
+            where U : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.UpdateArchetype();
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.UpdateArchetype();
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.UpdateArchetype();
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O, P>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO, in P valueP)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.SetFast(valueP);
+            entity.UpdateArchetype();
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O, P, A>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO, in P valueP, in A valueA)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.SetFast(valueP);
+            entity.SetFast(valueA);
+            entity.UpdateArchetype();
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O, P, A, S>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO, in P valueP, in A valueA, in S valueS)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+            where S : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.SetFast(valueP);
+            entity.SetFast(valueA);
+            entity.SetFast(valueS);
+            entity.UpdateArchetype();
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O, P, A, S, D>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO, in P valueP, in A valueA, in S valueS, in D valueD)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+            where S : struct
+            where D : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.SetFast(valueP);
+            entity.SetFast(valueA);
+            entity.SetFast(valueS);
+            entity.SetFast(valueD);
+            entity.UpdateArchetype();
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Set<T, Y, U, I, O, P, A, S, D, F>(in this Entity entity, in T valueT, in Y valueY,
+            in U valueU, in I valueI, in O valueO, in P valueP, in A valueA, in S valueS, in D valueD, in F valueF)
+            where T : struct
+            where Y : struct
+            where U : struct
+            where I : struct
+            where O : struct
+            where P : struct
+            where A : struct
+            where S : struct
+            where D : struct
+            where F : struct
+        {
+            entity.SetFast(valueT);
+            entity.SetFast(valueY);
+            entity.SetFast(valueU);
+            entity.SetFast(valueI);
+            entity.SetFast(valueO);
+            entity.SetFast(valueP);
+            entity.SetFast(valueA);
+            entity.SetFast(valueS);
+            entity.SetFast(valueD);
+            entity.SetFast(valueF);
+            entity.UpdateArchetype();
         }
     }
 
@@ -1921,6 +2118,7 @@ namespace Ludaludaed.KECS
             Count = 0;
             Chunks = new ulong[newSize];
         }
+
 
         internal BitMask()
         {
