@@ -76,14 +76,6 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World GetByHash(int hash)
-        {
-            if (_worlds.TryGetValue(hash, out var world)) return world;
-            throw new Exception($"|KECS| No world with {hash} hash was found.");
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void Recycle(string name)
         {
             var hashName = name.GetHashCode();
