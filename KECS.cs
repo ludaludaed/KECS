@@ -238,12 +238,12 @@ namespace Ludaludaed.KECS
         private int[] _dirtyEntities;
         private int _dirtyCount;
 
-        private readonly string _name;
+        public readonly string Name;
+        
         private int _lockCount;
         private bool _isAlive;
         internal readonly WorldConfig Config;
-
-        public string Name => _name;
+        
         public bool IsAlive() => _isAlive;
 
         internal World(WorldConfig config, string name)
@@ -261,7 +261,7 @@ namespace Ludaludaed.KECS
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             _archetypes.Add(emptyArch);
-            _name = name;
+            Name = name;
             _isAlive = true;
             Config = config;
         }
@@ -364,7 +364,7 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (!_isAlive)
-                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot create entity.");
+                throw new Exception($"|KECS| World - {Name} was destroyed. You cannot create entity.");
 #endif
             ref var emptyArchetype = ref _archetypes.Get(0);
             Entity entity;
@@ -429,7 +429,7 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (!_isAlive)
-                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+                throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
             if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
@@ -444,7 +444,7 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (!_isAlive)
-                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+                throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             return _componentPools.Get(idx);
         }
@@ -455,7 +455,7 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (!_isAlive)
-                throw new Exception($"|KECS| World - {_name} was destroyed. You cannot get pool.");
+                throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
@@ -470,7 +470,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExecuteTasks()
         {
-            if (!_isAlive) throw new Exception($"|KECS| World - {_name} destroyed");
+            if (!_isAlive) throw new Exception($"|KECS| World - {Name} destroyed");
             for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
             {
                 _taskPools.Data[i].Execute();
@@ -535,7 +535,7 @@ namespace Ludaludaed.KECS
         public void Destroy()
         {
 #if DEBUG
-            if (!_isAlive) throw new Exception($"|KECS| World - {_name} already destroy");
+            if (!_isAlive) throw new Exception($"|KECS| World - {Name} already destroy");
 #endif
             _lockCount = 0;
             _dirtyCount = 0;
@@ -555,7 +555,7 @@ namespace Ludaludaed.KECS
             _archetypeSignatures.Clear();
             _freeEntityCount = 0;
             _entitiesLenght = 0;
-            Worlds.Recycle(_name);
+            Worlds.Recycle(Name);
             _isAlive = false;
 #if DEBUG
             for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
