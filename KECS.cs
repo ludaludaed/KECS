@@ -29,7 +29,7 @@ namespace Ludaludaed.KECS
         public const int DefaultComponents = 512;
         public const int DefaultQueries = 32;
     }
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -244,11 +244,11 @@ namespace Ludaludaed.KECS
         private int _dirtyCount;
 
         public readonly string Name;
-        
+
         private int _lockCount;
         private bool _isAlive;
         internal readonly WorldConfig Config;
-        
+
         public bool IsAlive() => _isAlive;
 
         internal World(WorldConfig config, string name)
@@ -1806,8 +1806,7 @@ namespace Ludaludaed.KECS
 
     public abstract class SystemBase
     {
-        public World _world;
-        public SystemGroup _systemGroup;
+        public Systems systems;
         internal bool IsEnable;
 
 
@@ -1831,7 +1830,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class SystemGroup
+    public sealed class Systems : UpdateSystem
     {
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
@@ -1839,11 +1838,9 @@ namespace Ludaludaed.KECS
         private readonly SharedData _sharedData;
 
         private readonly World _world;
-        private readonly string _name;
+        public readonly string Name;
 
-        public string Name => _name;
-
-        public SystemGroup(World world, string name = "DEFAULT")
+        public Systems(World world, string name = "DEFAULT")
         {
 #if DEBUG
             if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| Systems name cant be null or empty.");
@@ -1851,7 +1848,7 @@ namespace Ludaludaed.KECS
             _allSystems = new FastList<SystemBase>();
             _updateSystems = new FastList<UpdateSystem>();
             _sharedData = new SharedData();
-            _name = name;
+            Name = name;
             _world = world;
         }
 
@@ -1873,7 +1870,7 @@ namespace Ludaludaed.KECS
         }
 #endif
 
-        public SystemGroup AddShared<T>(T data) where T : class
+        public Systems AddShared<T>(T data) where T : class
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
@@ -1884,6 +1881,7 @@ namespace Ludaludaed.KECS
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T GetShared<T>() where T : class
         {
 #if DEBUG
@@ -1897,14 +1895,19 @@ namespace Ludaludaed.KECS
         public bool GetActive(int idx) => _allSystems.Get(idx).IsEnable;
         public FastList<SystemBase> GetSystems() => _allSystems;
 
-        public SystemGroup Add<T>(T systemValue) where T : SystemBase, new()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public World GetWorld() => _world;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public World GetWorld(string name) => Worlds.Get(name);
+
+        public Systems Add<T>(T systemValue) where T : SystemBase, new()
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
 #endif
             _allSystems.Add(systemValue);
-            systemValue._systemGroup = this;
-            systemValue._world = _world;
+            systemValue.systems = this;
             systemValue.IsEnable = true;
 
             if (!(systemValue is UpdateSystem system)) return this;
@@ -1913,7 +1916,7 @@ namespace Ludaludaed.KECS
         }
 
 
-        public void Initialize()
+        public override void Initialize()
         {
 #if DEBUG
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
@@ -1926,7 +1929,7 @@ namespace Ludaludaed.KECS
         }
 
 
-        public void Update(float deltaTime)
+        public override void OnUpdate(float deltaTime)
         {
 #if DEBUG
             if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
@@ -1940,7 +1943,7 @@ namespace Ludaludaed.KECS
         }
 
 
-        public void Destroy()
+        public override void OnDestroy()
         {
 #if DEBUG
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
@@ -2738,7 +2741,7 @@ namespace Ludaludaed.KECS
 
     public interface ISystemsDebugListener
     {
-        void OnSystemsDestroyed(SystemGroup systemGroup);
+        void OnSystemsDestroyed(Systems systems);
     }
 #endif
 }
