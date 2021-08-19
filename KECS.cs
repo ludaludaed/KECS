@@ -242,12 +242,11 @@ namespace Ludaludaed.KECS
 
         private int[] _dirtyEntities;
         private int _dirtyCount;
-
-        public readonly string Name;
-
         private int _lockCount;
-        private bool _isAlive;
+
         internal readonly WorldConfig Config;
+        public readonly string Name;
+        private bool _isAlive;
 
         public bool IsAlive() => _isAlive;
 
