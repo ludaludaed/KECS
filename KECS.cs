@@ -1807,8 +1807,7 @@ namespace Ludaludaed.KECS
     public abstract class SystemBase
     {
         public Systems systems;
-        internal bool IsEnable;
-
+        public bool IsEnable;
 
         public virtual void Initialize()
         {
@@ -1890,9 +1889,7 @@ namespace Ludaludaed.KECS
 #endif
             return _sharedData.Get<T>();
         }
-
-        public void SetActive(int idx, bool value) => _allSystems.Get(idx).IsEnable = value;
-        public bool GetActive(int idx) => _allSystems.Get(idx).IsEnable;
+        
         public FastList<SystemBase> GetSystems() => _allSystems;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
