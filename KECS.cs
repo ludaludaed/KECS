@@ -36,20 +36,30 @@ namespace Ludaludaed.KECS
 #endif
     public class Worlds
     {
-        private static readonly HashMap<World> _worlds = new HashMap<World>(32);
+        private static readonly HashMap<World> _worlds;
+        private static readonly object _lockObject;
+
+        static Worlds()
+        {
+            _worlds = new HashMap<World>(32);
+            _lockObject = new object();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Create(string name, WorldConfig config = default)
         {
-            var hashName = name.GetHashCode();
+            lock (_lockObject)
+            {
+                var hashName = name.GetHashCode();
 #if DEBUG
-            if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| World name cant be null or empty.");
-            if (_worlds.Contains(hashName))
-                throw new Exception($"|KECS| A world with {name} name already exists.");
+                if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| World name cant be null or empty.");
+                if (_worlds.Contains(hashName))
+                    throw new Exception($"|KECS| A world with {name} name already exists.");
 #endif
-            var newWorld = new World(CheckConfig(config), name);
-            _worlds.Set(hashName, newWorld);
-            return newWorld;
+                var newWorld = new World(CheckConfig(config), name);
+                _worlds.Set(hashName, newWorld);
+                return newWorld;
+            }
         }
 
 
@@ -76,18 +86,13 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Recycle(string name)
+        internal static void Remove(string name)
         {
-            var hashName = name.GetHashCode();
-            _worlds.Remove(hashName);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DestroyAll()
-        {
-            foreach (var world in _worlds) world.Destroy();
-            _worlds.Clear();
+            lock (_lockObject)
+            {
+                var hashName = name.GetHashCode();
+                _worlds.Remove(hashName);
+            }
         }
     }
 
@@ -555,7 +560,7 @@ namespace Ludaludaed.KECS
             _archetypeSignatures.Clear();
             _freeEntityCount = 0;
             _entitiesLenght = 0;
-            Worlds.Recycle(Name);
+            Worlds.Remove(Name);
             _isAlive = false;
 #if DEBUG
             for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
