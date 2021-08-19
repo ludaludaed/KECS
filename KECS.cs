@@ -29,12 +29,12 @@ namespace Ludaludaed.KECS
         public const int DefaultComponents = 512;
         public const int DefaultQueries = 32;
     }
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class Worlds
+    public partial class Worlds
     {
         private static readonly HashMap<World> _worlds = new HashMap<World>(32);
 
@@ -218,7 +218,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class World
+    public sealed partial class World
     {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
@@ -853,7 +853,7 @@ namespace Ludaludaed.KECS
             world.GetPool<T>().Set(entity.Id, value);
             entityData.Signature.SetBit(idx);
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y>(in this Entity entity, in T valueT, in Y valueY)
@@ -864,7 +864,7 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueY);
             entity.UpdateArchetype();
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U>(in this Entity entity, in T valueT, in Y valueY, in U valueU)
@@ -893,8 +893,8 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueI);
             entity.UpdateArchetype();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O>(in this Entity entity, in T valueT, in Y valueY,
             in U valueU, in I valueI, in O valueO)
@@ -911,8 +911,8 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueO);
             entity.UpdateArchetype();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O, P>(in this Entity entity, in T valueT, in Y valueY,
             in U valueU, in I valueI, in O valueO, in P valueP)
@@ -931,8 +931,8 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueP);
             entity.UpdateArchetype();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O, P, A>(in this Entity entity, in T valueT, in Y valueY,
             in U valueU, in I valueI, in O valueO, in P valueP, in A valueA)
@@ -953,8 +953,8 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueA);
             entity.UpdateArchetype();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O, P, A, S>(in this Entity entity, in T valueT, in Y valueY,
             in U valueU, in I valueI, in O valueO, in P valueP, in A valueA, in S valueS)
@@ -977,8 +977,8 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueS);
             entity.UpdateArchetype();
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O, P, A, S, D>(in this Entity entity, in T valueT, in Y valueY,
             in U valueU, in I valueI, in O valueO, in P valueP, in A valueA, in S valueS, in D valueD)
@@ -1003,7 +1003,7 @@ namespace Ludaludaed.KECS
             entity.SetFast(valueD);
             entity.UpdateArchetype();
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set<T, Y, U, I, O, P, A, S, D, F>(in this Entity entity, in T valueT, in Y valueY,
