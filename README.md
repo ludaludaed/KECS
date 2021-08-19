@@ -110,7 +110,8 @@ The system must implement the abstract class `SystemBase` or `UpdateSystem`.
 
         public override void OnUpdate(float deltaTime)
         {
-            _world.CreateQuery()
+            var world = systems.GetWorld();
+            world.CreateQuery()
                 .ForEach((Entity entity, ref Component comp) =>
                 {
                     comp.Counter++;
@@ -148,7 +149,8 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        _world.CreateQuery()
+        var world = systems.GetWorld();
+        world.CreateQuery()
             .ForEach((Entity entity, ref EventComponent event) =>
             {
                 ...
@@ -170,7 +172,8 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        _world.CreateQuery()
+        var world = systems.GetWorld();
+        world.CreateQuery()
             .With<BarComponent>()
             .Without<BazComponent>()
             .ForEach((Entity entity, ref FooComponent fooComp) =>
@@ -205,8 +208,9 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        var sharedData = _systemGroup.GetShared<SharedData>();
-        _world.CreateQuery()
+        var sharedData = systems.GetShared<SharedData>();
+        var world = systems.GetWorld();
+        world.CreateQuery()
             .ForEach((Entity entity, ref FooComponent fooComp) =>
             {
                 ...
@@ -238,12 +242,12 @@ public class StartUp : MonoBehaviour
     public void Update()
     {
         _world.ExecuteTasks();
-        _systems.Update(Time.deltaTime);
+        _systems.OnUpdate(Time.deltaTime);
     }
 
     public void OnDestroy()
     {
-        _systems.Destroy();
+        _systems.OnDestroy();
         _world.Destroy();
     }
 }
