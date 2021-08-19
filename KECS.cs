@@ -1897,7 +1897,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public World GetWorld(string name) => Worlds.Get(name);
 
-        public Systems Add<T>(T systemValue) where T : SystemBase, new()
+        public Systems Add<T>(T systemValue) where T : SystemBase
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
