@@ -306,7 +306,8 @@ namespace Ludaludaed.KECS
         internal bool AddDelayedChange(in int entityId)
         {
             if (_lockCount <= 0) return false;
-            _dirtyEntities.Set(entityId);
+            if (!_dirtyEntities.Contains(entityId)) 
+                _dirtyEntities.Set(entityId);
             return true;
         }
 
