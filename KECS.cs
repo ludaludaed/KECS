@@ -74,6 +74,14 @@ namespace Ludaludaed.KECS
                 Queries = config.Queries > 0 ? config.Queries : WorldConfig.DefaultQueries,
             };
         }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetValue (string name, out World world)
+        {
+            var hashName = name.GetHashCode();
+            return _worlds.TryGetValue(hashName, out world);
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
