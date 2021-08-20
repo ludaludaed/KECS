@@ -1833,7 +1833,7 @@ namespace Ludaludaed.KECS
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
 
-        private readonly SharedData _sharedData;
+        private SharedData _sharedData;
 
         private readonly World _world;
         public readonly string Name;
@@ -1905,9 +1905,8 @@ namespace Ludaludaed.KECS
             _allSystems.Add(systemValue);
             systemValue.systems = this;
             systemValue.IsEnable = true;
-
-            if (!(systemValue is UpdateSystem system)) return this;
-            _updateSystems.Add(system);
+            if (systemValue is UpdateSystem system) _updateSystems.Add(system);
+            if (systemValue is Systems systemGroup) systemGroup._sharedData = _sharedData;
             return this;
         }
 
