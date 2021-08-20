@@ -306,7 +306,7 @@ namespace Ludaludaed.KECS
         internal bool AddDelayedChange(in int entityId)
         {
             if (_lockCount <= 0) return false;
-            _dirtyEntities.Add(entityId);
+            _dirtyEntities.Set(entityId);
             return true;
         }
 
@@ -1998,7 +1998,7 @@ namespace Ludaludaed.KECS
         
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(int sparseIdx)
+        public void Set(int sparseIdx)
         {
             if (Contains(sparseIdx)) return;
             ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
