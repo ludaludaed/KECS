@@ -248,8 +248,7 @@ namespace Ludaludaed.KECS
         private int[] _freeEntityIds;
         private int _freeEntityCount;
 
-        private int[] _dirtyEntities;
-        private int _dirtyCount;
+        private readonly SparseSet _dirtyEntities;
         private int _lockCount;
 
         internal readonly WorldConfig Config;
@@ -267,7 +266,7 @@ namespace Ludaludaed.KECS
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new int[config.Entities];
-            _dirtyEntities = new int[config.Entities];
+            _dirtyEntities = new SparseSet(config.Entities);
             _queries = new Query[config.Queries];
 
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
@@ -287,21 +286,19 @@ namespace Ludaludaed.KECS
         internal void Unlock()
         {
             _lockCount--;
-            if (_lockCount != 0 || _dirtyCount <= 0 || !_isAlive) return;
+            if (_lockCount != 0 || _dirtyEntities.Count <= 0 || !_isAlive) return;
 
             Entity entity;
             entity.World = this;
-            for (int i = 0, lenght = _dirtyCount; i < lenght; i++)
+            for (int i = 0, lenght = _dirtyEntities.Count; i < lenght; i++)
             {
-                var entityId = _dirtyEntities[i];
+                var entityId = _dirtyEntities.Dense[i];
                 ref var entityData = ref _entities[entityId];
-                entityData.IsDirty = false;
                 entity.Id = entityId;
                 entity.Age = entityData.Age;
                 entity.UpdateArchetype();
             }
-
-            _dirtyCount = 0;
+            _dirtyEntities.Clear();
         }
 
 
@@ -309,13 +306,7 @@ namespace Ludaludaed.KECS
         internal bool AddDelayedChange(in int entityId)
         {
             if (_lockCount <= 0) return false;
-            ref var entityData = ref _entities[entityId];
-
-            if (entityData.IsDirty) return true;
-
-            entityData.IsDirty = true;
-            ArrayExtension.EnsureLength(ref _dirtyEntities, _dirtyCount);
-            _dirtyEntities[_dirtyCount++] = entityId;
+            _dirtyEntities.Add(entityId);
             return true;
         }
 
@@ -388,7 +379,6 @@ namespace Ludaludaed.KECS
                 entity.Id = newEntityId;
                 entityData.Signature.Clear();
                 entityData.Archetype = emptyArchetype;
-                entityData.IsDirty = false;
                 entity.Age = entityData.Age;
             }
             else
@@ -399,7 +389,6 @@ namespace Ludaludaed.KECS
                 entity.Id = newEntityId;
                 entityData.Signature = new BitMask(Config.Components);
                 entityData.Archetype = emptyArchetype;
-                entityData.IsDirty = false;
                 entity.Age = 1;
                 entityData.Age = 1;
             }
@@ -421,7 +410,6 @@ namespace Ludaludaed.KECS
             ref var entityData = ref _entities[entity.Id];
             entityData.Archetype.RemoveEntity(entity);
             entityData.Archetype = null;
-            entityData.IsDirty = false;
             entityData.Age++;
             if (entityData.Age == 0) entityData.Age = 1;
 
@@ -550,7 +538,7 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {Name} already destroy");
 #endif
             _lockCount = 0;
-            _dirtyCount = 0;
+            _dirtyEntities.Clear();
             Entity entity;
             entity.World = this;
             for (int i = 0, lenght = _entities.Length; i < lenght; i++)
@@ -587,7 +575,6 @@ namespace Ludaludaed.KECS
     public struct EntityData
     {
         public int Age;
-        public bool IsDirty;
         public BitMask Signature;
         public Archetype Archetype;
     }
@@ -1980,6 +1967,92 @@ namespace Ludaludaed.KECS
     //=============================================================================
     // HELPER
     //=============================================================================
+    
+    
+    #if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+    public sealed class SparseSet
+    {
+        private const int MinCapacity = 16;
+        private const int None = -1;
+        private int[] _sparse;
+        public int[] Dense;
+        private int _denseCount;
+        
+        public int Count => _denseCount;
+
+        public SparseSet(int capacity)
+        {
+            if (capacity < MinCapacity) capacity = MinCapacity;
+            Dense = new int[capacity];
+            _sparse = new int[capacity];
+            _sparse.Fill(None);
+            _denseCount = 0;
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(int sparseIdx) => sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(int sparseIdx)
+        {
+            if (Contains(sparseIdx)) return;
+            ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
+            ArrayExtension.EnsureLength(ref Dense, _denseCount);
+            _sparse[sparseIdx] = _denseCount;
+            Dense[_denseCount] = sparseIdx;
+            _denseCount++;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Remove(int sparseIdx)
+        {
+            if (!Contains(sparseIdx)) return;
+            var packedIdx = _sparse[sparseIdx];
+            _sparse[sparseIdx] = None;
+            _denseCount--;
+            if (packedIdx >= _denseCount) return;
+            var lastSparseIdx = Dense[_denseCount];
+            Dense[packedIdx] = lastSparseIdx;
+            _sparse[lastSparseIdx] = packedIdx;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            _denseCount = 0;
+            Array.Clear(Dense, 0, Dense.Length);
+            _sparse.Fill(None);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+
+        public struct Enumerator
+        {
+            private int _index;
+            private SparseSet _set;
+
+            public Enumerator(SparseSet set)
+            {
+                _set = set;
+                _index = 0;
+            }
+
+            public int Current => _set.Dense[_index++];
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext() => _index < _set.Count;
+        }
+    }
+    
 
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
@@ -2087,18 +2160,18 @@ namespace Ludaludaed.KECS
         public struct Enumerator
         {
             private int _index;
-            private HandleMap<T> _list;
+            private HandleMap<T> _handleMap;
 
             public Enumerator(HandleMap<T> handleMap)
             {
-                _list = handleMap;
+                _handleMap = handleMap;
                 _index = 0;
             }
 
-            public ref T Current => ref _list.Data[_index++];
+            public ref T Current => ref _handleMap.Data[_index++];
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => _index < _list.Count;
+            public bool MoveNext() => _index < _handleMap.Count;
         }
     }
 
