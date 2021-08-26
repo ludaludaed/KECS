@@ -1615,7 +1615,8 @@ namespace Ludaludaed.KECS
 
     public abstract class SystemBase
     {
-        public Systems systems;
+        public World _world;
+        public Systems _systems;
         public bool IsEnable;
 
         public virtual void Initialize()
@@ -1644,8 +1645,6 @@ namespace Ludaludaed.KECS
         private readonly FastList<SystemBase> _allSystems;
 
         private SharedData _sharedData;
-
-        public readonly World World;
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT")
@@ -1657,7 +1656,7 @@ namespace Ludaludaed.KECS
             _updateSystems = new FastList<UpdateSystem>();
             _sharedData = new SharedData();
             Name = name;
-            World = world;
+            _world = world;
         }
 
 #if DEBUG
@@ -1701,22 +1700,26 @@ namespace Ludaludaed.KECS
         
         public FastList<SystemBase> GetSystems() => _allSystems;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public World GetWorld() => World;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public World GetWorld(string name) => Worlds.Get(name);
-
         public Systems Add<T>(T systemValue) where T : SystemBase
         {
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
 #endif
             _allSystems.Add(systemValue);
-            systemValue.systems = this;
+            
+            systemValue._systems = this;
             systemValue.IsEnable = true;
+            
             if (systemValue is UpdateSystem system) _updateSystems.Add(system);
-            if (systemValue is Systems systemGroup) systemGroup._sharedData = _sharedData;
+            if (systemValue is Systems systemGroup)
+            {
+                systemGroup._sharedData = _sharedData;
+            }
+            else
+            {
+                systemValue._world = _world;
+            }
+            
             return this;
         }
 

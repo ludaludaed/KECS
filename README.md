@@ -110,8 +110,7 @@ The system must implement the abstract class `SystemBase` or `UpdateSystem`.
 
         public override void OnUpdate(float deltaTime)
         {
-            var world = systems.GetWorld();
-            world.CreateQuery()
+            _world.CreateQuery()
                 .ForEach((Entity entity, ref Component comp) =>
                 {
                     comp.Counter++;
@@ -149,8 +148,7 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        var world = systems.GetWorld();
-        world.CreateQuery()
+        _world.CreateQuery()
             .ForEach((Entity entity, ref EventComponent event) =>
             {
                 ...
@@ -172,8 +170,7 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        var world = systems.GetWorld();
-        world.CreateQuery()
+        _world.CreateQuery()
             .With<BarComponent>()
             .Without<BazComponent>()
             .ForEach((Entity entity, ref FooComponent fooComp) =>
@@ -208,9 +205,8 @@ public class SystemTest1 : UpdateSystem
 {
     public override void OnUpdate(float deltaTime)
     {
-        var sharedData = systems.GetShared<SharedData>();
-        var world = systems.GetWorld();
-        world.CreateQuery()
+        var sharedData = _systems.GetShared<SharedData>();
+        _world.CreateQuery()
             .ForEach((Entity entity, ref FooComponent fooComp) =>
             {
                 ...
