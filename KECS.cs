@@ -1645,7 +1645,7 @@ namespace Ludaludaed.KECS
 
         private SharedData _sharedData;
 
-        private readonly World _world;
+        public readonly World World;
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT")
@@ -1657,7 +1657,7 @@ namespace Ludaludaed.KECS
             _updateSystems = new FastList<UpdateSystem>();
             _sharedData = new SharedData();
             Name = name;
-            _world = world;
+            World = world;
         }
 
 #if DEBUG
@@ -1702,7 +1702,7 @@ namespace Ludaludaed.KECS
         public FastList<SystemBase> GetSystems() => _allSystems;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public World GetWorld() => _world;
+        public World GetWorld() => World;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public World GetWorld(string name) => Worlds.Get(name);
