@@ -232,7 +232,7 @@ public class StartUp : MonoBehaviour
         _systems = new Systems(_world);
         _systems.Add(new SystemTest()).
                  Add(new SystemTest1()).
-        _systems.Initialize();
+                 Initialize();
     }
 
     public void Update()
