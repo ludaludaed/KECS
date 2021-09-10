@@ -74,10 +74,10 @@ namespace Ludaludaed.KECS
                 Queries = config.Queries > 0 ? config.Queries : WorldConfig.DefaultQueries,
             };
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetValue (string name, out World world)
+        public static bool TryGetValue(string name, out World world)
         {
             var hashName = name.GetHashCode();
             return _worlds.TryGetValue(hashName, out world);
@@ -298,6 +298,7 @@ namespace Ludaludaed.KECS
                 entity.Age = entityData.Age;
                 entity.UpdateArchetype();
             }
+
             _dirtyEntities.Clear();
         }
 
@@ -306,7 +307,7 @@ namespace Ludaludaed.KECS
         internal bool AddDelayedChange(in int entityId)
         {
             if (_lockCount <= 0) return false;
-            if (!_dirtyEntities.Contains(entityId)) 
+            if (!_dirtyEntities.Contains(entityId))
                 _dirtyEntities.Set(entityId);
             return true;
         }
@@ -687,8 +688,8 @@ namespace Ludaludaed.KECS
         {
             return entity.Id == 0 && entity.Age == 0;
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetFast<T>(in this Entity entity, in T value) where T : struct
         {
@@ -932,7 +933,6 @@ namespace Ludaludaed.KECS
     {
         public static readonly int TypeIndex;
         public static readonly Type Type;
-
         private static readonly object _lockObject = new object();
 
         static ComponentTypeInfo()
@@ -968,21 +968,33 @@ namespace Ludaludaed.KECS
             _components = new HandleMap<T>(capacity);
         }
 
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int entityId) => ref _components.Get(entityId);
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetObject(int entityId) => _components.Get(entityId);
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int entityId) => _components.Remove(entityId);
+        public ref T Get(int entityId)
+        {
+            return ref _components.Get(entityId);
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int entityId, in T value) => _components.Set(entityId, value);
+        public object GetObject(int entityId)
+        {
+            return _components.Get(entityId);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Remove(int entityId)
+        {
+            _components.Remove(entityId);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Set(int entityId, in T value)
+        {
+            _components.Set(entityId, value);
+        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1697,7 +1709,7 @@ namespace Ludaludaed.KECS
 #endif
             return _sharedData.Get<T>();
         }
-        
+
         public FastList<SystemBase> GetSystems() => _allSystems;
 
         public Systems Add<T>(T systemValue) where T : SystemBase
@@ -1706,10 +1718,10 @@ namespace Ludaludaed.KECS
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
 #endif
             _allSystems.Add(systemValue);
-            
+
             systemValue._systems = this;
             systemValue.IsEnable = true;
-            
+
             if (systemValue is UpdateSystem system) _updateSystems.Add(system);
             if (systemValue is Systems systemGroup)
             {
@@ -1719,7 +1731,7 @@ namespace Ludaludaed.KECS
             {
                 systemValue._world = _world;
             }
-            
+
             return this;
         }
 
@@ -1785,9 +1797,9 @@ namespace Ludaludaed.KECS
     //==================================================================================================================
     // HELPER
     //==================================================================================================================
-    
-    
-    #if ENABLE_IL2CPP
+
+
+#if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
@@ -1798,7 +1810,7 @@ namespace Ludaludaed.KECS
         private int[] _sparse;
         public int[] Dense;
         private int _denseCount;
-        
+
         public int Count => _denseCount;
 
         public SparseSet(int capacity)
@@ -1809,12 +1821,12 @@ namespace Ludaludaed.KECS
             _sparse.Fill(None);
             _denseCount = 0;
         }
-        
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int sparseIdx) => sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx)
         {
@@ -1870,7 +1882,7 @@ namespace Ludaludaed.KECS
             public bool MoveNext() => _index < _set.Count;
         }
     }
-    
+
 
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
