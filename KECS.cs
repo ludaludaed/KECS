@@ -628,7 +628,6 @@ namespace Ludaludaed.KECS
         private interface IComponentBuilder
         {
             void Set(in Entity entity);
-            int GetIdx();
         }
 
 #if ENABLE_IL2CPP
@@ -638,14 +637,7 @@ namespace Ludaludaed.KECS
         private class ComponentBuilder<T> : IComponentBuilder where T : struct
         {
             private T _component;
-            private int _idx;
-            
-            internal ComponentBuilder(in T component)
-            {
-                _component = component;
-                _idx = ComponentTypeInfo<T>.TypeIndex;
-            }
-            public int GetIdx() => _idx;
+            internal ComponentBuilder(in T component) => _component = component;
             public void Set(in Entity entity) => entity.SetFast(in _component);
         }
     }
@@ -956,7 +948,7 @@ namespace Ludaludaed.KECS
             _components = new HandleMap<T>(capacity);
         }
 
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int entityId)
         {
