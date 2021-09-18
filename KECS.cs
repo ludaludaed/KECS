@@ -617,14 +617,10 @@ namespace Ludaludaed.KECS
         public Entity Build(World world)
         {
             var entity = world.CreateEntity();
-            ref var entityData = ref world.GetEntityData(entity);
             for (int i = 0, lenght = _builders.Count; i < lenght; i++)
             {
-                var build = _builders.Data[i];
-                build.Set(entity);
-                entityData.Signature.SetBit(build.GetIdx());
+                _builders.Data[i].Set(entity);
             }
-
             entity.UpdateArchetype();
             return entity;
         }
