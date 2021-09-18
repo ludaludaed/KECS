@@ -597,11 +597,13 @@ namespace Ludaludaed.KECS
     {
         private HandleMap<IComponentBuilder> _builders;
 
+        
         public EntityBuilder()
         {
             _builders = new HandleMap<IComponentBuilder>(WorldConfig.DefaultComponents);
         }
 
+        
         public EntityBuilder Append<T>(in T component = default) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -609,22 +611,20 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        public void Clear()
-        {
-            _builders.Clear();
-        }
-
+        
+        public void Clear() => _builders.Clear();
+        
+        
         public Entity Build(World world)
         {
             var entity = world.CreateEntity();
             for (int i = 0, lenght = _builders.Count; i < lenght; i++)
-            {
                 _builders.Data[i].Set(entity);
-            }
             entity.UpdateArchetype();
             return entity;
         }
 
+        
         private interface IComponentBuilder
         {
             void Set(in Entity entity);
