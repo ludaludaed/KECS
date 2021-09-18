@@ -643,22 +643,14 @@ namespace Ludaludaed.KECS
         {
             private T _component;
             private int _idx;
-
-
+            
             internal ComponentBuilder(in T component)
             {
                 _component = component;
                 _idx = ComponentTypeInfo<T>.TypeIndex;
             }
-
             public int GetIdx() => _idx;
-
-            public void Set(in Entity entity)
-            {
-                var world = entity.World;
-                var pool = world.GetPool<T>();
-                pool.Set(entity.Id, in _component);
-            }
+            public void Set(in Entity entity) => entity.SetFast(in _component);
         }
     }
 
