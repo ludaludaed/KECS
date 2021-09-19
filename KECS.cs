@@ -255,6 +255,7 @@ namespace Ludaludaed.KECS
         public readonly string Name;
         private bool _isAlive;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsAlive() => _isAlive;
 
         internal World(WorldConfig config, string name)
@@ -434,10 +435,10 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
+            if (_componentPools.Contains(idx)) return (ComponentPool<T>)_componentPools.Get(idx);
             var pool = new ComponentPool<T>(Config.Entities);
             _componentPools.Set(idx, pool);
-            return (ComponentPool<T>) _componentPools.Get(idx);
+            return (ComponentPool<T>)_componentPools.Get(idx);
         }
 
 
@@ -461,11 +462,11 @@ namespace Ludaludaed.KECS
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (_taskPools.Contains(idx)) return (TaskPool<T>) _taskPools.Get(idx);
+            if (_taskPools.Contains(idx)) return (TaskPool<T>)_taskPools.Get(idx);
             var pool = new TaskPool<T>(Config.Entities);
             _taskPools.Set(idx, pool);
 
-            return (TaskPool<T>) _taskPools.Get(idx);
+            return (TaskPool<T>)_taskPools.Get(idx);
         }
 
 
@@ -597,13 +598,13 @@ namespace Ludaludaed.KECS
     {
         private HandleMap<IComponentBuilder> _builders;
 
-        
+
         public EntityBuilder()
         {
             _builders = new HandleMap<IComponentBuilder>(WorldConfig.DefaultComponents);
         }
 
-        
+
         public EntityBuilder Append<T>(in T component = default) where T : struct
         {
             var idx = ComponentTypeInfo<T>.TypeIndex;
@@ -611,10 +612,10 @@ namespace Ludaludaed.KECS
             return this;
         }
 
-        
+
         public void Clear() => _builders.Clear();
-        
-        
+
+
         public Entity Build(World world)
         {
             var entity = world.CreateEntity();
@@ -624,7 +625,7 @@ namespace Ludaludaed.KECS
             return entity;
         }
 
-        
+
         private interface IComponentBuilder
         {
             void Set(in Entity entity);
@@ -2163,10 +2164,10 @@ namespace Ludaludaed.KECS
             ulong h = 1234;
             for (var i = mask.Chunks.Length - 1; i >= 0; i--)
             {
-                h ^= ((ulong) i + 1) * mask.Chunks[i];
+                h ^= ((ulong)i + 1) * mask.Chunks[i];
             }
 
-            return (int) ((h >> 32) ^ h);
+            return (int)((h >> 32) ^ h);
         }
     }
 
