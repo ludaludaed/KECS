@@ -359,7 +359,7 @@ namespace Ludaludaed.KECS
             if (entity.World != this) throw new Exception("|KECS| Invalid world.");
             if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
             if (entity.Age != _entities[entity.Id].Age)
-                throw new Exception($"|KECS| Entity {entity.ToString()} was destroyed.");
+                throw new Exception($"|KECS| Entity {entity.Id} was destroyed.");
 #endif
             return ref _entities[entity.Id];
         }
