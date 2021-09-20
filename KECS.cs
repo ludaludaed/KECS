@@ -237,7 +237,7 @@ namespace Ludaludaed.KECS
         private readonly HandleMap<ITaskPool> _taskPools;
 
         private readonly HashMap<Archetype> _archetypeSignatures;
-        private readonly FastList<Archetype> _archetypes;
+        internal readonly FastList<Archetype> Archetypes;
 
         private Query[] _queries;
         private int _queriesCount;
@@ -263,7 +263,7 @@ namespace Ludaludaed.KECS
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
-            _archetypes = new FastList<Archetype>(config.Archetypes);
+            Archetypes = new FastList<Archetype>(config.Archetypes);
 
             _entities = new EntityData[config.Entities];
             _freeEntityIds = new int[config.Entities];
@@ -272,7 +272,7 @@ namespace Ludaludaed.KECS
 
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
-            _archetypes.Add(emptyArch);
+            Archetypes.Add(emptyArch);
             Name = name;
             _isAlive = true;
             Config = config;
@@ -338,7 +338,7 @@ namespace Ludaludaed.KECS
             {
                 EntitiesCount = _entitiesLength - _freeEntityCount,
                 FreeEntitiesCount = _freeEntityCount,
-                ArchetypesCount = _archetypes.Count,
+                ArchetypesCount = Archetypes.Count,
                 ComponentsCount = _componentPools.Count,
             };
         }
@@ -372,7 +372,7 @@ namespace Ludaludaed.KECS
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot create entity.");
 #endif
-            ref var emptyArchetype = ref _archetypes.Get(0);
+            ref var emptyArchetype = ref Archetypes.Get(0);
             Entity entity;
             entity.World = this;
             if (_freeEntityCount > 0)
@@ -498,30 +498,12 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FindArchetypes(Query query)
-        {
-            var include = query.Include;
-            var exclude = query.Exclude;
-
-            for (int i = 0, length = _archetypes.Count; i < length; i++)
-            {
-                var archetype = _archetypes.Get(i);
-                if (archetype.Entities.Count > 0 && archetype.Signature.Contains(include) &&
-                    (exclude.Count == 0 || !archetype.Signature.Intersects(exclude)))
-                {
-                    query.ArchetypeBuffer.Add(archetype);
-                }
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype GetArchetype(BitMask signature)
         {
             var hash = signature.GetHash();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
             archetype = new Archetype(signature.Copy(), Config.Entities);
-            _archetypes.Add(archetype);
+            Archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
             for (int i = 0, length = DebugListeners.Count; i < length; i++)
@@ -553,7 +535,7 @@ namespace Ludaludaed.KECS
             }
 
             _componentPools.Clear();
-            _archetypes.Clear();
+            Archetypes.Clear();
             _archetypeSignatures.Clear();
             _freeEntityCount = 0;
             _entitiesLength = 0;
@@ -1078,7 +1060,6 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Query
     {
-        internal readonly FastList<Archetype> ArchetypeBuffer;
         internal readonly BitMask Include;
         internal readonly BitMask Exclude;
         internal readonly World World;
@@ -1089,7 +1070,6 @@ namespace Ludaludaed.KECS
             World = world;
             Include = new BitMask(world.Config.Components);
             Exclude = new BitMask(world.Config.Components);
-            ArchetypeBuffer = new FastList<Archetype>(world.Config.Archetypes);
         }
 
 
@@ -1136,7 +1116,6 @@ namespace Ludaludaed.KECS
         {
             Include.Clear();
             Exclude.Clear();
-            ArchetypeBuffer.Clear();
             World.RecycleQuery(this);
         }
     }
@@ -1152,11 +1131,12 @@ namespace Ludaludaed.KECS
         public static void ForEach(this Query query, ForEachHandler handler)
         {
             query.World.Lock();
-            query.World.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = query.World.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1180,11 +1160,12 @@ namespace Ludaludaed.KECS
             var poolT = world.GetPool<T>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1211,11 +1192,12 @@ namespace Ludaludaed.KECS
             var poolY = world.GetPool<Y>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1245,11 +1227,12 @@ namespace Ludaludaed.KECS
             var poolU = world.GetPool<U>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1282,11 +1265,12 @@ namespace Ludaludaed.KECS
             var poolI = world.GetPool<I>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1322,11 +1306,12 @@ namespace Ludaludaed.KECS
             var poolO = world.GetPool<O>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1365,11 +1350,12 @@ namespace Ludaludaed.KECS
             var poolP = world.GetPool<P>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1411,11 +1397,12 @@ namespace Ludaludaed.KECS
             var poolA = world.GetPool<A>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1460,11 +1447,12 @@ namespace Ludaludaed.KECS
             var poolS = world.GetPool<S>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1512,11 +1500,12 @@ namespace Ludaludaed.KECS
             var poolD = world.GetPool<D>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
@@ -1567,11 +1556,12 @@ namespace Ludaludaed.KECS
             var poolF = world.GetPool<F>();
 
             world.Lock();
-            world.FindArchetypes(query);
-            var archetypes = query.ArchetypeBuffer;
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
+                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
