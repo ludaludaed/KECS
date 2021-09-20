@@ -193,7 +193,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute()
         {
-            for (int i = 0, lenght = _removeTasksCount; i < lenght; i++)
+            for (int i = 0, length = _removeTasksCount; i < length; i++)
             {
                 _removeTasksCount = 0;
                 ref var removeTask = ref _removeTasks[i];
@@ -201,7 +201,7 @@ namespace Ludaludaed.KECS
                 removeTask.Entity.Remove<T>();
             }
 
-            for (int i = 0, lenght = _addTasksCount; i < lenght; i++)
+            for (int i = 0, length = _addTasksCount; i < length; i++)
             {
                 _addTasksCount = 0;
                 ref var task = ref _addTasks[i];
@@ -243,7 +243,7 @@ namespace Ludaludaed.KECS
         private int _queriesCount;
 
         private EntityData[] _entities;
-        private int _entitiesLenght;
+        private int _entitiesLength;
 
         private int[] _freeEntityIds;
         private int _freeEntityCount;
@@ -291,7 +291,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = this;
-            for (int i = 0, lenght = _dirtyEntities.Count; i < lenght; i++)
+            for (int i = 0, length = _dirtyEntities.Count; i < length; i++)
             {
                 var entityId = _dirtyEntities.Dense[i];
                 ref var entityData = ref _entities[entityId];
@@ -336,7 +336,7 @@ namespace Ludaludaed.KECS
         {
             return new WorldInfo()
             {
-                EntitiesCount = _entitiesLenght - _freeEntityCount,
+                EntitiesCount = _entitiesLength - _freeEntityCount,
                 FreeEntitiesCount = _freeEntityCount,
                 ArchetypesCount = _archetypes.Count,
                 ComponentsCount = _componentPools.Count,
@@ -386,7 +386,7 @@ namespace Ludaludaed.KECS
             }
             else
             {
-                var newEntityId = _entitiesLenght++;
+                var newEntityId = _entitiesLength++;
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
@@ -398,7 +398,7 @@ namespace Ludaludaed.KECS
 
             emptyArchetype.AddEntity(entity);
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = DebugListeners.Count; i < length; i++)
             {
                 DebugListeners.Get(i).OnEntityCreated(entity);
             }
@@ -419,7 +419,7 @@ namespace Ludaludaed.KECS
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = DebugListeners.Count; i < length; i++)
             {
                 DebugListeners.Get(i).OnEntityDestroyed(entity);
             }
@@ -474,7 +474,7 @@ namespace Ludaludaed.KECS
         public void ExecuteTasks()
         {
             if (!_isAlive) throw new Exception($"|KECS| World - {Name} destroyed");
-            for (int i = 0, lenght = _taskPools.Count; i < lenght; i++)
+            for (int i = 0, length = _taskPools.Count; i < length; i++)
             {
                 _taskPools.Data[i].Execute();
             }
@@ -503,7 +503,7 @@ namespace Ludaludaed.KECS
             var include = query.Include;
             var exclude = query.Exclude;
 
-            for (int i = 0, lenght = _archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = _archetypes.Count; i < length; i++)
             {
                 var archetype = _archetypes.Get(i);
                 if (archetype.Entities.Count > 0 && archetype.Signature.Contains(include) &&
@@ -524,7 +524,7 @@ namespace Ludaludaed.KECS
             _archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = DebugListeners.Count; i < length; i++)
             {
                 DebugListeners.Get(i).OnArchetypeCreated(archetype);
             }
@@ -543,7 +543,7 @@ namespace Ludaludaed.KECS
             _dirtyEntities.Clear();
             Entity entity;
             entity.World = this;
-            for (int i = 0, lenght = _entities.Length; i < lenght; i++)
+            for (int i = 0, length = _entities.Length; i < length; i++)
             {
                 ref var entityData = ref _entities[i];
                 if (entityData.Archetype == null) continue;
@@ -556,11 +556,11 @@ namespace Ludaludaed.KECS
             _archetypes.Clear();
             _archetypeSignatures.Clear();
             _freeEntityCount = 0;
-            _entitiesLenght = 0;
+            _entitiesLength = 0;
             Worlds.Remove(Name);
             _isAlive = false;
 #if DEBUG
-            for (int i = 0, lenght = DebugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = DebugListeners.Count; i < length; i++)
             {
                 DebugListeners.Get(i).OnWorldDestroyed(this);
             }
@@ -618,7 +618,7 @@ namespace Ludaludaed.KECS
         public Entity Build(World world)
         {
             var entity = world.CreateEntity();
-            for (int i = 0, lenght = _builders.Count; i < lenght; i++)
+            for (int i = 0, length = _builders.Count; i < length; i++)
                 _builders.Data[i].Set(entity);
             entity.UpdateArchetype();
             return entity;
@@ -761,7 +761,7 @@ namespace Ludaludaed.KECS
 
 #if DEBUG
             var debugListeners = world.DebugListeners;
-            for (int i = 0, lenght = debugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = debugListeners.Count; i < length; i++)
             {
                 debugListeners.Get(i).OnEntityChanged(entity);
             }
@@ -790,10 +790,10 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             var signature = entityData.Signature;
-            var lenght = signature.Count;
-            if (typeIndexes == null || typeIndexes.Length < lenght)
+            var length = signature.Count;
+            if (typeIndexes == null || typeIndexes.Length < length)
             {
-                typeIndexes = new int[lenght];
+                typeIndexes = new int[length];
             }
 
             var counter = 0;
@@ -802,7 +802,7 @@ namespace Ludaludaed.KECS
                 typeIndexes[counter++] = idx;
             }
 
-            return lenght;
+            return length;
         }
 
 
@@ -812,10 +812,10 @@ namespace Ludaludaed.KECS
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             var signature = entityData.Signature;
-            var lenght = signature.Count;
-            if (objects == null || objects.Length < lenght)
+            var length = signature.Count;
+            if (objects == null || objects.Length < length)
             {
-                objects = new object[lenght];
+                objects = new object[length];
             }
 
             var counter = 0;
@@ -824,7 +824,7 @@ namespace Ludaludaed.KECS
                 objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
             }
 
-            return lenght;
+            return length;
         }
     }
 
@@ -1154,10 +1154,10 @@ namespace Ludaludaed.KECS
             query.World.Lock();
             query.World.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity);
@@ -1182,10 +1182,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1213,10 +1213,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1247,10 +1247,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1284,10 +1284,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1324,10 +1324,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1367,10 +1367,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1413,10 +1413,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1462,10 +1462,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1514,10 +1514,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1569,10 +1569,10 @@ namespace Ludaludaed.KECS
             world.Lock();
             world.FindArchetypes(query);
             var archetypes = query.ArchetypeBuffer;
-            for (int i = 0, lenght = archetypes.Count; i < lenght; i++)
+            for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                for (int j = 0, lenghtJ = archetype.Entities.Count; j < lenghtJ; j++)
+                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
                     var entity = archetype.Entities.Data[j];
                     handler(entity,
@@ -1722,7 +1722,7 @@ namespace Ludaludaed.KECS
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
             _initialized = true;
 #endif
-            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
+            for (int i = 0, length = _allSystems.Count; i < length; i++)
             {
                 _allSystems.Get(i).Initialize();
             }
@@ -1735,7 +1735,7 @@ namespace Ludaludaed.KECS
             if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
 #endif
-            for (int i = 0, lenght = _updateSystems.Count; i < lenght; i++)
+            for (int i = 0, length = _updateSystems.Count; i < length; i++)
             {
                 var update = _updateSystems.Get(i);
                 if (update.IsEnable) update.OnUpdate(deltaTime);
@@ -1749,13 +1749,13 @@ namespace Ludaludaed.KECS
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
             _destroyed = true;
 #endif
-            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
+            for (int i = 0, length = _allSystems.Count; i < length; i++)
             {
                 var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.OnDestroy();
             }
 
-            for (int i = 0, lenght = _allSystems.Count; i < lenght; i++)
+            for (int i = 0, length = _allSystems.Count; i < length; i++)
             {
                 var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.PostDestroy();
@@ -1765,7 +1765,7 @@ namespace Ludaludaed.KECS
             _updateSystems.Clear();
             _sharedData.Clear();
 #if DEBUG
-            for (int i = 0, lenght = _debugListeners.Count; i < lenght; i++)
+            for (int i = 0, length = _debugListeners.Count; i < length; i++)
             {
                 _debugListeners.Get(i).OnSystemsDestroyed(this);
             }
@@ -2097,7 +2097,7 @@ namespace Ludaludaed.KECS
         public static bool Contains(this BitMask mask, BitMask bitMask)
         {
             ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
-            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
             {
                 if ((mask.Chunks[i] & bitMask.Chunks[i]) != bitMask.Chunks[i]) return false;
             }
@@ -2110,7 +2110,7 @@ namespace Ludaludaed.KECS
         public static bool Intersects(this BitMask mask, BitMask bitMask)
         {
             ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
-            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
             {
                 if ((mask.Chunks[i] & bitMask.Chunks[i]) != 0) return true;
             }
@@ -2123,7 +2123,7 @@ namespace Ludaludaed.KECS
         public static void Clear(this BitMask mask)
         {
             mask.Count = 0;
-            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
             {
                 mask.Chunks[i] = 0;
             }
@@ -2134,7 +2134,7 @@ namespace Ludaludaed.KECS
         public static void Merge(this BitMask mask, BitMask include)
         {
             ArrayExtension.EnsureLength(ref include.Chunks, mask.Chunks.Length);
-            for (int i = 0, lenght = mask.Chunks.Length; i < lenght; i++)
+            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
             {
                 mask.Chunks[i] |= include.Chunks[i];
             }
@@ -2183,7 +2183,7 @@ namespace Ludaludaed.KECS
 
         private int _freeListIdx;
         private int _capacity;
-        private int _lenght;
+        private int _length;
         private int _count;
         private T _empty;
 
@@ -2193,7 +2193,7 @@ namespace Ludaludaed.KECS
 
         public HashMap(int capacity = 0)
         {
-            _lenght = 0;
+            _length = 0;
             _count = 0;
             _freeListIdx = -1;
 
@@ -2208,7 +2208,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int IndexFor(int key, int lenght) => key & (lenght - 1);
+        private static int IndexFor(int key, int length) => key & (length - 1);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2223,15 +2223,15 @@ namespace Ludaludaed.KECS
                 return;
             }
 
-            if (_lenght >= _capacity)
+            if (_length >= _capacity)
             {
-                var newCapacity = HashHelpers.ExpandCapacity(_lenght);
+                var newCapacity = HashHelpers.ExpandCapacity(_length);
                 Array.Resize(ref _data, newCapacity);
                 Array.Resize(ref _entries, newCapacity);
                 var newBuckets = new int[newCapacity];
                 newBuckets.Fill(-1);
 
-                for (int i = 0, lenght = _lenght; i < lenght; i++)
+                for (int i = 0, length = _length; i < length; i++)
                 {
                     ref var rehashEntry = ref _entries[i];
                     var rehashIdx = IndexFor(rehashEntry.Key, newCapacity);
@@ -2245,14 +2245,14 @@ namespace Ludaludaed.KECS
                 index = IndexFor(key, _capacity);
             }
 
-            var entryIdx = _lenght;
+            var entryIdx = _length;
 
             if (_freeListIdx >= 0)
             {
                 entryIdx = _freeListIdx;
                 _freeListIdx = _entries[entryIdx].Next;
             }
-            else _lenght++;
+            else _length++;
 
             ref var entry = ref _entries[entryIdx];
             entry.Next = _buckets[index];
@@ -2337,11 +2337,11 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            Array.Clear(_entries, 0, _lenght);
-            Array.Clear(_data, 0, _lenght);
+            Array.Clear(_entries, 0, _length);
+            Array.Clear(_data, 0, _length);
             _buckets.Fill(-1);
 
-            _lenght = 0;
+            _length = 0;
             _count = 0;
             _freeListIdx = -1;
         }
@@ -2369,7 +2369,7 @@ namespace Ludaludaed.KECS
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
             {
-                while (++_index < _hashMap._lenght)
+                while (++_index < _hashMap._length)
                 {
                     ref var entry = ref _hashMap._entries[_index];
                     if (!entry.IsActive) continue;
@@ -2542,7 +2542,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Fill<T>(this T[] array, in T value, int start = 0)
         {
-            for (int i = start, lenght = array.Length; i < lenght; ++i)
+            for (int i = start, length = array.Length; i < length; ++i)
             {
                 array[i] = value;
             }
