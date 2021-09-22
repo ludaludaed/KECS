@@ -1193,7 +1193,7 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id));
+                        ref poolT.Get(entityId));
                 }
             }
 
@@ -1230,8 +1230,8 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId));
                 }
             }
 
@@ -1270,9 +1270,9 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId));
                 }
             }
 
@@ -1313,10 +1313,10 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId));
                 }
             }
 
@@ -1359,11 +1359,11 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId));
                 }
             }
 
@@ -1408,12 +1408,12 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id),
-                        ref poolP.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId),
+                        ref poolP.Get(entityId));
                 }
             }
 
@@ -1460,13 +1460,13 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id),
-                        ref poolP.Get(entity.Id),
-                        ref poolA.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId),
+                        ref poolP.Get(entityId),
+                        ref poolA.Get(entityId));
                 }
             }
 
@@ -1515,14 +1515,14 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id),
-                        ref poolP.Get(entity.Id),
-                        ref poolA.Get(entity.Id),
-                        ref poolS.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId),
+                        ref poolP.Get(entityId),
+                        ref poolA.Get(entityId),
+                        ref poolS.Get(entityId));
                 }
             }
 
@@ -1573,15 +1573,15 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id),
-                        ref poolP.Get(entity.Id),
-                        ref poolA.Get(entity.Id),
-                        ref poolS.Get(entity.Id),
-                        ref poolD.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId),
+                        ref poolP.Get(entityId),
+                        ref poolA.Get(entityId),
+                        ref poolS.Get(entityId),
+                        ref poolD.Get(entityId));
                 }
             }
 
@@ -1634,16 +1634,16 @@ namespace Ludaludaed.KECS
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
-                        ref poolT.Get(entity.Id),
-                        ref poolY.Get(entity.Id),
-                        ref poolU.Get(entity.Id),
-                        ref poolI.Get(entity.Id),
-                        ref poolO.Get(entity.Id),
-                        ref poolP.Get(entity.Id),
-                        ref poolA.Get(entity.Id),
-                        ref poolS.Get(entity.Id),
-                        ref poolD.Get(entity.Id),
-                        ref poolF.Get(entity.Id));
+                        ref poolT.Get(entityId),
+                        ref poolY.Get(entityId),
+                        ref poolU.Get(entityId),
+                        ref poolI.Get(entityId),
+                        ref poolO.Get(entityId),
+                        ref poolP.Get(entityId),
+                        ref poolA.Get(entityId),
+                        ref poolS.Get(entityId),
+                        ref poolD.Get(entityId),
+                        ref poolF.Get(entityId));
                 }
             }
 
