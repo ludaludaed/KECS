@@ -1662,12 +1662,11 @@ namespace Ludaludaed.KECS
 #if DEBUG
             if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
-            
             _sharedData = new HashMap<object>();
             _allSystems = new FastList<SystemBase>();
             _updateSystems = new FastList<UpdateSystem>();
-            Name = name;
             _world = world;
+            Name = name;
         }
 
 #if DEBUG
