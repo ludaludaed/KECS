@@ -407,7 +407,7 @@ namespace Ludaludaed.KECS
                 entityData.Age = 1;
             }
 
-            emptyArchetype.AddEntity(entity);
+            emptyArchetype.AddEntity(entity.Id);
 #if DEBUG
             for (int i = 0, length = DebugListeners.Count; i < length; i++)
             {
@@ -422,7 +422,7 @@ namespace Ludaludaed.KECS
         internal void RecycleEntity(in Entity entity)
         {
             ref var entityData = ref _entities[entity.Id];
-            entityData.Archetype.RemoveEntity(entity);
+            entityData.Archetype.RemoveEntity(entity.Id);
             entityData.Archetype = null;
             entityData.Age++;
             if (entityData.Age == 0) entityData.Age = 1;
@@ -748,8 +748,8 @@ namespace Ludaludaed.KECS
 
             var oldArchetype = entityData.Archetype;
             var newArchetype = world.GetArchetype(entityData.Signature);
-            oldArchetype.RemoveEntity(entity);
-            newArchetype.AddEntity(entity);
+            oldArchetype.RemoveEntity(entity.Id);
+            newArchetype.AddEntity(entity.Id);
             entityData.Archetype = newArchetype;
 
 #if DEBUG
@@ -846,10 +846,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntity(in Entity entity) => Entities.Set(entity.Id);
+        internal void AddEntity(in int entityId) => Entities.Set(entityId);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RemoveEntity(in Entity entity) => Entities.Remove(entity.Id);
+        internal void RemoveEntity(in int entityId) => Entities.Remove(entityId);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SparseSet.Enumerator GetEnumerator() => Entities.GetEnumerator();
