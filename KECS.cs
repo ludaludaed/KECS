@@ -106,50 +106,9 @@ namespace Ludaludaed.KECS
 
 
     //==================================================================================================================
-    // SHARED DATA
-    //==================================================================================================================
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    internal class SharedData
-    {
-        private readonly HashMap<object> _data;
-
-        internal SharedData()
-        {
-            _data = new HashMap<object>();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal T Add<T>(T data) where T : class
-        {
-            var hash = typeof(T).GetHashCode();
-            if (_data.Contains(hash))
-                throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
-            _data.Set(hash, data);
-            return data;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal T Get<T>() where T : class
-        {
-            var hash = typeof(T).GetHashCode();
-            if (_data.TryGetValue(hash, out var data)) return data as T;
-            throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Clear() => _data.Clear();
-    }
-
-
-    //==================================================================================================================
     // TASK POOLS
     //==================================================================================================================
+    
 
     internal interface ITaskPool
     {
@@ -1694,8 +1653,8 @@ namespace Ludaludaed.KECS
     {
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
-
-        private SharedData _sharedData;
+        private HashMap<object> _sharedData;
+        
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT")
@@ -1703,9 +1662,10 @@ namespace Ludaludaed.KECS
 #if DEBUG
             if (string.IsNullOrEmpty(name)) throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
+            
+            _sharedData = new HashMap<object>();
             _allSystems = new FastList<SystemBase>();
             _updateSystems = new FastList<UpdateSystem>();
-            _sharedData = new SharedData();
             Name = name;
             _world = world;
         }
@@ -1730,11 +1690,14 @@ namespace Ludaludaed.KECS
 
         public Systems AddShared<T>(T data) where T : class
         {
+            var hash = typeof(T).GetHashCode();
 #if DEBUG
             if (_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+            if (_sharedData.Contains(hash))
+                throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
 #endif
-            _sharedData.Add(data);
+            _sharedData.Set(hash, data);
             return this;
         }
 
@@ -1742,11 +1705,13 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T GetShared<T>() where T : class
         {
+            var hash = typeof(T).GetHashCode();
 #if DEBUG
             if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
+            if(!_sharedData.Contains(hash))throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
 #endif
-            return _sharedData.Get<T>();
+            return _sharedData.Get(hash) as T;
         }
 
         public FastList<SystemBase> GetSystems() => _allSystems;
