@@ -370,7 +370,7 @@ namespace Ludaludaed.KECS
         {
 #if DEBUG
             if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
-            if (id <= 0 || id >= _entitiesLength) throw new Exception($"|KECS| Invalid entity ({id}).");
+            if (id < 0 || id >= _entitiesLength) throw new Exception($"|KECS| Invalid entity ({id}).");
 #endif
             return ref _entities[id];
         }
@@ -832,7 +832,7 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Archetype
     {
-        internal readonly HandleMap<Entity> Entities;
+        internal readonly SparseSet Entities;
         public readonly BitMask Signature;
         public readonly int Hash;
 
@@ -840,19 +840,19 @@ namespace Ludaludaed.KECS
 
         internal Archetype(BitMask signature, int entityCapacity)
         {
-            Entities = new HandleMap<Entity>(entityCapacity);
+            Entities = new SparseSet(entityCapacity);
             Signature = signature;
             Hash = Signature.GetHash();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntity(in Entity entity) => Entities.Set(entity.Id, entity);
+        internal void AddEntity(in Entity entity) => Entities.Set(entity.Id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RemoveEntity(in Entity entity) => Entities.Remove(entity.Id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public HandleMap<Entity>.Enumerator GetEnumerator() => Entities.GetEnumerator();
+        public SparseSet.Enumerator GetEnumerator() => Entities.GetEnumerator();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -1142,6 +1142,10 @@ namespace Ludaludaed.KECS
         public static void ForEach(this Query query, ForEachHandler handler)
         {
             var world = query.World;
+            
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1151,7 +1155,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity);
                 }
             }
@@ -1170,7 +1176,10 @@ namespace Ludaludaed.KECS
             query.With<T>();
 
             var poolT = world.GetPool<T>();
-
+            
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1180,7 +1189,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id));
                 }
@@ -1203,6 +1214,9 @@ namespace Ludaludaed.KECS
             var poolT = world.GetPool<T>();
             var poolY = world.GetPool<Y>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1212,7 +1226,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id));
@@ -1238,6 +1254,9 @@ namespace Ludaludaed.KECS
             var poolY = world.GetPool<Y>();
             var poolU = world.GetPool<U>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1247,7 +1266,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1276,6 +1297,9 @@ namespace Ludaludaed.KECS
             var poolU = world.GetPool<U>();
             var poolI = world.GetPool<I>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1285,7 +1309,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1317,6 +1343,9 @@ namespace Ludaludaed.KECS
             var poolI = world.GetPool<I>();
             var poolO = world.GetPool<O>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1326,7 +1355,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1361,6 +1392,9 @@ namespace Ludaludaed.KECS
             var poolO = world.GetPool<O>();
             var poolP = world.GetPool<P>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1370,7 +1404,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1408,6 +1444,9 @@ namespace Ludaludaed.KECS
             var poolP = world.GetPool<P>();
             var poolA = world.GetPool<A>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1417,7 +1456,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1458,6 +1499,9 @@ namespace Ludaludaed.KECS
             var poolA = world.GetPool<A>();
             var poolS = world.GetPool<S>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1467,7 +1511,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1511,6 +1557,9 @@ namespace Ludaludaed.KECS
             var poolS = world.GetPool<S>();
             var poolD = world.GetPool<D>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1520,7 +1569,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
@@ -1567,6 +1618,9 @@ namespace Ludaludaed.KECS
             var poolD = world.GetPool<D>();
             var poolF = world.GetPool<F>();
 
+            Entity entity;
+            entity.World = world;
+            
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1576,7 +1630,9 @@ namespace Ludaludaed.KECS
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
                 for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
                 {
-                    var entity = archetype.Entities.Data[j];
+                    var entityId = archetype.Entities.Dense[j];
+                    entity.Id = entityId;
+                    entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entity.Id),
                         ref poolY.Get(entity.Id),
