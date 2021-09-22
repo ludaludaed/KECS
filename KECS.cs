@@ -573,6 +573,7 @@ namespace Ludaludaed.KECS
         public BitMask Signature;
         public Archetype Archetype;
     }
+    
 
     public struct Entity
     {
