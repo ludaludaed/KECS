@@ -273,9 +273,9 @@ namespace Ludaludaed.KECS
             var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             Archetypes.Add(emptyArch);
-            Name = name;
             _isAlive = true;
             Config = config;
+            Name = name;
         }
 
 
@@ -362,6 +362,17 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| Entity {entity.Id} was destroyed.");
 #endif
             return ref _entities[entity.Id];
+        }
+        
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ref EntityData GetEntityDataById(int id)
+        {
+#if DEBUG
+            if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
+            if (id <= 0 || id >= _entitiesLength) throw new Exception($"|KECS| Invalid entity ({id}).");
+#endif
+            return ref _entities[id];
         }
 
 
@@ -1130,8 +1141,9 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach(this Query query, ForEachHandler handler)
         {
-            query.World.Lock();
-            var archetypes = query.World.Archetypes;
+            var world = query.World;
+            world.Lock();
+            var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
@@ -1144,7 +1156,7 @@ namespace Ludaludaed.KECS
                 }
             }
 
-            query.World.Unlock();
+            world.Unlock();
             query.Recycle();
         }
 
