@@ -792,7 +792,7 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Archetype
     {
-        internal readonly SparseSet Entities;
+        private readonly SparseSet Entities;
         public readonly BitMask Signature;
         public readonly int Hash;
 
@@ -1111,11 +1111,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity);
@@ -1145,11 +1144,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1182,11 +1180,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1222,11 +1219,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1265,11 +1261,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1311,11 +1306,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1360,11 +1354,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1412,11 +1405,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1467,11 +1459,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1525,11 +1516,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
@@ -1586,11 +1576,10 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Entities.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
+                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
                     query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
-                for (int j = 0, lengthJ = archetype.Entities.Count; j < lengthJ; j++)
+                foreach (var entityId in archetype)
                 {
-                    var entityId = archetype.Entities.Dense[j];
                     entity.Id = entityId;
                     entity.Age = world.GetEntityDataById(entityId).Age;
                     handler(entity,
