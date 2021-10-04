@@ -751,16 +751,13 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             var signature = entityData.Signature;
             var length = signature.Count;
+            
             if (typeIndexes == null || typeIndexes.Length < length)
-            {
                 typeIndexes = new (int, object)[length];
-            }
 
             var counter = 0;
             foreach (var idx in signature)
-            {
                 typeIndexes[counter++] = (idx, world.GetPool(idx).GetObject(entity.Id));
-            }
 
             return length;
         }
