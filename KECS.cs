@@ -617,6 +617,13 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Count(in this Entity entity)
+        {
+            return entity.World.GetEntityData(entity).Signature.Count;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsEmpty(in this Entity entity)
         {
             return entity.Id == 0 && entity.Age == 0;
