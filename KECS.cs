@@ -108,7 +108,7 @@ namespace Ludaludaed.KECS
     //==================================================================================================================
     // TASK POOLS
     //==================================================================================================================
-    
+
 
     internal interface ITaskPool
     {
@@ -322,8 +322,8 @@ namespace Ludaludaed.KECS
 #endif
             return ref _entities[entity.Id];
         }
-        
-        
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ref EntityData GetEntityDataById(int id)
         {
@@ -532,7 +532,7 @@ namespace Ludaludaed.KECS
         public BitMask Signature;
         public Archetype Archetype;
     }
-    
+
 
     public struct Entity
     {
@@ -745,7 +745,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetComponentsIndexes(in this Entity entity, ref int[] typeIndexes)
+        public static int GetComponents(in this Entity entity, ref (int, object)[] typeIndexes)
         {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
@@ -753,35 +753,13 @@ namespace Ludaludaed.KECS
             var length = signature.Count;
             if (typeIndexes == null || typeIndexes.Length < length)
             {
-                typeIndexes = new int[length];
+                typeIndexes = new (int, object)[length];
             }
 
             var counter = 0;
             foreach (var idx in signature)
             {
-                typeIndexes[counter++] = idx;
-            }
-
-            return length;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetComponents(in this Entity entity, ref object[] objects)
-        {
-            var world = entity.World;
-            ref var entityData = ref world.GetEntityData(entity);
-            var signature = entityData.Signature;
-            var length = signature.Count;
-            if (objects == null || objects.Length < length)
-            {
-                objects = new object[length];
-            }
-
-            var counter = 0;
-            foreach (var idx in signature)
-            {
-                objects[counter++] = world.GetPool(idx).GetObject(entity.Id);
+                typeIndexes[counter++] = (idx, world.GetPool(idx).GetObject(entity.Id));
             }
 
             return length;
@@ -1109,10 +1087,10 @@ namespace Ludaludaed.KECS
         public static void ForEach(this Query query, ForEachHandler handler)
         {
             var world = query.World;
-            
+
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1142,10 +1120,10 @@ namespace Ludaludaed.KECS
             query.With<T>();
 
             var poolT = world.GetPool<T>();
-            
+
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1181,7 +1159,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1220,7 +1198,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1262,7 +1240,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1307,7 +1285,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1355,7 +1333,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1406,7 +1384,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1460,7 +1438,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1517,7 +1495,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1577,7 +1555,7 @@ namespace Ludaludaed.KECS
 
             Entity entity;
             entity.World = world;
-            
+
             world.Lock();
             var archetypes = world.Archetypes;
             for (int i = 0, length = archetypes.Count; i < length; i++)
@@ -1650,7 +1628,7 @@ namespace Ludaludaed.KECS
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
         private HashMap<object> _sharedData;
-        
+
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT")
@@ -1704,7 +1682,8 @@ namespace Ludaludaed.KECS
 #if DEBUG
             if (!_initialized) throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed) throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            if(!_sharedData.Contains(hash))throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
+            if (!_sharedData.Contains(hash))
+                throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
 #endif
             return _sharedData.Get(hash) as T;
         }
