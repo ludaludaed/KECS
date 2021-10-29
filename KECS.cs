@@ -676,7 +676,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetEvent<T>(in this Entity entity, in T value = default) where T : struct
+        public static void SetEvent<T>(in this Entity entity, in T value) where T : struct
         {
             if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
