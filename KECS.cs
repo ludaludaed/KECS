@@ -325,7 +325,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref EntityData GetEntityDataById(int id)
+        internal ref EntityData GetEntityData(int id)
         {
 #if DEBUG
             if (!_isAlive) throw new Exception("|KECS| World already destroyed.");
@@ -1098,7 +1098,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity);
                 }
             }
@@ -1131,7 +1131,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId));
                 }
@@ -1167,7 +1167,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId));
@@ -1206,7 +1206,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1248,7 +1248,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1293,7 +1293,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1341,7 +1341,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1392,7 +1392,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1446,7 +1446,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1503,7 +1503,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
@@ -1563,7 +1563,7 @@ namespace Ludaludaed.KECS
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
-                    entity.Age = world.GetEntityDataById(entityId).Age;
+                    entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
                         ref poolT.Get(entityId),
                         ref poolY.Get(entityId),
