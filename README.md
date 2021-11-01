@@ -255,7 +255,5 @@ public class StartUp : MonoBehaviour
 
 ## 💬 Contacts
 ### Telegram: [ludaludaed](https://t.me/ludaludaed)
-### email: tagirov_2003@bk.ru
-
 
 
