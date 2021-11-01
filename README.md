@@ -254,8 +254,8 @@ public class StartUp : MonoBehaviour
 📄 [MIT License](LICENSE)
 
 ## 💬 Contacts
-Telegram: [ludaludaed](https://t.me/ludaludaed)
-Mail: tagirov_2003@bk.ru
+#Telegram: [ludaludaed](https://t.me/ludaludaed)
+#Mail: tagirov_2003@bk.ru
 
 
 
