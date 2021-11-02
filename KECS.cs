@@ -400,10 +400,10 @@ namespace Ludaludaed.KECS
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (_componentPools.Contains(idx)) return (ComponentPool<T>)_componentPools.Get(idx);
+            if (_componentPools.Contains(idx)) return (ComponentPool<T>) _componentPools.Get(idx);
             var pool = new ComponentPool<T>(Config.Entities);
             _componentPools.Set(idx, pool);
-            return (ComponentPool<T>)_componentPools.Get(idx);
+            return (ComponentPool<T>) _componentPools.Get(idx);
         }
 
 
@@ -427,11 +427,11 @@ namespace Ludaludaed.KECS
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (_taskPools.Contains(idx)) return (TaskPool<T>)_taskPools.Get(idx);
+            if (_taskPools.Contains(idx)) return (TaskPool<T>) _taskPools.Get(idx);
             var pool = new TaskPool<T>(Config.Entities);
             _taskPools.Set(idx, pool);
 
-            return (TaskPool<T>)_taskPools.Get(idx);
+            return (TaskPool<T>) _taskPools.Get(idx);
         }
 
 
@@ -746,7 +746,7 @@ namespace Ludaludaed.KECS
             ref var entityData = ref world.GetEntityData(entity);
             var signature = entityData.Signature;
             var length = signature.Count;
-            
+
             if (typeIndexes == null || typeIndexes.Length < length)
                 typeIndexes = new (int, object)[length];
 
@@ -1898,23 +1898,19 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value)
         {
-            if (!Contains(sparseIdx))
-            {
-                ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
-                ArrayExtension.EnsureLength(ref _dense, _denseCount);
-                ArrayExtension.EnsureLength(ref Data, _denseCount);
-
-                _sparse[sparseIdx] = _denseCount;
-
-                _dense[_denseCount] = sparseIdx;
-                Data[_denseCount] = value;
-
-                _denseCount++;
-            }
-            else
+            if (Contains(sparseIdx))
             {
                 Data[_sparse[sparseIdx]] = value;
+                return;
             }
+            ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
+            ArrayExtension.EnsureLength(ref _dense, _denseCount);
+            ArrayExtension.EnsureLength(ref Data, _denseCount);
+            
+            _sparse[sparseIdx] = _denseCount;
+            _dense[_denseCount] = sparseIdx;
+            Data[_denseCount] = value;
+            _denseCount++;
         }
 
 
@@ -2152,10 +2148,10 @@ namespace Ludaludaed.KECS
             ulong h = 1234;
             for (var i = mask.Chunks.Length - 1; i >= 0; i--)
             {
-                h ^= ((ulong)i + 1) * mask.Chunks[i];
+                h ^= ((ulong) i + 1) * mask.Chunks[i];
             }
 
-            return (int)((h >> 32) ^ h);
+            return (int) ((h >> 32) ^ h);
         }
     }
 
