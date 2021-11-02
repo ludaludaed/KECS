@@ -77,19 +77,14 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetWorld(string name, out World world)
-        {
-            var hashName = name.GetHashCode();
-            return _worlds.TryGetValue(hashName, out world);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static World Get(string name)
         {
             var hashName = name.GetHashCode();
-            if (_worlds.TryGetValue(hashName, out var world)) return world;
-            throw new Exception($"|KECS| No world with {name} name was found.");
+#if DEBUG
+            if (!_worlds.Contains(hashName))
+                throw new Exception($"|KECS| No world with {name} name was found.");
+#endif
+            return _worlds.Get(hashName);
         }
 
 
@@ -443,11 +438,11 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExecuteTasks()
         {
+#if DEBUG
             if (!_isAlive) throw new Exception($"|KECS| World - {Name} destroyed");
+#endif
             for (int i = 0, length = _taskPools.Count; i < length; i++)
-            {
                 _taskPools.Data[i].Execute();
-            }
         }
 
 
@@ -1930,7 +1925,6 @@ namespace Ludaludaed.KECS
             if (!Contains(sparseIdx))
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
 #endif
-
             var packedIdx = _sparse[sparseIdx];
             _sparse[sparseIdx] = None;
             _denseCount--;
