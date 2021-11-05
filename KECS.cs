@@ -1076,6 +1076,13 @@ namespace Ludaludaed.KECS
     public static class QueryExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsMatch(this Query query, Archetype archetype)
+        {
+            return archetype.Count > 0 && archetype.Signature.Contains(query.Include) &&
+                   (query.Exclude.Count == 0 || !archetype.Signature.Intersects(query.Exclude));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach(this Query query, ForEachHandler handler)
         {
             var world = query.World;
@@ -1088,8 +1095,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1121,8 +1127,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1157,8 +1162,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1196,8 +1200,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1238,8 +1241,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1283,8 +1285,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1331,8 +1332,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1382,8 +1382,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1436,8 +1435,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1493,8 +1491,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1553,8 +1550,7 @@ namespace Ludaludaed.KECS
             for (int i = 0, length = archetypes.Count; i < length; i++)
             {
                 var archetype = archetypes.Get(i);
-                if (archetype.Count <= 0 || !archetype.Signature.Contains(query.Include) ||
-                    query.Exclude.Count != 0 && archetype.Signature.Intersects(query.Exclude)) continue;
+                if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype)
                 {
                     entity.Id = entityId;
@@ -1903,10 +1899,11 @@ namespace Ludaludaed.KECS
                 Data[_sparse[sparseIdx]] = value;
                 return;
             }
+
             ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
             ArrayExtension.EnsureLength(ref _dense, _denseCount);
             ArrayExtension.EnsureLength(ref Data, _denseCount);
-            
+
             _sparse[sparseIdx] = _denseCount;
             _dense[_denseCount] = sparseIdx;
             Data[_denseCount] = value;
