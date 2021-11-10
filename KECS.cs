@@ -209,9 +209,6 @@ namespace Ludaludaed.KECS
         public readonly string Name;
         private bool _isAlive;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive() => _isAlive;
-
         internal World(WorldConfig config, string name)
         {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
@@ -231,6 +228,10 @@ namespace Ludaludaed.KECS
             Config = config;
             Name = name;
         }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsAlive() => _isAlive;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -301,8 +302,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool EntityIsAlive(in Entity entity)
         {
-            if (entity.World != this || !_isAlive) return false;
-            return _entities[entity.Id].Age == entity.Age;
+            return entity.World == this && _isAlive && _entities[entity.Id].Age == entity.Age;
         }
 
 
