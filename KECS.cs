@@ -34,7 +34,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public class Worlds
+    public static class Worlds
     {
         private static readonly HashMap<World> _worlds;
         private static readonly object _lockObject;
@@ -81,10 +81,16 @@ namespace Ludaludaed.KECS
         {
             var hashName = name.GetHashCode();
 #if DEBUG
-            if (!_worlds.Contains(hashName))
-                throw new Exception($"|KECS| No world with {name} name was found.");
+            lock (_lockObject)
+            {
+                if (!_worlds.Contains(hashName))
+                    throw new Exception($"|KECS| No world with {name} name was found.");
+            }
 #endif
-            return _worlds.Get(hashName);
+            lock (_lockObject)
+            {
+                return _worlds.Get(hashName);
+            }
         }
 
 
@@ -442,7 +448,9 @@ namespace Ludaludaed.KECS
             if (!_isAlive) throw new Exception($"|KECS| World - {Name} destroyed");
 #endif
             for (int i = 0, length = _taskPools.Count; i < length; i++)
+            {
                 _taskPools.Data[i].Execute();
+            }
         }
 
 
@@ -467,7 +475,7 @@ namespace Ludaludaed.KECS
         {
             var hash = signature.GetHash();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
-            archetype = new Archetype(signature.Copy(), Config.Entities);
+            archetype = new Archetype(new BitMask(signature), Config.Entities);
             Archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
@@ -1999,8 +2007,16 @@ namespace Ludaludaed.KECS
         }
 
 
-        internal BitMask()
+        public BitMask(BitMask other)
         {
+            var newSize = other.Chunks.Length;
+            Chunks = new ulong[newSize];
+            for (var i = 0; i < newSize; i++)
+            {
+                Chunks[i] = other.Chunks[i];
+            }
+
+            Count = other.Count;
         }
 
 
@@ -2135,22 +2151,6 @@ namespace Ludaludaed.KECS
             {
                 mask.Chunks[i] |= include.Chunks[i];
             }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BitMask Copy(this BitMask src)
-        {
-            var newMask = new BitMask();
-            var newSize = src.Chunks.Length;
-            newMask.Chunks = new ulong[newSize];
-            for (var i = 0; i < newSize; i++)
-            {
-                newMask.Chunks[i] = src.Chunks[i];
-            }
-
-            newMask.Count = src.Count;
-            return newMask;
         }
 
 
@@ -2360,7 +2360,7 @@ namespace Ludaludaed.KECS
                 _current = 0;
                 _index = -1;
             }
-            
+
             public ref T Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2404,9 +2404,9 @@ namespace Ludaludaed.KECS
         private T[] _data;
         private int _count;
         private EqualityComparer<T> _comparer;
-        
+
         public int Count => _count;
-        
+
         public FastList(int capacity = 0)
         {
             if (capacity < MinCapacity) capacity = MinCapacity;
