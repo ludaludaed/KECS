@@ -2026,8 +2026,8 @@ namespace Ludaludaed.KECS
 
         public ref struct Enumerator
         {
-            private readonly int _count;
-            private readonly BitSet _bitSet;
+            private int _count;
+            private BitSet _bitSet;
             private int _index;
             private int _returned;
 
@@ -2058,6 +2058,10 @@ namespace Ludaludaed.KECS
                     return true;
                 }
 
+                _bitSet = null;
+                _count = 0;
+                _index = -1;
+                _returned = 0;
                 return false;
             }
         }
@@ -2102,7 +2106,8 @@ namespace Ludaludaed.KECS
         public static bool GetBit(this BitSet source, int index)
         {
             var chunk = index / BitSet.ChunkCapacity;
-            return chunk < source.Chunks.Length && (source.Chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
+            return chunk < source.Chunks.Length &&
+                   (source.Chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
         }
 
 
