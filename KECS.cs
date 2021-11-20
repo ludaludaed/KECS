@@ -52,7 +52,7 @@ namespace Ludaludaed.KECS
             {
                 var hashName = name.GetHashCode();
 #if DEBUG
-                if (string.IsNullOrEmpty(name)) 
+                if (string.IsNullOrEmpty(name))
                     throw new Exception("|KECS| World name cant be null or empty.");
                 if (_worlds.Contains(hashName))
                     throw new Exception($"|KECS| A world with {name} name already exists.");
@@ -317,9 +317,9 @@ namespace Ludaludaed.KECS
         internal ref EntityData GetEntityData(Entity entity)
         {
 #if DEBUG
-            if (entity.World != this) 
+            if (entity.World != this)
                 throw new Exception("|KECS| Invalid world.");
-            if (!_isAlive) 
+            if (!_isAlive)
                 throw new Exception("|KECS| World already destroyed.");
             if (entity.Age != _entities[entity.Id].Age)
                 throw new Exception($"|KECS| Entity {entity.Id} was destroyed.");
@@ -332,9 +332,9 @@ namespace Ludaludaed.KECS
         internal ref EntityData GetEntityData(int id)
         {
 #if DEBUG
-            if (!_isAlive) 
+            if (!_isAlive)
                 throw new Exception("|KECS| World already destroyed.");
-            if (id < 0 || id >= _entitiesLength) 
+            if (id < 0 || id >= _entitiesLength)
                 throw new Exception($"|KECS| Invalid entity ({id}).");
 #endif
             return ref _entities[id];
@@ -415,6 +415,7 @@ namespace Ludaludaed.KECS
             {
                 return (ComponentPool<T>) _componentPools.Get(idx);
             }
+
             var pool = new ComponentPool<T>(Config.Entities);
             _componentPools.Set(idx, pool);
             return (ComponentPool<T>) _componentPools.Get(idx);
@@ -445,6 +446,7 @@ namespace Ludaludaed.KECS
             {
                 return (TaskPool<T>) _taskPools.Get(idx);
             }
+
             var pool = new TaskPool<T>(Config.Entities);
             _taskPools.Set(idx, pool);
 
@@ -456,7 +458,7 @@ namespace Ludaludaed.KECS
         public void ExecuteTasks()
         {
 #if DEBUG
-            if (!_isAlive) 
+            if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} destroyed");
 #endif
             for (int i = 0, length = _taskPools.Count; i < length; i++)
@@ -504,7 +506,7 @@ namespace Ludaludaed.KECS
         public void Destroy()
         {
 #if DEBUG
-            if (!_isAlive) 
+            if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} already destroy");
 #endif
             _lockCount = 0;
@@ -1646,7 +1648,7 @@ namespace Ludaludaed.KECS
         public Systems(World world, string name = "DEFAULT")
         {
 #if DEBUG
-            if (string.IsNullOrEmpty(name)) 
+            if (string.IsNullOrEmpty(name))
                 throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
             _sharedData = new HashMap<object>();
@@ -1663,14 +1665,14 @@ namespace Ludaludaed.KECS
 
         public void AddDebugListener(ISystemsDebugListener listener)
         {
-            if (listener == null) 
+            if (listener == null)
                 throw new Exception("|KECS| Listener is null.");
             _debugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(ISystemsDebugListener listener)
         {
-            if (listener == null) 
+            if (listener == null)
                 throw new Exception("|KECS| Listener is null.");
             _debugListeners.Remove(listener);
         }
@@ -1680,9 +1682,9 @@ namespace Ludaludaed.KECS
         {
             var hash = typeof(T).GetHashCode();
 #if DEBUG
-            if (_initialized) 
+            if (_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) 
+            if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             if (_sharedData.Contains(hash))
                 throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
@@ -1697,9 +1699,9 @@ namespace Ludaludaed.KECS
         {
             var hash = typeof(T).GetHashCode();
 #if DEBUG
-            if (!_initialized) 
+            if (!_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) 
+            if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
             if (!_sharedData.Contains(hash))
                 throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
@@ -1712,7 +1714,7 @@ namespace Ludaludaed.KECS
         public Systems Add<T>(T systemValue) where T : SystemBase
         {
 #if DEBUG
-            if (_initialized) 
+            if (_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
 #endif
             _allSystems.Add(systemValue);
@@ -1737,7 +1739,7 @@ namespace Ludaludaed.KECS
         public override void Initialize()
         {
 #if DEBUG
-            if (_destroyed) 
+            if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
             _initialized = true;
 #endif
@@ -1751,9 +1753,9 @@ namespace Ludaludaed.KECS
         public override void OnUpdate(float deltaTime)
         {
 #if DEBUG
-            if (!_initialized) 
+            if (!_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
-            if (_destroyed) 
+            if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
 #endif
             for (int i = 0, length = _updateSystems.Count; i < length; i++)
@@ -1767,7 +1769,7 @@ namespace Ludaludaed.KECS
         public override void OnDestroy()
         {
 #if DEBUG
-            if (_destroyed) 
+            if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
             _destroyed = true;
 #endif
