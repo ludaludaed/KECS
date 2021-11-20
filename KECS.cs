@@ -567,7 +567,10 @@ namespace Ludaludaed.KECS
         {
             var entity = world.CreateEntity();
             for (int i = 0, length = _builders.Count; i < length; i++)
+            {
                 _builders.Data[i].Set(entity);
+            }
+
             entity.UpdateArchetype();
             return entity;
         }
@@ -1842,7 +1845,11 @@ namespace Ludaludaed.KECS
                 _index = 0;
             }
 
-            public int Current => _set.Dense[_index++];
+            public int Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => _set.Dense[_index++];
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _index < _set.Count;
@@ -1960,7 +1967,11 @@ namespace Ludaludaed.KECS
                 _index = 0;
             }
 
-            public ref T Current => ref _handleMap.Data[_index++];
+            public ref T Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => ref _handleMap.Data[_index++];
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _index < _handleMap.Count;
@@ -2013,7 +2024,11 @@ namespace Ludaludaed.KECS
                 _returned = 0;
             }
 
-            public int Current => _index;
+            public int Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => _index;
+            }
 
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2345,8 +2360,12 @@ namespace Ludaludaed.KECS
                 _current = 0;
                 _index = -1;
             }
-
-            public ref T Current => ref _hashMap._data[_current];
+            
+            public ref T Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => ref _hashMap._data[_current];
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext()
@@ -2481,7 +2500,11 @@ namespace Ludaludaed.KECS
                 _index = 0;
             }
 
-            public ref T Current => ref _list._data[_index++];
+            public ref T Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => ref _list._data[_index++];
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() => _index < _list.Count;
