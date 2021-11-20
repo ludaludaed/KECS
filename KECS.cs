@@ -227,7 +227,7 @@ namespace Ludaludaed.KECS
             _dirtyEntities = new SparseSet(config.Entities);
             _queries = new Query[config.Queries];
 
-            var emptyArch = new Archetype(new BitMask(config.Components), config.Entities);
+            var emptyArch = new Archetype(new BitSet(config.Components), config.Entities);
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             Archetypes.Add(emptyArch);
             _isAlive = true;
@@ -361,7 +361,7 @@ namespace Ludaludaed.KECS
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Signature = new BitMask(Config.Components);
+                entityData.Signature = new BitSet(Config.Components);
                 entityData.Archetype = emptyArchetype;
                 entity.Age = 1;
                 entityData.Age = 1;
@@ -471,11 +471,11 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype GetArchetype(BitMask signature)
+        internal Archetype GetArchetype(BitSet signature)
         {
             var hash = signature.GetHash();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
-            archetype = new Archetype(new BitMask(signature), Config.Entities);
+            archetype = new Archetype(new BitSet(signature), Config.Entities);
             Archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
@@ -532,7 +532,7 @@ namespace Ludaludaed.KECS
     public struct EntityData
     {
         public int Age;
-        public BitMask Signature;
+        public BitSet Signature;
         public Archetype Archetype;
     }
 
@@ -781,12 +781,12 @@ namespace Ludaludaed.KECS
     public sealed class Archetype
     {
         private readonly SparseSet Entities;
-        public readonly BitMask Signature;
+        public readonly BitSet Signature;
         public readonly int Hash;
 
         public int Count => Entities.Count;
 
-        internal Archetype(BitMask signature, int entityCapacity)
+        internal Archetype(BitSet signature, int entityCapacity)
         {
             Entities = new SparseSet(entityCapacity);
             Signature = signature;
@@ -1019,16 +1019,16 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Query
     {
-        internal readonly BitMask Include;
-        internal readonly BitMask Exclude;
+        internal readonly BitSet Include;
+        internal readonly BitSet Exclude;
         internal readonly World World;
 
 
         internal Query(World world)
         {
             World = world;
-            Include = new BitMask(world.Config.Components);
-            Exclude = new BitMask(world.Config.Components);
+            Include = new BitSet(world.Config.Components);
+            Exclude = new BitSet(world.Config.Components);
         }
 
 
@@ -1991,14 +1991,14 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class BitMask
+    public sealed class BitSet
     {
         internal const int ChunkCapacity = sizeof(ulong) * 8;
         internal ulong[] Chunks;
         internal int Count;
 
 
-        public BitMask(int capacity)
+        public BitSet(int capacity)
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
@@ -2007,7 +2007,7 @@ namespace Ludaludaed.KECS
         }
 
 
-        public BitMask(BitMask other)
+        public BitSet(BitSet other)
         {
             var newSize = other.Chunks.Length;
             Chunks = new ulong[newSize];
@@ -2027,15 +2027,15 @@ namespace Ludaludaed.KECS
         public ref struct Enumerator
         {
             private readonly int _count;
-            private readonly BitMask _bitMask;
+            private readonly BitSet _bitSet;
             private int _index;
             private int _returned;
 
 
-            public Enumerator(BitMask bitMask)
+            public Enumerator(BitSet bitSet)
             {
-                _bitMask = bitMask;
-                _count = bitMask.Count;
+                _bitSet = bitSet;
+                _count = bitSet.Count;
                 _index = -1;
                 _returned = 0;
             }
@@ -2053,7 +2053,7 @@ namespace Ludaludaed.KECS
                 while (_returned < _count)
                 {
                     _index++;
-                    if (!_bitMask.GetBit(_index)) continue;
+                    if (!_bitSet.GetBit(_index)) continue;
                     _returned++;
                     return true;
                 }
@@ -2068,51 +2068,51 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class BitMaskExtensions
+    public static class BitSetExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BitMask SetBit(this BitMask mask, int index)
+        public static BitSet SetBit(this BitSet source, int index)
         {
-            var chunk = index / BitMask.ChunkCapacity;
-            ArrayExtension.EnsureLength(ref mask.Chunks, chunk);
-            var oldValue = mask.Chunks[chunk];
-            var newValue = oldValue | (1UL << (index % BitMask.ChunkCapacity));
-            if (oldValue == newValue) return mask;
-            mask.Chunks[chunk] = newValue;
-            mask.Count++;
-            return mask;
+            var chunk = index / BitSet.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref source.Chunks, chunk);
+            var oldValue = source.Chunks[chunk];
+            var newValue = oldValue | (1UL << (index % BitSet.ChunkCapacity));
+            if (oldValue == newValue) return source;
+            source.Chunks[chunk] = newValue;
+            source.Count++;
+            return source;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BitMask ClearBit(this BitMask mask, int index)
+        public static BitSet ClearBit(this BitSet source, int index)
         {
-            var chunk = index / BitMask.ChunkCapacity;
-            ArrayExtension.EnsureLength(ref mask.Chunks, chunk);
-            var oldValue = mask.Chunks[chunk];
-            var newValue = oldValue & ~(1UL << (index % BitMask.ChunkCapacity));
-            if (oldValue == newValue) return mask;
-            mask.Chunks[chunk] = newValue;
-            mask.Count--;
-            return mask;
+            var chunk = index / BitSet.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref source.Chunks, chunk);
+            var oldValue = source.Chunks[chunk];
+            var newValue = oldValue & ~(1UL << (index % BitSet.ChunkCapacity));
+            if (oldValue == newValue) return source;
+            source.Chunks[chunk] = newValue;
+            source.Count--;
+            return source;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool GetBit(this BitMask mask, int index)
+        public static bool GetBit(this BitSet source, int index)
         {
-            var chunk = index / BitMask.ChunkCapacity;
-            return chunk < mask.Chunks.Length && (mask.Chunks[chunk] & (1UL << (index % BitMask.ChunkCapacity))) != 0;
+            var chunk = index / BitSet.ChunkCapacity;
+            return chunk < source.Chunks.Length && (source.Chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Contains(this BitMask mask, BitMask bitMask)
+        public static bool Contains(this BitSet source, BitSet other)
         {
-            ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
-            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
+            ArrayExtension.EnsureLength(ref other.Chunks, source.Chunks.Length);
+            for (int i = 0, length = source.Chunks.Length; i < length; i++)
             {
-                if ((mask.Chunks[i] & bitMask.Chunks[i]) != bitMask.Chunks[i]) return false;
+                if ((source.Chunks[i] & other.Chunks[i]) != other.Chunks[i]) return false;
             }
 
             return true;
@@ -2120,12 +2120,12 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Intersects(this BitMask mask, BitMask bitMask)
+        public static bool Intersects(this BitSet source, BitSet other)
         {
-            ArrayExtension.EnsureLength(ref bitMask.Chunks, mask.Chunks.Length);
-            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
+            ArrayExtension.EnsureLength(ref other.Chunks, source.Chunks.Length);
+            for (int i = 0, length = source.Chunks.Length; i < length; i++)
             {
-                if ((mask.Chunks[i] & bitMask.Chunks[i]) != 0) return true;
+                if ((source.Chunks[i] & other.Chunks[i]) != 0) return true;
             }
 
             return false;
@@ -2133,34 +2133,34 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Clear(this BitMask mask)
+        public static void Clear(this BitSet source)
         {
-            mask.Count = 0;
-            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
+            source.Count = 0;
+            for (int i = 0, length = source.Chunks.Length; i < length; i++)
             {
-                mask.Chunks[i] = 0;
+                source.Chunks[i] = 0;
             }
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Merge(this BitMask mask, BitMask include)
+        public static void Merge(this BitSet source, BitSet include)
         {
-            ArrayExtension.EnsureLength(ref include.Chunks, mask.Chunks.Length);
-            for (int i = 0, length = mask.Chunks.Length; i < length; i++)
+            ArrayExtension.EnsureLength(ref include.Chunks, source.Chunks.Length);
+            for (int i = 0, length = source.Chunks.Length; i < length; i++)
             {
-                mask.Chunks[i] |= include.Chunks[i];
+                source.Chunks[i] |= include.Chunks[i];
             }
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetHash(this BitMask mask)
+        public static int GetHash(this BitSet source)
         {
             ulong h = 1234;
-            for (var i = mask.Chunks.Length - 1; i >= 0; i--)
+            for (var i = source.Chunks.Length - 1; i >= 0; i--)
             {
-                h ^= ((ulong) i + 1) * mask.Chunks[i];
+                h ^= ((ulong) i + 1) * source.Chunks[i];
             }
 
             return (int) ((h >> 32) ^ h);
