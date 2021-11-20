@@ -786,32 +786,32 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class Archetype
     {
-        private readonly SparseSet Entities;
+        private readonly SparseSet _entities;
         public readonly BitSet Signature;
         public readonly int Hash;
 
-        public int Count => Entities.Count;
+        public int Count => _entities.Count;
 
         internal Archetype(BitSet signature, int entityCapacity)
         {
-            Entities = new SparseSet(entityCapacity);
+            _entities = new SparseSet(entityCapacity);
             Signature = signature;
             Hash = Signature.GetHash();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntity(in int entityId) => Entities.Set(entityId);
+        internal void AddEntity(in int entityId) => _entities.Set(entityId);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RemoveEntity(in int entityId) => Entities.Remove(entityId);
+        internal void RemoveEntity(in int entityId) => _entities.Remove(entityId);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SparseSet.Enumerator GetEnumerator() => Entities.GetEnumerator();
+        public SparseSet.Enumerator GetEnumerator() => _entities.GetEnumerator();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            Entities.Clear();
+            _entities.Clear();
             Signature.Clear();
         }
     }
