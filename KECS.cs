@@ -2404,8 +2404,9 @@ namespace Ludaludaed.KECS
         private T[] _data;
         private int _count;
         private EqualityComparer<T> _comparer;
-
-
+        
+        public int Count => _count;
+        
         public FastList(int capacity = 0)
         {
             if (capacity < MinCapacity) capacity = MinCapacity;
@@ -2432,9 +2433,6 @@ namespace Ludaludaed.KECS
 #endif
             return ref _data[index];
         }
-
-
-        public int Count => _count;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
