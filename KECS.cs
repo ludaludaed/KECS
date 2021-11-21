@@ -2047,6 +2047,7 @@ namespace Ludaludaed.KECS
             {
                 _chunks[i] = other._chunks[i];
             }
+
             _count = other._count;
         }
 
