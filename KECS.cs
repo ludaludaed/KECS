@@ -487,7 +487,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype GetArchetype(BitSet signature)
         {
-            var hash = signature.GetHash();
+            var hash = signature.GetHashCode();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
             archetype = new Archetype(new BitSet(signature), Config.Entities);
             Archetypes.Add(archetype);
@@ -805,7 +805,7 @@ namespace Ludaludaed.KECS
         {
             _entities = new SparseSet(entityCapacity);
             Signature = signature;
-            Hash = Signature.GetHash();
+            Hash = Signature.GetHashCode();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2138,7 +2138,7 @@ namespace Ludaludaed.KECS
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHash()
+        public override int GetHashCode()
         {
             ulong h = 1234;
             for (var i = _chunks.Length - 1; i >= 0; i--)
