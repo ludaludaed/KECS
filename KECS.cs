@@ -2034,8 +2034,8 @@ namespace Ludaludaed.KECS
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
-            _count = 0;
             _chunks = new ulong[newSize];
+            _count = 0;
         }
 
 
@@ -2047,7 +2047,6 @@ namespace Ludaludaed.KECS
             {
                 _chunks[i] = other._chunks[i];
             }
-
             _count = other._count;
         }
 
@@ -2195,15 +2194,6 @@ namespace Ludaludaed.KECS
                 return false;
             }
         }
-    }
-
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    public static class BitSetExtensions
-    {
     }
 
 
