@@ -2020,30 +2020,133 @@ namespace Ludaludaed.KECS
 #endif
     public sealed class BitSet
     {
-        internal const int ChunkCapacity = sizeof(ulong) * 8;
-        internal ulong[] Chunks;
-        internal int Count;
+        private const int ChunkCapacity = sizeof(ulong) * 8;
+        private ulong[] _chunks;
+        private int _count;
 
+        public int Count
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _count;
+        }
 
         public BitSet(int capacity)
         {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
-            Count = 0;
-            Chunks = new ulong[newSize];
+            _count = 0;
+            _chunks = new ulong[newSize];
         }
 
 
         public BitSet(BitSet other)
         {
-            var newSize = other.Chunks.Length;
-            Chunks = new ulong[newSize];
+            var newSize = other._chunks.Length;
+            _chunks = new ulong[newSize];
             for (var i = 0; i < newSize; i++)
             {
-                Chunks[i] = other.Chunks[i];
+                _chunks[i] = other._chunks[i];
             }
 
-            Count = other.Count;
+            _count = other._count;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BitSet SetBit(int index)
+        {
+            var chunk = index / BitSet.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref _chunks, chunk);
+            var oldValue = _chunks[chunk];
+            var newValue = oldValue | (1UL << (index % BitSet.ChunkCapacity));
+            if (oldValue == newValue) return this;
+            _chunks[chunk] = newValue;
+            _count++;
+            return this;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BitSet ClearBit(int index)
+        {
+            var chunk = index / BitSet.ChunkCapacity;
+            ArrayExtension.EnsureLength(ref _chunks, chunk);
+            var oldValue = _chunks[chunk];
+            var newValue = oldValue & ~(1UL << (index % BitSet.ChunkCapacity));
+            if (oldValue == newValue) return this;
+            _chunks[chunk] = newValue;
+            _count--;
+            return this;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetBit(int index)
+        {
+            var chunk = index / BitSet.ChunkCapacity;
+            return chunk < _chunks.Length &&
+                   (_chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(BitSet other)
+        {
+            ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
+            for (int i = 0, length = _chunks.Length; i < length; i++)
+            {
+                if ((_chunks[i] & other._chunks[i]) != other._chunks[i]) return false;
+            }
+
+            return true;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Intersects(BitSet other)
+        {
+            ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
+            for (int i = 0, length = _chunks.Length; i < length; i++)
+            {
+                if ((_chunks[i] & other._chunks[i]) != 0) return true;
+            }
+
+            return false;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            _count = 0;
+            for (int i = 0, length = _chunks.Length; i < length; i++)
+            {
+                _chunks[i] = 0;
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Merge(BitSet include)
+        {
+            ArrayExtension.EnsureLength(ref include._chunks, _chunks.Length);
+            for (int i = 0, length = _chunks.Length; i < length; i++)
+            {
+                _chunks[i] |= include._chunks[i];
+            }
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetHash()
+        {
+            ulong h = 1234;
+            for (var i = _chunks.Length - 1; i >= 0; i--)
+            {
+                h ^= ((ulong) i + 1) * _chunks[i];
+            }
+
+            return (int) ((h >> 32) ^ h);
         }
 
 
@@ -2062,7 +2165,7 @@ namespace Ludaludaed.KECS
             public Enumerator(BitSet bitSet)
             {
                 _bitSet = bitSet;
-                _count = bitSet.Count;
+                _count = bitSet._count;
                 _index = -1;
                 _returned = 0;
             }
@@ -2101,102 +2204,6 @@ namespace Ludaludaed.KECS
 #endif
     public static class BitSetExtensions
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BitSet SetBit(this BitSet source, int index)
-        {
-            var chunk = index / BitSet.ChunkCapacity;
-            ArrayExtension.EnsureLength(ref source.Chunks, chunk);
-            var oldValue = source.Chunks[chunk];
-            var newValue = oldValue | (1UL << (index % BitSet.ChunkCapacity));
-            if (oldValue == newValue) return source;
-            source.Chunks[chunk] = newValue;
-            source.Count++;
-            return source;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BitSet ClearBit(this BitSet source, int index)
-        {
-            var chunk = index / BitSet.ChunkCapacity;
-            ArrayExtension.EnsureLength(ref source.Chunks, chunk);
-            var oldValue = source.Chunks[chunk];
-            var newValue = oldValue & ~(1UL << (index % BitSet.ChunkCapacity));
-            if (oldValue == newValue) return source;
-            source.Chunks[chunk] = newValue;
-            source.Count--;
-            return source;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool GetBit(this BitSet source, int index)
-        {
-            var chunk = index / BitSet.ChunkCapacity;
-            return chunk < source.Chunks.Length &&
-                   (source.Chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Contains(this BitSet source, BitSet other)
-        {
-            ArrayExtension.EnsureLength(ref other.Chunks, source.Chunks.Length);
-            for (int i = 0, length = source.Chunks.Length; i < length; i++)
-            {
-                if ((source.Chunks[i] & other.Chunks[i]) != other.Chunks[i]) return false;
-            }
-
-            return true;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Intersects(this BitSet source, BitSet other)
-        {
-            ArrayExtension.EnsureLength(ref other.Chunks, source.Chunks.Length);
-            for (int i = 0, length = source.Chunks.Length; i < length; i++)
-            {
-                if ((source.Chunks[i] & other.Chunks[i]) != 0) return true;
-            }
-
-            return false;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Clear(this BitSet source)
-        {
-            source.Count = 0;
-            for (int i = 0, length = source.Chunks.Length; i < length; i++)
-            {
-                source.Chunks[i] = 0;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Merge(this BitSet source, BitSet include)
-        {
-            ArrayExtension.EnsureLength(ref include.Chunks, source.Chunks.Length);
-            for (int i = 0, length = source.Chunks.Length; i < length; i++)
-            {
-                source.Chunks[i] |= include.Chunks[i];
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetHash(this BitSet source)
-        {
-            ulong h = 1234;
-            for (var i = source.Chunks.Length - 1; i >= 0; i--)
-            {
-                h ^= ((ulong) i + 1) * source.Chunks[i];
-            }
-
-            return (int) ((h >> 32) ^ h);
-        }
     }
 
 
@@ -2461,7 +2468,8 @@ namespace Ludaludaed.KECS
         public ref T Get(int index)
         {
 #if DEBUG
-            if (index >= _count || index < 0) throw new Exception($"|KECS| Index {index} out of bounds of array");
+            if (index >= _count || index < 0)
+                throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
             return ref _data[index];
         }
@@ -2487,10 +2495,14 @@ namespace Ludaludaed.KECS
         public void RemoveAt(int index)
         {
 #if DEBUG
-            if (index >= _count || index < 0) throw new Exception($"|KECS| Index {index} out of bounds of array");
+            if (index >= _count || index < 0)
+                throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
             if (index < --_count)
+            {
                 Array.Copy(_data, index + 1, _data, index, _count - index);
+            }
+
             _data[_count] = default;
         }
 
@@ -2499,7 +2511,8 @@ namespace Ludaludaed.KECS
         public void RemoveAtSwap(int index)
         {
 #if DEBUG
-            if (index >= _count || index < 0) throw new Exception($"|KECS| Index {index} out of bounds of array");
+            if (index >= _count || index < 0)
+                throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
             _data[index] = _data[_count - 1];
             _data[_count - 1] = default;
