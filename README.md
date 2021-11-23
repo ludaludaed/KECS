@@ -101,32 +101,32 @@ The system processes entities matching the filter.
 The system must implement the abstract class `SystemBase` or `UpdateSystem`.
 
 ```csharp
-    public class SystemTest1 : UpdateSystem
+public class SystemTest1 : UpdateSystem
+{
+    public override void Initialize()
     {
-        public override void Initialize()
-        {
-            // Will be called when the system is initialized.
-        }
-
-        public override void OnUpdate(float deltaTime)
-        {
-            _world.CreateQuery()
-                .ForEach((Entity entity, ref Component comp) =>
-                {
-                    comp.Counter++;
-                });
-        }
-
-        public override void OnDestroy()
-        {
-            // Will be called when the system is destroyed.
-        }
-
-        public override void PostDestroy()
-        {
-            //Will be called after the system is destroyed.
-        }
+        // Will be called when the system is initialized.
     }
+
+    public override void OnUpdate(float deltaTime)
+    {
+        _world.CreateQuery()
+            .ForEach((Entity entity, ref Component comp) =>
+            {
+                comp.Counter++;
+            });
+    }
+
+    public override void OnDestroy()
+    {
+            // Will be called when the system is destroyed.
+    }
+
+    public override void PostDestroy()
+    {
+        //Will be called after the system is destroyed.
+    }
+}
 ```
 
 #### 💡 Events
