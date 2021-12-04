@@ -37,7 +37,6 @@ The world can be retrieved using its name or id `Worlds.Get()`
 
 ```csharp
 var world = Worlds.Get(worldName);
-world = Worlds.Get(world.Id);
 ```
 
 The world can be destroyed using the `Destroy ()` method of the `World` class.
@@ -65,7 +64,7 @@ An entity is a container for components. The entity has methods for adding, remo
 ```csharp
 Entity entity = _world.CreateEntity();
 
-ref var settedSpeedComponent  = ref entity.Set(new SpeedComponent);
+ref var settedSpeedComponent  = ref entity.Set(new SpeedComponent());
 ref var gottenSpeedComponent = ref entity.Get<SpeedComponent>();
 
 entity.Remove<SpeedComponent>();
@@ -119,7 +118,7 @@ public class SystemTest1 : UpdateSystem
 
     public override void OnDestroy()
     {
-            // Will be called when the system is destroyed.
+        // Will be called when the system is destroyed.
     }
 
     public override void PostDestroy()
@@ -232,7 +231,7 @@ public class StartUp : MonoBehaviour
         _systems = new Systems(_world);
         _systems.Add(new SystemTest()).
                  Add(new SystemTest1()).
-                 Initialize();
+        _systems.Initialize();
     }
 
     public void Update()
@@ -254,6 +253,7 @@ public class StartUp : MonoBehaviour
 📄 [MIT License](LICENSE)
 
 ## 💬 Contacts
-### Telegram: [ludaludaed](https://t.me/ludaludaed)
+Telegram: [ludaludaed](https://t.me/ludaludaed)
+
 
 
