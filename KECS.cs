@@ -8,7 +8,6 @@ namespace Ludaludaed.KECS
     // WORLDS
     //==================================================================================================================
 
-
     public struct WorldInfo
     {
         public int EntitiesCount;
@@ -101,19 +100,16 @@ namespace Ludaludaed.KECS
             }
         }
     }
-
-
+    
     //==================================================================================================================
     // TASK POOLS
     //==================================================================================================================
-
-
+    
     internal interface ITaskPool
     {
         void Execute();
     }
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -174,8 +170,7 @@ namespace Ludaludaed.KECS
             public Entity Entity;
         }
     }
-
-
+    
     //==================================================================================================================
     // WORLD
     //==================================================================================================================
@@ -515,7 +510,6 @@ namespace Ludaludaed.KECS
         }
     }
 
-
     //==================================================================================================================
     // ENTITY
     //==================================================================================================================
@@ -580,11 +574,17 @@ namespace Ludaludaed.KECS
         private class ComponentBuilder<T> : IComponentBuilder where T : struct
         {
             private T _component;
-            internal ComponentBuilder(in T component) => _component = component;
-            public void Set(in Entity entity) => entity.SetFast(in _component);
+            internal ComponentBuilder(in T component)
+            {
+                _component = component;
+            }
+
+            public void Set(in Entity entity)
+            {
+                entity.SetFast(in _component);
+            }
         }
     }
-
 
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
@@ -740,7 +740,6 @@ namespace Ludaludaed.KECS
         }
     }
 
-
     //==================================================================================================================
     // ARCHETYPES
     //==================================================================================================================
@@ -789,11 +788,11 @@ namespace Ludaludaed.KECS
             Signature.Clear();
         }
     }
-
-
+    
     //==================================================================================================================
     // POOLS
     //==================================================================================================================
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -895,12 +894,10 @@ namespace Ludaludaed.KECS
         public void Clear() => _components.Clear();
     }
 
-
     //==================================================================================================================
     // QUERY
     //==================================================================================================================
-
-
+    
     public delegate void ForEachHandler(Entity entity);
 
     public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
@@ -984,8 +981,7 @@ namespace Ludaludaed.KECS
         where S : struct
         where D : struct
         where F : struct;
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1046,8 +1042,7 @@ namespace Ludaludaed.KECS
             World.RecycleQuery(this);
         }
     }
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1543,7 +1538,6 @@ namespace Ludaludaed.KECS
         }
     }
 
-
     //==================================================================================================================
     // SYSTEMS
     //==================================================================================================================
@@ -1581,7 +1575,6 @@ namespace Ludaludaed.KECS
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
         private HashMap<object> _sharedData;
-
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT")
@@ -1734,13 +1727,11 @@ namespace Ludaludaed.KECS
 #endif
         }
     }
-
-
+    
     //==================================================================================================================
     // HELPER
     //==================================================================================================================
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -1946,7 +1937,6 @@ namespace Ludaludaed.KECS
         }
     }
 
-
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -2116,8 +2106,7 @@ namespace Ludaludaed.KECS
             }
         }
     }
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -2331,8 +2320,7 @@ namespace Ludaludaed.KECS
             public int Key;
         }
     }
-
-
+    
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
@@ -2443,7 +2431,6 @@ namespace Ludaludaed.KECS
             public bool MoveNext() => _index < _list.Count;
         }
     }
-
 
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
