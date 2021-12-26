@@ -305,8 +305,7 @@ namespace Ludaludaed.KECS {
                 entityData.Signature.Clear();
                 entityData.Archetype = emptyArchetype;
                 entity.Age = entityData.Age;
-            }
-            else {
+            } else {
                 var newEntityId = _entitiesLength++;
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
@@ -1416,14 +1415,11 @@ namespace Ludaludaed.KECS {
         public Systems _systems;
         public bool IsEnable;
 
-        public virtual void Initialize() {
-        }
+        public virtual void Initialize() { }
 
-        public virtual void OnDestroy() {
-        }
+        public virtual void OnDestroy() { }
 
-        public virtual void PostDestroy() {
-        }
+        public virtual void PostDestroy() { }
     }
 
 #if ENABLE_IL2CPP
@@ -1511,8 +1507,7 @@ namespace Ludaludaed.KECS {
             if (systemValue is UpdateSystem system) _updateSystems.Add(system);
             if (systemValue is Systems systemGroup) {
                 systemGroup._sharedData = _sharedData;
-            }
-            else {
+            } else {
                 systemValue._world = _world;
             }
 
@@ -1986,8 +1981,7 @@ namespace Ludaludaed.KECS {
             if (_freeListIdx >= 0) {
                 entryIdx = _freeListIdx;
                 _freeListIdx = _entries[entryIdx].Next;
-            }
-            else _length++;
+            } else _length++;
 
             ref var entry = ref _entries[entryIdx];
             entry.Next = _buckets[index];
