@@ -77,15 +77,12 @@ namespace Ludaludaed.KECS
         public static World Get(string name)
         {
             var hashName = name.GetHashCode();
-#if DEBUG
             lock (_lockObject)
             {
+#if DEBUG
                 if (!_worlds.Contains(hashName))
                     throw new Exception($"|KECS| No world with {name} name was found.");
-            }
 #endif
-            lock (_lockObject)
-            {
                 return _worlds.Get(hashName);
             }
         }
@@ -147,8 +144,10 @@ namespace Ludaludaed.KECS
             {
                 _removeTasksCount = 0;
                 ref var removeTask = ref _removeTasks[i];
-                if (!removeTask.Entity.IsAlive() || !removeTask.Entity.Has<T>()) continue;
-                removeTask.Entity.Remove<T>();
+                if (removeTask.Entity.IsAlive() && removeTask.Entity.Has<T>())
+                {
+                    removeTask.Entity.Remove<T>();
+                }
             }
 
             for (int i = 0, length = _addTasksCount; i < length; i++)
@@ -157,7 +156,6 @@ namespace Ludaludaed.KECS
                 ref var task = ref _addTasks[i];
                 if (!task.Entity.IsAlive()) continue;
                 task.Entity.Set(task.Component);
-
                 ref var removeTask = ref _removeTasks[_removeTasksCount++];
                 removeTask.Entity = task.Entity;
                 removeTask.Component = task.Component;
@@ -258,7 +256,8 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddDelayedChange(in int entityId)
         {
-            if (_lockCount <= 0) return false;
+            if (_lockCount <= 0) 
+                return false;
             if (!_dirtyEntities.Contains(entityId))
                 _dirtyEntities.Set(entityId);
             return true;
@@ -269,13 +268,15 @@ namespace Ludaludaed.KECS
 
         public void AddDebugListener(IWorldDebugListener listener)
         {
-            if (listener == null) throw new Exception("Listener is null.");
+            if (listener == null) 
+                throw new Exception("Listener is null.");
             DebugListeners.Add(listener);
         }
 
         public void RemoveDebugListener(IWorldDebugListener listener)
         {
-            if (listener == null) throw new Exception("Listener is null.");
+            if (listener == null) 
+                throw new Exception("Listener is null.");
             DebugListeners.Remove(listener);
         }
 #endif
@@ -372,8 +373,8 @@ namespace Ludaludaed.KECS
             entityData.Archetype.RemoveEntity(entity.Id);
             entityData.Archetype = null;
             entityData.Age++;
-            if (entityData.Age == 0) entityData.Age = 1;
-
+            if (entityData.Age == 0) 
+                entityData.Age = 1;
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
@@ -582,7 +583,7 @@ namespace Ludaludaed.KECS
 #endif
         private class ComponentBuilder<T> : IComponentBuilder where T : struct
         {
-            private T _component;
+            private readonly T _component;
             internal ComponentBuilder(in T component)
             {
                 _component = component;
