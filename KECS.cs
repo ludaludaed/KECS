@@ -224,10 +224,16 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive() => _isAlive;
+        public bool IsAlive()
+        {
+            return _isAlive;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Lock() => _lockCount++;
+        internal void Lock()
+        {
+            _lockCount++;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Unlock()
@@ -541,7 +547,10 @@ namespace Ludaludaed.KECS
             _builders = new HandleMap<IComponentBuilder>(WorldConfig.DefaultComponents);
         }
 
-        public void Clear() => _builders.Clear();
+        public void Clear()
+        {
+            _builders.Clear();
+        }
 
         public EntityBuilder Append<T>(in T component = default) where T : struct
         {
@@ -891,7 +900,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() => _components.Clear();
+        public void Clear()
+        {
+            _components.Clear();
+        }
     }
 
     //==================================================================================================================
@@ -1794,7 +1806,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
 
         public struct Enumerator
         {
@@ -1814,7 +1829,10 @@ namespace Ludaludaed.KECS
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => _index < _set.Count;
+            public bool MoveNext()
+            {
+                return _index < _set.Count;
+            }
         }
     }
 
@@ -1913,7 +1931,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
 
         public struct Enumerator
         {
@@ -1933,7 +1954,10 @@ namespace Ludaludaed.KECS
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => _index < _handleMap.Count;
+            public bool MoveNext()
+            {
+                return _index < _handleMap.Count;
+            }
         }
     }
 
@@ -2064,7 +2088,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
 
         public ref struct Enumerator
         {
@@ -2141,7 +2168,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int IndexFor(int key, int length) => key & (length - 1);
+        private static int IndexFor(int key, int length)
+        {
+            return key & (length - 1);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int key, T value)
@@ -2274,7 +2304,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
 
         public struct Enumerator
         {
@@ -2368,10 +2401,16 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(T value) => RemoveAt(_data.IndexOf(value, _comparer));
+        public void Remove(T value)
+        {
+            RemoveAt(_data.IndexOf(value, _comparer));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveSwap(T value) => RemoveAtSwap(_data.IndexOf(value, _comparer));
+        public void RemoveSwap(T value)
+        {
+            RemoveAtSwap(_data.IndexOf(value, _comparer));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAt(int index)
@@ -2408,7 +2447,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
 
         public struct Enumerator
         {
@@ -2428,7 +2470,10 @@ namespace Ludaludaed.KECS
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => _index < _list.Count;
+            public bool MoveNext()
+            {
+                return _index < _list.Count;
+            }
         }
     }
 
