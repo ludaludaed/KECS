@@ -2,22 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Ludaludaed.KECS
-{
+namespace Ludaludaed.KECS {
     //==================================================================================================================
     // WORLDS
     //==================================================================================================================
 
-    public struct WorldInfo
-    {
+    public struct WorldInfo {
         public int EntitiesCount;
         public int FreeEntitiesCount;
         public int ArchetypesCount;
         public int ComponentsCount;
     }
 
-    public struct WorldConfig
-    {
+    public struct WorldConfig {
         public int Entities;
         public int Archetypes;
         public int Components;
@@ -32,22 +29,18 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class Worlds
-    {
+    public static class Worlds {
         private static readonly HashMap<World> _worlds;
         private static readonly object _lockObject;
 
-        static Worlds()
-        {
+        static Worlds() {
             _worlds = new HashMap<World>(32);
             _lockObject = new object();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Create(string name, WorldConfig config = default)
-        {
-            lock (_lockObject)
-            {
+        public static World Create(string name, WorldConfig config = default) {
+            lock (_lockObject) {
                 var hashName = name.GetHashCode();
 #if DEBUG
                 if (string.IsNullOrEmpty(name))
@@ -62,10 +55,8 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static WorldConfig CheckConfig(WorldConfig config)
-        {
-            return new WorldConfig
-            {
+        private static WorldConfig CheckConfig(WorldConfig config) {
+            return new WorldConfig {
                 Archetypes = config.Archetypes > 0 ? config.Archetypes : WorldConfig.DefaultArchetypes,
                 Entities = config.Entities > 0 ? config.Entities : WorldConfig.DefaultEntities,
                 Components = config.Components > 0 ? config.Components : WorldConfig.DefaultComponents,
@@ -74,11 +65,9 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static World Get(string name)
-        {
+        public static World Get(string name) {
             var hashName = name.GetHashCode();
-            lock (_lockObject)
-            {
+            lock (_lockObject) {
 #if DEBUG
                 if (!_worlds.Contains(hashName))
                     throw new Exception($"|KECS| No world with {name} name was found.");
@@ -88,38 +77,33 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Remove(string name)
-        {
-            lock (_lockObject)
-            {
+        internal static void Remove(string name) {
+            lock (_lockObject) {
                 var hashName = name.GetHashCode();
                 _worlds.Remove(hashName);
             }
         }
     }
-    
+
     //==================================================================================================================
     // TASK POOLS
     //==================================================================================================================
-    
-    internal interface ITaskPool
-    {
+
+    internal interface ITaskPool {
         void Execute();
     }
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal class TaskPool<T> : ITaskPool where T : struct
-    {
+    internal class TaskPool<T> : ITaskPool where T : struct {
         private DelayedTask[] _addTasks;
         private DelayedTask[] _removeTasks;
         private int _addTasksCount;
         private int _removeTasksCount;
 
-        internal TaskPool(int capacity)
-        {
+        internal TaskPool(int capacity) {
             _addTasks = new DelayedTask[capacity];
             _removeTasks = new DelayedTask[capacity];
             _addTasksCount = 0;
@@ -127,8 +111,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Add(Entity entity, in T component)
-        {
+        internal void Add(Entity entity, in T component) {
             ArrayExtension.EnsureLength(ref _addTasks, _addTasksCount);
             ArrayExtension.EnsureLength(ref _removeTasks, _addTasksCount);
 
@@ -138,20 +121,16 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Execute()
-        {
-            for (int i = 0, length = _removeTasksCount; i < length; i++)
-            {
+        public void Execute() {
+            for (int i = 0, length = _removeTasksCount; i < length; i++) {
                 _removeTasksCount = 0;
                 ref var removeTask = ref _removeTasks[i];
-                if (removeTask.Entity.IsAlive() && removeTask.Entity.Has<T>())
-                {
+                if (removeTask.Entity.IsAlive() && removeTask.Entity.Has<T>()) {
                     removeTask.Entity.Remove<T>();
                 }
             }
 
-            for (int i = 0, length = _addTasksCount; i < length; i++)
-            {
+            for (int i = 0, length = _addTasksCount; i < length; i++) {
                 _addTasksCount = 0;
                 ref var task = ref _addTasks[i];
                 if (!task.Entity.IsAlive()) continue;
@@ -162,13 +141,12 @@ namespace Ludaludaed.KECS
             }
         }
 
-        private struct DelayedTask
-        {
+        private struct DelayedTask {
             public T Component;
             public Entity Entity;
         }
     }
-    
+
     //==================================================================================================================
     // WORLD
     //==================================================================================================================
@@ -177,8 +155,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class World
-    {
+    public sealed class World {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
 
@@ -201,8 +178,7 @@ namespace Ludaludaed.KECS
         public readonly string Name;
         private bool _isAlive;
 
-        internal World(WorldConfig config, string name)
-        {
+        internal World(WorldConfig config, string name) {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
             _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
@@ -222,27 +198,23 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsAlive()
-        {
+        public bool IsAlive() {
             return _isAlive;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Lock()
-        {
+        internal void Lock() {
             _lockCount++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Unlock()
-        {
+        internal void Unlock() {
             _lockCount--;
             if (_lockCount != 0 || _dirtyEntities.Count <= 0 || !_isAlive) return;
 
             Entity entity;
             entity.World = this;
-            for (int i = 0, length = _dirtyEntities.Count; i < length; i++)
-            {
+            for (int i = 0, length = _dirtyEntities.Count; i < length; i++) {
                 var entityId = _dirtyEntities.Dense[i];
                 ref var entityData = ref _entities[entityId];
                 entity.Id = entityId;
@@ -254,9 +226,8 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool AddDelayedChange(in int entityId)
-        {
-            if (_lockCount <= 0) 
+        internal bool AddDelayedChange(in int entityId) {
+            if (_lockCount <= 0)
                 return false;
             if (!_dirtyEntities.Contains(entityId))
                 _dirtyEntities.Set(entityId);
@@ -266,26 +237,22 @@ namespace Ludaludaed.KECS
 #if DEBUG
         public readonly FastList<IWorldDebugListener> DebugListeners = new FastList<IWorldDebugListener>(16);
 
-        public void AddDebugListener(IWorldDebugListener listener)
-        {
-            if (listener == null) 
+        public void AddDebugListener(IWorldDebugListener listener) {
+            if (listener == null)
                 throw new Exception("Listener is null.");
             DebugListeners.Add(listener);
         }
 
-        public void RemoveDebugListener(IWorldDebugListener listener)
-        {
-            if (listener == null) 
+        public void RemoveDebugListener(IWorldDebugListener listener) {
+            if (listener == null)
                 throw new Exception("Listener is null.");
             DebugListeners.Remove(listener);
         }
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public WorldInfo GetInfo()
-        {
-            return new WorldInfo()
-            {
+        public WorldInfo GetInfo() {
+            return new WorldInfo() {
                 EntitiesCount = _entitiesLength - _freeEntityCount,
                 FreeEntitiesCount = _freeEntityCount,
                 ArchetypesCount = Archetypes.Count,
@@ -294,14 +261,12 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool EntityIsAlive(in Entity entity)
-        {
+        internal bool EntityIsAlive(in Entity entity) {
             return entity.World == this && _isAlive && _entities[entity.Id].Age == entity.Age;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref EntityData GetEntityData(Entity entity)
-        {
+        internal ref EntityData GetEntityData(Entity entity) {
 #if DEBUG
             if (entity.World != this)
                 throw new Exception("|KECS| Invalid world.");
@@ -314,8 +279,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref EntityData GetEntityData(int id)
-        {
+        internal ref EntityData GetEntityData(int id) {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception("|KECS| World already destroyed.");
@@ -326,8 +290,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Entity CreateEntity()
-        {
+        public Entity CreateEntity() {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot create entity.");
@@ -335,8 +298,7 @@ namespace Ludaludaed.KECS
             ref var emptyArchetype = ref Archetypes.Get(0);
             Entity entity;
             entity.World = this;
-            if (_freeEntityCount > 0)
-            {
+            if (_freeEntityCount > 0) {
                 var newEntityId = _freeEntityIds[--_freeEntityCount];
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
@@ -344,8 +306,7 @@ namespace Ludaludaed.KECS
                 entityData.Archetype = emptyArchetype;
                 entity.Age = entityData.Age;
             }
-            else
-            {
+            else {
                 var newEntityId = _entitiesLength++;
                 ArrayExtension.EnsureLength(ref _entities, newEntityId);
                 ref var entityData = ref _entities[newEntityId];
@@ -358,8 +319,7 @@ namespace Ludaludaed.KECS
 
             emptyArchetype.AddEntity(entity.Id);
 #if DEBUG
-            for (int i = 0, length = DebugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = DebugListeners.Count; i < length; i++) {
                 DebugListeners.Get(i).OnEntityCreated(entity);
             }
 #endif
@@ -367,34 +327,30 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RecycleEntity(in Entity entity)
-        {
+        internal void RecycleEntity(in Entity entity) {
             ref var entityData = ref _entities[entity.Id];
             entityData.Archetype.RemoveEntity(entity.Id);
             entityData.Archetype = null;
             entityData.Age++;
-            if (entityData.Age == 0) 
+            if (entityData.Age == 0)
                 entityData.Age = 1;
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
-            for (int i = 0, length = DebugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = DebugListeners.Count; i < length; i++) {
                 DebugListeners.Get(i).OnEntityDestroyed(entity);
             }
 #endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ComponentPool<T> GetPool<T>() where T : struct
-        {
+        internal ComponentPool<T> GetPool<T>() where T : struct {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (_componentPools.Contains(idx))
-            {
+            if (_componentPools.Contains(idx)) {
                 return (ComponentPool<T>) _componentPools.Get(idx);
             }
 
@@ -404,8 +360,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal IComponentPool GetPool(int idx)
-        {
+        internal IComponentPool GetPool(int idx) {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
@@ -414,16 +369,14 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal TaskPool<T> GetTaskPool<T>() where T : struct
-        {
+        internal TaskPool<T> GetTaskPool<T>() where T : struct {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
 
-            if (_taskPools.Contains(idx))
-            {
+            if (_taskPools.Contains(idx)) {
                 return (TaskPool<T>) _taskPools.Get(idx);
             }
 
@@ -434,23 +387,19 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExecuteTasks()
-        {
+        public void ExecuteTasks() {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} destroyed");
 #endif
-            for (int i = 0, length = _taskPools.Count; i < length; i++)
-            {
+            for (int i = 0, length = _taskPools.Count; i < length; i++) {
                 _taskPools.Data[i].Execute();
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query CreateQuery()
-        {
-            if (_queriesCount > 0)
-            {
+        public Query CreateQuery() {
+            if (_queriesCount > 0) {
                 return _queries[--_queriesCount];
             }
 
@@ -458,23 +407,20 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RecycleQuery(Query query)
-        {
+        internal void RecycleQuery(Query query) {
             ArrayExtension.EnsureLength(ref _queries, _queriesCount);
             _queries[_queriesCount++] = query;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Archetype GetArchetype(BitSet signature)
-        {
+        internal Archetype GetArchetype(BitSet signature) {
             var hash = signature.GetHashCode();
             if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
             archetype = new Archetype(new BitSet(signature), Config.Entities);
             Archetypes.Add(archetype);
             _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
-            for (int i = 0, length = DebugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = DebugListeners.Count; i < length; i++) {
                 DebugListeners.Get(i).OnArchetypeCreated(archetype);
             }
 #endif
@@ -482,8 +428,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Destroy()
-        {
+        public void Destroy() {
 #if DEBUG
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} already destroy");
@@ -492,8 +437,7 @@ namespace Ludaludaed.KECS
             _dirtyEntities.Clear();
             Entity entity;
             entity.World = this;
-            for (int i = 0, length = _entities.Length; i < length; i++)
-            {
+            for (int i = 0, length = _entities.Length; i < length; i++) {
                 ref var entityData = ref _entities[i];
                 if (entityData.Archetype == null) continue;
                 entity.Id = i;
@@ -509,8 +453,7 @@ namespace Ludaludaed.KECS
             Worlds.Remove(Name);
             _isAlive = false;
 #if DEBUG
-            for (int i = 0, length = DebugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = DebugListeners.Count; i < length; i++) {
                 DebugListeners.Get(i).OnWorldDestroyed(this);
             }
 #endif
@@ -521,15 +464,13 @@ namespace Ludaludaed.KECS
     // ENTITY
     //==================================================================================================================
 
-    public struct EntityData
-    {
+    public struct EntityData {
         public int Age;
         public BitSet Signature;
         public Archetype Archetype;
     }
 
-    public struct Entity
-    {
+    public struct Entity {
         public int Id;
         public int Age;
         public World World;
@@ -539,32 +480,26 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public class EntityBuilder
-    {
+    public class EntityBuilder {
         private HandleMap<IComponentBuilder> _builders;
 
-        public EntityBuilder()
-        {
+        public EntityBuilder() {
             _builders = new HandleMap<IComponentBuilder>(WorldConfig.DefaultComponents);
         }
 
-        public void Clear()
-        {
+        public void Clear() {
             _builders.Clear();
         }
 
-        public EntityBuilder Append<T>(in T component = default) where T : struct
-        {
+        public EntityBuilder Append<T>(in T component = default) where T : struct {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             _builders.Set(idx, new ComponentBuilder<T>(component));
             return this;
         }
 
-        public Entity Build(World world)
-        {
+        public Entity Build(World world) {
             var entity = world.CreateEntity();
-            for (int i = 0, length = _builders.Count; i < length; i++)
-            {
+            for (int i = 0, length = _builders.Count; i < length; i++) {
                 _builders.Data[i].Set(entity);
             }
 
@@ -572,8 +507,7 @@ namespace Ludaludaed.KECS
             return entity;
         }
 
-        private interface IComponentBuilder
-        {
+        private interface IComponentBuilder {
             void Set(in Entity entity);
         }
 
@@ -581,16 +515,14 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-        private class ComponentBuilder<T> : IComponentBuilder where T : struct
-        {
+        private class ComponentBuilder<T> : IComponentBuilder where T : struct {
             private readonly T _component;
-            internal ComponentBuilder(in T component)
-            {
+
+            internal ComponentBuilder(in T component) {
                 _component = component;
             }
 
-            public void Set(in Entity entity)
-            {
+            public void Set(in Entity entity) {
                 entity.SetFast(in _component);
             }
         }
@@ -600,35 +532,29 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class EntityExtensions
-    {
+    public static class EntityExtensions {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAlive(in this Entity entity)
-        {
+        public static bool IsAlive(in this Entity entity) {
             return entity.World != null && entity.World.EntityIsAlive(in entity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool AreEqual(in this Entity entityL, in Entity entityR)
-        {
+        public static bool AreEqual(in this Entity entityL, in Entity entityR) {
             return entityL.Id == entityR.Id && entityL.Age == entityR.Age && entityL.World == entityR.World;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Count(in this Entity entity)
-        {
+        public static int Count(in this Entity entity) {
             return entity.World.GetEntityData(entity).Signature.Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsEmpty(in this Entity entity)
-        {
+        public static bool IsEmpty(in this Entity entity) {
             return entity.Id == 0 && entity.Age == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetFast<T>(in this Entity entity, in T value) where T : struct
-        {
+        public static void SetFast<T>(in this Entity entity, in T value) where T : struct {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
@@ -637,8 +563,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T Set<T>(in this Entity entity, in T value) where T : struct
-        {
+        public static ref T Set<T>(in this Entity entity, in T value) where T : struct {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
@@ -646,8 +571,7 @@ namespace Ludaludaed.KECS
             var pool = world.GetPool<T>();
             pool.Set(entity.Id, value);
 
-            if (!entityData.Signature.GetBit(idx))
-            {
+            if (!entityData.Signature.GetBit(idx)) {
                 entityData.Signature.SetBit(idx);
                 entity.UpdateArchetype();
             }
@@ -656,8 +580,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Remove<T>(in this Entity entity) where T : struct
-        {
+        public static void Remove<T>(in this Entity entity) where T : struct {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
@@ -669,36 +592,31 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetEvent<T>(in this Entity entity, in T value) where T : struct
-        {
+        public static void SetEvent<T>(in this Entity entity, in T value) where T : struct {
             if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T Get<T>(in this Entity entity) where T : struct
-        {
+        public static ref T Get<T>(in this Entity entity) where T : struct {
             var pool = entity.World.GetPool<T>();
             if (entity.Has<T>()) return ref pool.Get(entity.Id);
             return ref pool.Empty;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Has<T>(in this Entity entity) where T : struct
-        {
+        public static bool Has<T>(in this Entity entity) where T : struct {
             var idx = ComponentTypeInfo<T>.TypeIndex;
             return entity.World.GetEntityData(entity).Signature.GetBit(idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void UpdateArchetype(in this Entity entity)
-        {
+        public static void UpdateArchetype(in this Entity entity) {
             var world = entity.World;
             if (world.AddDelayedChange(in entity.Id)) return;
             ref var entityData = ref world.GetEntityData(entity);
 
-            if (entityData.Signature.Count == 0)
-            {
+            if (entityData.Signature.Count == 0) {
                 entity.World.RecycleEntity(in entity);
                 return;
             }
@@ -710,20 +628,17 @@ namespace Ludaludaed.KECS
             entityData.Archetype = newArchetype;
 #if DEBUG
             var debugListeners = world.DebugListeners;
-            for (int i = 0, length = debugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = debugListeners.Count; i < length; i++) {
                 debugListeners.Get(i).OnEntityChanged(entity);
             }
 #endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Destroy(in this Entity entity)
-        {
+        public static void Destroy(in this Entity entity) {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
-            foreach (var idx in entityData.Signature)
-            {
+            foreach (var idx in entityData.Signature) {
                 world.GetPool(idx).Remove(entity.Id);
             }
 
@@ -732,8 +647,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetComponents(in this Entity entity, ref (int, object)[] typeIndexes)
-        {
+        public static int GetComponents(in this Entity entity, ref (int, object)[] typeIndexes) {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             var signature = entityData.Signature;
@@ -758,74 +672,64 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Archetype
-    {
+    public sealed class Archetype {
         private readonly SparseSet _entities;
         public readonly BitSet Signature;
         public readonly int Hash;
 
         public int Count => _entities.Count;
 
-        internal Archetype(BitSet signature, int entityCapacity)
-        {
+        internal Archetype(BitSet signature, int entityCapacity) {
             _entities = new SparseSet(entityCapacity);
             Signature = signature;
             Hash = Signature.GetHashCode();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntity(in int entityId)
-        {
+        internal void AddEntity(in int entityId) {
             _entities.Set(entityId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RemoveEntity(in int entityId)
-        {
+        internal void RemoveEntity(in int entityId) {
             _entities.Remove(entityId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SparseSet.Enumerator GetEnumerator()
-        {
+        public SparseSet.Enumerator GetEnumerator() {
             return _entities.GetEnumerator();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             _entities.Clear();
             Signature.Clear();
         }
     }
-    
+
     //==================================================================================================================
     // POOLS
     //==================================================================================================================
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class EcsTypeManager
-    {
+    public static class EcsTypeManager {
         internal static int ComponentTypesCount;
         internal static Type[] ComponentsTypes = new Type[WorldConfig.DefaultComponents];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Type GetTypeByIndex(int idx)
-        {
+        public static Type GetTypeByIndex(int idx) {
             if (idx >= ComponentTypesCount) return default;
             return ComponentsTypes[idx];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Type[] GetAllTypes()
-        {
+        public static Type[] GetAllTypes() {
             var count = ComponentTypesCount;
             var infos = new Type[count];
-            for (var i = 0; i < count; i++)
-            {
+            for (var i = 0; i < count; i++) {
                 infos[i] = ComponentsTypes[i];
             }
 
@@ -837,16 +741,13 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class ComponentTypeInfo<T> where T : struct
-    {
+    public static class ComponentTypeInfo<T> where T : struct {
         public static readonly int TypeIndex;
         public static readonly Type Type;
         private static readonly object _lockObject = new object();
 
-        static ComponentTypeInfo()
-        {
-            lock (_lockObject)
-            {
+        static ComponentTypeInfo() {
+            lock (_lockObject) {
                 TypeIndex = EcsTypeManager.ComponentTypesCount++;
                 Type = typeof(T);
                 ArrayExtension.EnsureLength(ref EcsTypeManager.ComponentsTypes, TypeIndex);
@@ -855,8 +756,7 @@ namespace Ludaludaed.KECS
         }
     }
 
-    internal interface IComponentPool
-    {
+    internal interface IComponentPool {
         void Remove(int entityId);
         object GetObject(int entityId);
         void Clear();
@@ -866,43 +766,36 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal sealed class ComponentPool<T> : IComponentPool where T : struct
-    {
+    internal sealed class ComponentPool<T> : IComponentPool where T : struct {
         private readonly HandleMap<T> _components;
         internal ref T Empty => ref _components.Empty;
 
-        public ComponentPool(int capacity)
-        {
+        public ComponentPool(int capacity) {
             _components = new HandleMap<T>(capacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int entityId)
-        {
+        public ref T Get(int entityId) {
             return ref _components.Get(entityId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetObject(int entityId)
-        {
+        public object GetObject(int entityId) {
             return _components.Get(entityId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int entityId)
-        {
+        public void Remove(int entityId) {
             _components.Remove(entityId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int entityId, in T value)
-        {
+        public void Set(int entityId, in T value) {
             _components.Set(entityId, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             _components.Clear();
         }
     }
@@ -910,7 +803,7 @@ namespace Ludaludaed.KECS
     //==================================================================================================================
     // QUERY
     //==================================================================================================================
-    
+
     public delegate void ForEachHandler(Entity entity);
 
     public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
@@ -994,27 +887,24 @@ namespace Ludaludaed.KECS
         where S : struct
         where D : struct
         where F : struct;
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Query
-    {
+    public sealed class Query {
         internal readonly BitSet Include;
         internal readonly BitSet Exclude;
         internal readonly World World;
 
-        internal Query(World world)
-        {
+        internal Query(World world) {
             World = world;
             Include = new BitSet(world.Config.Components);
             Exclude = new BitSet(world.Config.Components);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query With<T>() where T : struct
-        {
+        public Query With<T>() where T : struct {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
             if (!Exclude.GetBit(typeIdx)) Include.SetBit(typeIdx);
 #if DEBUG
@@ -1025,8 +915,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query Without<T>() where T : struct
-        {
+        public Query Without<T>() where T : struct {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
             if (!Include.GetBit(typeIdx)) Exclude.SetBit(typeIdx);
 #if DEBUG
@@ -1037,8 +926,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
+        public override int GetHashCode() {
             var hashResult = Include.Count + Exclude.Count;
             foreach (var idx in Include)
                 hashResult = unchecked(hashResult * 31459 + idx);
@@ -1048,30 +936,26 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Recycle()
-        {
+        internal void Recycle() {
             Include.Clear();
             Exclude.Clear();
             World.RecycleQuery(this);
         }
     }
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class QueryExtensions
-    {
+    public static class QueryExtensions {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsMatch(this Query query, Archetype archetype)
-        {
+        private static bool IsMatch(this Query query, Archetype archetype) {
             return archetype.Count > 0 && archetype.Signature.Contains(query.Include) &&
                    (query.Exclude.Count == 0 || !archetype.Signature.Intersects(query.Exclude));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ForEach(this Query query, ForEachHandler handler)
-        {
+        public static void ForEach(this Query query, ForEachHandler handler) {
             var world = query.World;
 
             Entity entity;
@@ -1079,12 +963,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity);
@@ -1098,8 +980,7 @@ namespace Ludaludaed.KECS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ForEach<T>(this Query query,
             ForEachHandler<T> handler)
-            where T : struct
-        {
+            where T : struct {
             var world = query.World;
             query.With<T>();
 
@@ -1110,12 +991,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1131,8 +1010,7 @@ namespace Ludaludaed.KECS
         public static void ForEach<T, Y>(this Query query,
             ForEachHandler<T, Y> handler)
             where T : struct
-            where Y : struct
-        {
+            where Y : struct {
             var world = query.World;
             query.With<T>().With<Y>();
 
@@ -1144,12 +1022,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1167,8 +1043,7 @@ namespace Ludaludaed.KECS
             ForEachHandler<T, Y, U> handler)
             where T : struct
             where Y : struct
-            where U : struct
-        {
+            where U : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>();
 
@@ -1181,12 +1056,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1206,8 +1079,7 @@ namespace Ludaludaed.KECS
             where T : struct
             where Y : struct
             where U : struct
-            where I : struct
-        {
+            where I : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>();
 
@@ -1221,12 +1093,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1248,8 +1118,7 @@ namespace Ludaludaed.KECS
             where Y : struct
             where U : struct
             where I : struct
-            where O : struct
-        {
+            where O : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>();
 
@@ -1264,12 +1133,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1293,8 +1160,7 @@ namespace Ludaludaed.KECS
             where U : struct
             where I : struct
             where O : struct
-            where P : struct
-        {
+            where P : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>();
 
@@ -1310,12 +1176,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1341,8 +1205,7 @@ namespace Ludaludaed.KECS
             where I : struct
             where O : struct
             where P : struct
-            where A : struct
-        {
+            where A : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>();
 
@@ -1359,12 +1222,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1392,8 +1253,7 @@ namespace Ludaludaed.KECS
             where O : struct
             where P : struct
             where A : struct
-            where S : struct
-        {
+            where S : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>();
 
@@ -1411,12 +1271,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1446,8 +1304,7 @@ namespace Ludaludaed.KECS
             where P : struct
             where A : struct
             where S : struct
-            where D : struct
-        {
+            where D : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>();
 
@@ -1466,12 +1323,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1503,8 +1358,7 @@ namespace Ludaludaed.KECS
             where A : struct
             where S : struct
             where D : struct
-            where F : struct
-        {
+            where F : struct {
             var world = query.World;
             query.With<T>().With<Y>().With<U>().With<I>().With<O>().With<P>().With<A>().With<S>().With<D>().With<F>();
 
@@ -1524,12 +1378,10 @@ namespace Ludaludaed.KECS
 
             world.Lock();
             var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++)
-            {
+            for (int i = 0, length = archetypes.Count; i < length; i++) {
                 var archetype = archetypes.Get(i);
                 if (!query.IsMatch(archetype)) continue;
-                foreach (var entityId in archetype)
-                {
+                foreach (var entityId in archetype) {
                     entity.Id = entityId;
                     entity.Age = world.GetEntityData(entityId).Age;
                     handler(entity,
@@ -1555,27 +1407,22 @@ namespace Ludaludaed.KECS
     // SYSTEMS
     //==================================================================================================================
 
-    public abstract class UpdateSystem : SystemBase
-    {
+    public abstract class UpdateSystem : SystemBase {
         public abstract void OnUpdate(float deltaTime);
     }
 
-    public abstract class SystemBase
-    {
+    public abstract class SystemBase {
         public World _world;
         public Systems _systems;
         public bool IsEnable;
 
-        public virtual void Initialize()
-        {
+        public virtual void Initialize() {
         }
 
-        public virtual void OnDestroy()
-        {
+        public virtual void OnDestroy() {
         }
 
-        public virtual void PostDestroy()
-        {
+        public virtual void PostDestroy() {
         }
     }
 
@@ -1583,15 +1430,13 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class Systems : UpdateSystem
-    {
+    public sealed class Systems : UpdateSystem {
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
         private HashMap<object> _sharedData;
         public readonly string Name;
 
-        public Systems(World world, string name = "DEFAULT")
-        {
+        public Systems(World world, string name = "DEFAULT") {
 #if DEBUG
             if (string.IsNullOrEmpty(name))
                 throw new Exception("|KECS| Systems name cant be null or empty.");
@@ -1608,23 +1453,20 @@ namespace Ludaludaed.KECS
         private bool _destroyed;
         private readonly FastList<ISystemsDebugListener> _debugListeners = new FastList<ISystemsDebugListener>();
 
-        public void AddDebugListener(ISystemsDebugListener listener)
-        {
+        public void AddDebugListener(ISystemsDebugListener listener) {
             if (listener == null)
                 throw new Exception("|KECS| Listener is null.");
             _debugListeners.Add(listener);
         }
 
-        public void RemoveDebugListener(ISystemsDebugListener listener)
-        {
+        public void RemoveDebugListener(ISystemsDebugListener listener) {
             if (listener == null)
                 throw new Exception("|KECS| Listener is null.");
             _debugListeners.Remove(listener);
         }
 #endif
 
-        public Systems AddShared<T>(T data) where T : class
-        {
+        public Systems AddShared<T>(T data) where T : class {
             var hash = typeof(T).GetHashCode();
 #if DEBUG
             if (_initialized)
@@ -1639,8 +1481,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetShared<T>() where T : class
-        {
+        public T GetShared<T>() where T : class {
             var hash = typeof(T).GetHashCode();
 #if DEBUG
             if (!_initialized)
@@ -1653,13 +1494,11 @@ namespace Ludaludaed.KECS
             return _sharedData.Get(hash) as T;
         }
 
-        public FastList<SystemBase> GetSystems()
-        {
+        public FastList<SystemBase> GetSystems() {
             return _allSystems;
         }
 
-        public Systems Add<T>(T systemValue) where T : SystemBase
-        {
+        public Systems Add<T>(T systemValue) where T : SystemBase {
 #if DEBUG
             if (_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
@@ -1670,61 +1509,52 @@ namespace Ludaludaed.KECS
             systemValue.IsEnable = true;
 
             if (systemValue is UpdateSystem system) _updateSystems.Add(system);
-            if (systemValue is Systems systemGroup)
-            {
+            if (systemValue is Systems systemGroup) {
                 systemGroup._sharedData = _sharedData;
             }
-            else
-            {
+            else {
                 systemValue._world = _world;
             }
 
             return this;
         }
 
-        public override void Initialize()
-        {
+        public override void Initialize() {
 #if DEBUG
             if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot initialize them.");
             _initialized = true;
 #endif
-            for (int i = 0, length = _allSystems.Count; i < length; i++)
-            {
+            for (int i = 0, length = _allSystems.Count; i < length; i++) {
                 _allSystems.Get(i).Initialize();
             }
         }
 
-        public override void OnUpdate(float deltaTime)
-        {
+        public override void OnUpdate(float deltaTime) {
 #if DEBUG
             if (!_initialized)
                 throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
 #endif
-            for (int i = 0, length = _updateSystems.Count; i < length; i++)
-            {
+            for (int i = 0, length = _updateSystems.Count; i < length; i++) {
                 var update = _updateSystems.Get(i);
                 if (update.IsEnable) update.OnUpdate(deltaTime);
             }
         }
 
-        public override void OnDestroy()
-        {
+        public override void OnDestroy() {
 #if DEBUG
             if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot destroy them.");
             _destroyed = true;
 #endif
-            for (int i = 0, length = _allSystems.Count; i < length; i++)
-            {
+            for (int i = 0, length = _allSystems.Count; i < length; i++) {
                 var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.OnDestroy();
             }
 
-            for (int i = 0, length = _allSystems.Count; i < length; i++)
-            {
+            for (int i = 0, length = _allSystems.Count; i < length; i++) {
                 var destroy = _allSystems.Get(i);
                 if (destroy.IsEnable) destroy.PostDestroy();
             }
@@ -1733,24 +1563,22 @@ namespace Ludaludaed.KECS
             _updateSystems.Clear();
             _sharedData.Clear();
 #if DEBUG
-            for (int i = 0, length = _debugListeners.Count; i < length; i++)
-            {
+            for (int i = 0, length = _debugListeners.Count; i < length; i++) {
                 _debugListeners.Get(i).OnSystemsDestroyed(this);
             }
 #endif
         }
     }
-    
+
     //==================================================================================================================
     // HELPER
     //==================================================================================================================
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class SparseSet
-    {
+    public sealed class SparseSet {
         private const int MinCapacity = 16;
         private const int None = -1;
         private int[] _sparse;
@@ -1759,8 +1587,7 @@ namespace Ludaludaed.KECS
 
         public int Count => _denseCount;
 
-        public SparseSet(int capacity)
-        {
+        public SparseSet(int capacity) {
             if (capacity < MinCapacity) capacity = MinCapacity;
             Dense = new int[capacity];
             _sparse = new int[capacity];
@@ -1769,14 +1596,12 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(int sparseIdx)
-        {
+        public bool Contains(int sparseIdx) {
             return sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int sparseIdx)
-        {
+        public void Set(int sparseIdx) {
             if (Contains(sparseIdx)) return;
             ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
             ArrayExtension.EnsureLength(ref Dense, _denseCount);
@@ -1786,8 +1611,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int sparseIdx)
-        {
+        public void Remove(int sparseIdx) {
             if (!Contains(sparseIdx)) return;
             var packedIdx = _sparse[sparseIdx];
             _sparse[sparseIdx] = None;
@@ -1799,39 +1623,33 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             _denseCount = 0;
             Array.Clear(Dense, 0, Dense.Length);
             _sparse.Fill(None);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
+        public Enumerator GetEnumerator() {
             return new Enumerator(this);
         }
 
-        public struct Enumerator
-        {
+        public struct Enumerator {
             private int _index;
             private SparseSet _set;
 
-            public Enumerator(SparseSet set)
-            {
+            public Enumerator(SparseSet set) {
                 _set = set;
                 _index = 0;
             }
 
-            public int Current
-            {
+            public int Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => _set.Dense[_index++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
+            public bool MoveNext() {
                 return _index < _set.Count;
             }
         }
@@ -1842,8 +1660,7 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class HandleMap<T>
-    {
+    public sealed class HandleMap<T> {
         private const int MinCapacity = 16;
         private const int None = -1;
         private int[] _dense;
@@ -1855,8 +1672,7 @@ namespace Ludaludaed.KECS
         public int Count => _denseCount;
         public ref T Empty => ref _empty;
 
-        public HandleMap(int capacity)
-        {
+        public HandleMap(int capacity) {
             if (capacity < MinCapacity) capacity = MinCapacity;
             _dense = new int[capacity];
             _sparse = new int[capacity];
@@ -1867,23 +1683,19 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(int sparseIdx)
-        {
+        public bool Contains(int sparseIdx) {
             return _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int sparseIdx)
-        {
+        public ref T Get(int sparseIdx) {
             if (Contains(sparseIdx)) return ref Data[_sparse[sparseIdx]];
             return ref Empty;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int sparseIdx, T value)
-        {
-            if (Contains(sparseIdx))
-            {
+        public void Set(int sparseIdx, T value) {
+            if (Contains(sparseIdx)) {
                 Data[_sparse[sparseIdx]] = value;
                 return;
             }
@@ -1899,8 +1711,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int sparseIdx)
-        {
+        public void Remove(int sparseIdx) {
 #if DEBUG
             if (!Contains(sparseIdx))
                 throw new Exception($"|KECS| Unable to remove sparse idx {sparseIdx}: not present.");
@@ -1909,8 +1720,7 @@ namespace Ludaludaed.KECS
             _sparse[sparseIdx] = None;
             _denseCount--;
 
-            if (packedIdx < _denseCount)
-            {
+            if (packedIdx < _denseCount) {
                 var lastSparseIdx = _dense[_denseCount];
                 var lastValue = Data[_denseCount];
 
@@ -1923,8 +1733,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             _denseCount = 0;
             Array.Clear(Data, 0, Data.Length);
             Array.Clear(_dense, 0, _dense.Length);
@@ -1932,31 +1741,26 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
+        public Enumerator GetEnumerator() {
             return new Enumerator(this);
         }
 
-        public struct Enumerator
-        {
+        public struct Enumerator {
             private int _index;
             private HandleMap<T> _handleMap;
 
-            public Enumerator(HandleMap<T> handleMap)
-            {
+            public Enumerator(HandleMap<T> handleMap) {
                 _handleMap = handleMap;
                 _index = 0;
             }
 
-            public ref T Current
-            {
+            public ref T Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => ref _handleMap.Data[_index++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
+            public bool MoveNext() {
                 return _index < _handleMap.Count;
             }
         }
@@ -1966,32 +1770,27 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class BitSet
-    {
+    public sealed class BitSet {
         private const int ChunkCapacity = sizeof(ulong) * 8;
         private ulong[] _chunks;
         private int _count;
 
-        public int Count
-        {
+        public int Count {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _count;
         }
 
-        public BitSet(int capacity)
-        {
+        public BitSet(int capacity) {
             var newSize = capacity / ChunkCapacity;
             if (capacity % ChunkCapacity != 0) newSize++;
             _chunks = new ulong[newSize];
             _count = 0;
         }
 
-        public BitSet(BitSet other)
-        {
+        public BitSet(BitSet other) {
             var newSize = other._chunks.Length;
             _chunks = new ulong[newSize];
-            for (var i = 0; i < newSize; i++)
-            {
+            for (var i = 0; i < newSize; i++) {
                 _chunks[i] = other._chunks[i];
             }
 
@@ -1999,8 +1798,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BitSet SetBit(int index)
-        {
+        public BitSet SetBit(int index) {
             var chunk = index / BitSet.ChunkCapacity;
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
@@ -2012,8 +1810,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BitSet ClearBit(int index)
-        {
+        public BitSet ClearBit(int index) {
             var chunk = index / BitSet.ChunkCapacity;
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
@@ -2025,19 +1822,16 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool GetBit(int index)
-        {
+        public bool GetBit(int index) {
             var chunk = index / BitSet.ChunkCapacity;
             return chunk < _chunks.Length &&
                    (_chunks[chunk] & (1UL << (index % BitSet.ChunkCapacity))) != 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(BitSet other)
-        {
+        public bool Contains(BitSet other) {
             ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
-            for (int i = 0, length = _chunks.Length; i < length; i++)
-            {
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
                 if ((_chunks[i] & other._chunks[i]) != other._chunks[i]) return false;
             }
 
@@ -2045,11 +1839,9 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Intersects(BitSet other)
-        {
+        public bool Intersects(BitSet other) {
             ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
-            for (int i = 0, length = _chunks.Length; i < length; i++)
-            {
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
                 if ((_chunks[i] & other._chunks[i]) != 0) return true;
             }
 
@@ -2057,31 +1849,25 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             _count = 0;
-            for (int i = 0, length = _chunks.Length; i < length; i++)
-            {
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] = 0;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Merge(BitSet include)
-        {
+        public void Merge(BitSet include) {
             ArrayExtension.EnsureLength(ref include._chunks, _chunks.Length);
-            for (int i = 0, length = _chunks.Length; i < length; i++)
-            {
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] |= include._chunks[i];
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
+        public override int GetHashCode() {
             ulong h = 1234;
-            for (var i = _chunks.Length - 1; i >= 0; i--)
-            {
+            for (var i = _chunks.Length - 1; i >= 0; i--) {
                 h ^= ((ulong) i + 1) * _chunks[i];
             }
 
@@ -2089,37 +1875,31 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
+        public Enumerator GetEnumerator() {
             return new Enumerator(this);
         }
 
-        public ref struct Enumerator
-        {
+        public ref struct Enumerator {
             private int _count;
             private BitSet _bitSet;
             private int _index;
             private int _returned;
 
-            public Enumerator(BitSet bitSet)
-            {
+            public Enumerator(BitSet bitSet) {
                 _bitSet = bitSet;
                 _count = bitSet._count;
                 _index = -1;
                 _returned = 0;
             }
 
-            public int Current
-            {
+            public int Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => _index;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                while (_returned < _count)
-                {
+            public bool MoveNext() {
+                while (_returned < _count) {
                     _index++;
                     if (!_bitSet.GetBit(_index)) continue;
                     _returned++;
@@ -2134,13 +1914,12 @@ namespace Ludaludaed.KECS
             }
         }
     }
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class HashMap<T>
-    {
+    public sealed class HashMap<T> {
         private Entry[] _entries;
         private int[] _buckets;
         private T[] _data;
@@ -2153,8 +1932,7 @@ namespace Ludaludaed.KECS
 
         public int Count => _count;
 
-        public HashMap(int capacity = 0)
-        {
+        public HashMap(int capacity = 0) {
             _length = 0;
             _count = 0;
             _freeListIdx = -1;
@@ -2169,33 +1947,28 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int IndexFor(int key, int length)
-        {
+        private static int IndexFor(int key, int length) {
             return key & (length - 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int key, T value)
-        {
+        public void Set(int key, T value) {
             var index = IndexFor(key, _capacity);
 
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key != key) continue;
                 _data[i] = value;
                 return;
             }
 
-            if (_length >= _capacity)
-            {
+            if (_length >= _capacity) {
                 var newCapacity = HashHelpers.ExpandCapacity(_length);
                 Array.Resize(ref _data, newCapacity);
                 Array.Resize(ref _entries, newCapacity);
                 var newBuckets = new int[newCapacity];
                 newBuckets.Fill(-1);
 
-                for (int i = 0, length = _length; i < length; i++)
-                {
+                for (int i = 0, length = _length; i < length; i++) {
                     ref var rehashEntry = ref _entries[i];
                     var rehashIdx = IndexFor(rehashEntry.Key, newCapacity);
                     rehashEntry.Next = newBuckets[rehashIdx];
@@ -2210,8 +1983,7 @@ namespace Ludaludaed.KECS
 
             var entryIdx = _length;
 
-            if (_freeListIdx >= 0)
-            {
+            if (_freeListIdx >= 0) {
                 entryIdx = _freeListIdx;
                 _freeListIdx = _entries[entryIdx].Next;
             }
@@ -2227,16 +1999,13 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int key)
-        {
+        public void Remove(int key) {
             var index = IndexFor(key, _capacity);
 
             var priorEntry = -1;
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 ref var entry = ref _entries[i];
-                if (entry.Key == key)
-                {
+                if (entry.Key == key) {
                     if (priorEntry < 0) _buckets[index] = entry.Next;
                     else _entries[priorEntry].Next = entry.Next;
                     _data[i] = default;
@@ -2253,11 +2022,9 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(int key)
-        {
+        public bool Contains(int key) {
             var index = IndexFor(key, _capacity);
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key == key) return true;
             }
 
@@ -2265,12 +2032,10 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetValue(int key, out T value)
-        {
+        public bool TryGetValue(int key, out T value) {
             var index = IndexFor(key, _capacity);
             value = default;
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key != key) continue;
                 value = _data[i];
                 return true;
@@ -2280,11 +2045,9 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int key)
-        {
+        public ref T Get(int key) {
             var index = IndexFor(key, _capacity);
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next)
-            {
+            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key != key) continue;
                 return ref _data[i];
             }
@@ -2293,8 +2056,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             Array.Clear(_entries, 0, _length);
             Array.Clear(_data, 0, _length);
             _buckets.Fill(-1);
@@ -2305,35 +2067,29 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
+        public Enumerator GetEnumerator() {
             return new Enumerator(this);
         }
 
-        public struct Enumerator
-        {
+        public struct Enumerator {
             private HashMap<T> _hashMap;
             private int _current;
             private int _index;
 
-            public Enumerator(HashMap<T> hashMap)
-            {
+            public Enumerator(HashMap<T> hashMap) {
                 _hashMap = hashMap;
                 _current = 0;
                 _index = -1;
             }
 
-            public ref T Current
-            {
+            public ref T Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => ref _hashMap._data[_current];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                while (++_index < _hashMap._length)
-                {
+            public bool MoveNext() {
+                while (++_index < _hashMap._length) {
                     ref var entry = ref _hashMap._entries[_index];
                     if (!entry.IsActive) continue;
                     _current = _index;
@@ -2347,20 +2103,18 @@ namespace Ludaludaed.KECS
             }
         }
 
-        private struct Entry
-        {
+        private struct Entry {
             public bool IsActive;
             public int Next;
             public int Key;
         }
     }
-    
+
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class FastList<T>
-    {
+    public sealed class FastList<T> {
         private const int MinCapacity = 16;
         private T[] _data;
         private int _count;
@@ -2368,16 +2122,14 @@ namespace Ludaludaed.KECS
 
         public int Count => _count;
 
-        public FastList(int capacity = 0)
-        {
+        public FastList(int capacity = 0) {
             if (capacity < MinCapacity) capacity = MinCapacity;
             _data = new T[capacity];
             _count = 0;
             _comparer = EqualityComparer<T>.Default;
         }
 
-        public FastList(EqualityComparer<T> comparer, int capacity = 0)
-        {
+        public FastList(EqualityComparer<T> comparer, int capacity = 0) {
             if (capacity < MinCapacity) capacity = MinCapacity;
             _data = new T[capacity];
             _count = 0;
@@ -2385,8 +2137,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int index)
-        {
+        public ref T Get(int index) {
 #if DEBUG
             if (index >= _count || index < 0)
                 throw new Exception($"|KECS| Index {index} out of bounds of array");
@@ -2395,33 +2146,28 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(T value)
-        {
+        public void Add(T value) {
             ArrayExtension.EnsureLength(ref _data, _count);
             _data[_count++] = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(T value)
-        {
+        public void Remove(T value) {
             RemoveAt(_data.IndexOf(value, _comparer));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveSwap(T value)
-        {
+        public void RemoveSwap(T value) {
             RemoveAtSwap(_data.IndexOf(value, _comparer));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveAt(int index)
-        {
+        public void RemoveAt(int index) {
 #if DEBUG
             if (index >= _count || index < 0)
                 throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
-            if (index < --_count)
-            {
+            if (index < --_count) {
                 Array.Copy(_data, index + 1, _data, index, _count - index);
             }
 
@@ -2429,8 +2175,7 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveAtSwap(int index)
-        {
+        public void RemoveAtSwap(int index) {
 #if DEBUG
             if (index >= _count || index < 0)
                 throw new Exception($"|KECS| Index {index} out of bounds of array");
@@ -2441,38 +2186,32 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
+        public void Clear() {
             Array.Clear(_data, 0, _data.Length);
             _count = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
-        {
+        public Enumerator GetEnumerator() {
             return new Enumerator(this);
         }
 
-        public struct Enumerator
-        {
+        public struct Enumerator {
             private int _index;
             private FastList<T> _list;
 
-            public Enumerator(FastList<T> list)
-            {
+            public Enumerator(FastList<T> list) {
                 _list = list;
                 _index = 0;
             }
 
-            public ref T Current
-            {
+            public ref T Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => ref _list._data[_index++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
+            public bool MoveNext() {
                 return _index < _list.Count;
             }
         }
@@ -2482,15 +2221,12 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public static class ArrayExtension
-    {
+    public static class ArrayExtension {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InnerEnsureLength<T>(ref T[] array, int index)
-        {
+        private static void InnerEnsureLength<T>(ref T[] array, int index) {
             var newLength = Math.Max(1, array.Length);
 
-            while (index >= newLength)
-            {
+            while (index >= newLength) {
                 newLength <<= 1;
             }
 
@@ -2498,10 +2234,8 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IndexOf<T>(this T[] array, T value, EqualityComparer<T> comparer)
-        {
-            for (int i = 0, length = array.Length; i < length; ++i)
-            {
+        public static int IndexOf<T>(this T[] array, T value, EqualityComparer<T> comparer) {
+            for (int i = 0, length = array.Length; i < length; ++i) {
                 if (comparer.Equals(array[i], value)) return i;
             }
 
@@ -2509,28 +2243,22 @@ namespace Ludaludaed.KECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Fill<T>(this T[] array, in T value, int start = 0)
-        {
-            for (int i = start, length = array.Length; i < length; ++i)
-            {
+        public static void Fill<T>(this T[] array, in T value, int start = 0) {
+            for (int i = start, length = array.Length; i < length; ++i) {
                 array[i] = value;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureLength<T>(ref T[] array, int index)
-        {
-            if (index >= array.Length)
-            {
+        public static void EnsureLength<T>(ref T[] array, int index) {
+            if (index >= array.Length) {
                 InnerEnsureLength(ref array, index);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue)
-        {
-            if (index >= array.Length)
-            {
+        public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue) {
+            if (index >= array.Length) {
                 var oldLength = array.Length;
 
                 InnerEnsureLength(ref array, index);
@@ -2543,10 +2271,8 @@ namespace Ludaludaed.KECS
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal static class HashHelpers
-    {
-        private static readonly int[] capacities =
-        {
+    internal static class HashHelpers {
+        private static readonly int[] capacities = {
             4,
             16,
             64,
@@ -2560,19 +2286,15 @@ namespace Ludaludaed.KECS
             4194304,
         };
 
-        public static int ExpandCapacity(int oldSize)
-        {
+        public static int ExpandCapacity(int oldSize) {
             var min = oldSize << 1;
             return min > 2146435069U && 2146435069 > oldSize ? 2146435069 : GetCapacity(min);
         }
 
-        public static int GetCapacity(int min)
-        {
-            for (int index = 0, length = capacities.Length; index < length; ++index)
-            {
+        public static int GetCapacity(int min) {
+            for (int index = 0, length = capacities.Length; index < length; ++index) {
                 var prime = capacities[index];
-                if (prime >= min)
-                {
+                if (prime >= min) {
                     return prime;
                 }
             }
@@ -2582,8 +2304,7 @@ namespace Ludaludaed.KECS
     }
 
 #if DEBUG
-    public interface IWorldDebugListener
-    {
+    public interface IWorldDebugListener {
         void OnEntityCreated(in Entity entity);
         void OnEntityChanged(in Entity entity);
         void OnEntityDestroyed(in Entity entity);
@@ -2591,8 +2312,7 @@ namespace Ludaludaed.KECS
         void OnWorldDestroyed(World world);
     }
 
-    public interface ISystemsDebugListener
-    {
+    public interface ISystemsDebugListener {
         void OnSystemsDestroyed(Systems systems);
     }
 #endif
