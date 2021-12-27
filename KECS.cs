@@ -652,12 +652,14 @@ namespace Ludaludaed.KECS {
             var signature = entityData.Signature;
             var length = signature.Count;
 
-            if (typeIndexes == null || typeIndexes.Length < length)
+            if (typeIndexes == null || typeIndexes.Length < length) {
                 typeIndexes = new (int, object)[length];
+            }
 
             var counter = 0;
-            foreach (var idx in signature)
+            foreach (var idx in signature) {
                 typeIndexes[counter++] = (idx, world.GetPool(idx).GetObject(entity.Id));
+            }
 
             return length;
         }
@@ -927,10 +929,12 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() {
             var hashResult = Include.Count + Exclude.Count;
-            foreach (var idx in Include)
+            foreach (var idx in Include) {
                 hashResult = unchecked(hashResult * 31459 + idx);
-            foreach (var idx in Exclude)
+            }
+            foreach (var idx in Exclude) {
                 hashResult = unchecked(hashResult * 31459 - idx);
+            }
             return hashResult;
         }
 
@@ -1534,7 +1538,9 @@ namespace Ludaludaed.KECS {
 #endif
             for (int i = 0, length = _updateSystems.Count; i < length; i++) {
                 var update = _updateSystems.Get(i);
-                if (update.IsEnable) update.OnUpdate(deltaTime);
+                if (update.IsEnable) {
+                    update.OnUpdate(deltaTime);
+                }
             }
         }
 
@@ -1551,7 +1557,9 @@ namespace Ludaludaed.KECS {
 
             for (int i = 0, length = _allSystems.Count; i < length; i++) {
                 var destroy = _allSystems.Get(i);
-                if (destroy.IsEnable) destroy.PostDestroy();
+                if (destroy.IsEnable) {
+                    destroy.PostDestroy();
+                }
             }
 
             _allSystems.Clear();
