@@ -1997,8 +1997,11 @@ namespace Ludaludaed.KECS {
             for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 ref var entry = ref _entries[i];
                 if (entry.Key == key) {
-                    if (priorEntry < 0) _buckets[index] = entry.Next;
-                    else _entries[priorEntry].Next = entry.Next;
+                    if (priorEntry < 0) {
+                        _buckets[index] = entry.Next;
+                    } else {
+                        _entries[priorEntry].Next = entry.Next;
+                    }
                     _data[i] = default;
                     entry.Key = -1;
                     entry.Next = _freeListIdx;
