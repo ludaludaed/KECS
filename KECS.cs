@@ -967,9 +967,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -995,9 +993,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1026,9 +1022,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1060,9 +1054,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1097,9 +1089,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1137,9 +1127,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1180,9 +1168,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1226,9 +1212,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1275,9 +1259,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1327,9 +1309,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1382,9 +1362,7 @@ namespace Ludaludaed.KECS {
             entity.World = world;
 
             world.Lock();
-            var archetypes = world.Archetypes;
-            for (int i = 0, length = archetypes.Count; i < length; i++) {
-                var archetype = archetypes.Get(i);
+            foreach (var archetype in world.Archetypes) {
                 if (!query.IsMatch(archetype)) continue;
                 foreach (var entityId in archetype) {
                     entity.Id = entityId;
@@ -1965,9 +1943,9 @@ namespace Ludaludaed.KECS {
                     return;
                 }
             }
-            
+
             int entryIdx;
-            
+
             if (_freeListIdx >= 0) {
                 entryIdx = _freeListIdx;
                 _freeListIdx = _entries[entryIdx].Next;
@@ -1990,22 +1968,23 @@ namespace Ludaludaed.KECS {
             if (_length < _capacity) {
                 return;
             }
-            
+
             var newCapacity = HashHelpers.ExpandCapacity(_length);
-            
+
             Array.Resize(ref _data, newCapacity);
             Array.Resize(ref _entries, newCapacity);
-            
+
             var newBuckets = new int[newCapacity];
             newBuckets.Fill(-1);
-            
+
             for (int i = 0, length = _length; i < length; i++) {
                 ref var rehashEntry = ref _entries[i];
                 var rehashIdx = IndexFor(rehashEntry.Key);
-                
+
                 rehashEntry.Next = newBuckets[rehashIdx];
                 newBuckets[rehashIdx] = i;
             }
+
             _buckets = newBuckets;
             _capacity = newCapacity;
         }
@@ -2040,6 +2019,7 @@ namespace Ludaludaed.KECS {
                     return true;
                 }
             }
+
             return false;
         }
 
