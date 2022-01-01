@@ -1921,6 +1921,11 @@ namespace Ludaludaed.KECS {
         private T _empty;
 
         public int Count => _count;
+        
+        private struct Entry {
+            public int Next;
+            public int Key;
+        }
 
         public HashMap(int capacity = 0) {
             _length = 0;
@@ -1944,6 +1949,7 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int key, T value) {
             var index = IndexFor(key);
+            
             for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key == key) {
                     _data[i] = value;
@@ -2108,11 +2114,6 @@ namespace Ludaludaed.KECS {
                 _index = -1;
                 return false;
             }
-        }
-
-        private struct Entry {
-            public int Next;
-            public int Key;
         }
     }
 
