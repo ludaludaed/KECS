@@ -1786,9 +1786,11 @@ namespace Ludaludaed.KECS {
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue | (1UL << (index % BitSet.ChunkCapacity));
-            if (oldValue == newValue) return this;
-            _chunks[chunk] = newValue;
-            _count++;
+            
+            if (oldValue != newValue) {
+                _chunks[chunk] = newValue;
+                _count++;
+            }
             return this;
         }
 
@@ -1798,9 +1800,11 @@ namespace Ludaludaed.KECS {
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue & ~(1UL << (index % BitSet.ChunkCapacity));
-            if (oldValue == newValue) return this;
-            _chunks[chunk] = newValue;
-            _count--;
+            
+            if (oldValue != newValue) {
+                _chunks[chunk] = newValue;
+                _count--;
+            }
             return this;
         }
 
@@ -1815,7 +1819,9 @@ namespace Ludaludaed.KECS {
         public bool Contains(BitSet other) {
             ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
             for (int i = 0, length = _chunks.Length; i < length; i++) {
-                if ((_chunks[i] & other._chunks[i]) != other._chunks[i]) return false;
+                if ((_chunks[i] & other._chunks[i]) != other._chunks[i]) {
+                    return false;
+                }
             }
 
             return true;
