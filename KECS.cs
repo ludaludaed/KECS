@@ -1833,10 +1833,10 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear() {
-            _count = 0;
             for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] = 0;
             }
+            _count = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1884,9 +1884,10 @@ namespace Ludaludaed.KECS {
             public bool MoveNext() {
                 while (_returned < _count) {
                     _index++;
-                    if (!_bitSet.GetBit(_index)) continue;
-                    _returned++;
-                    return true;
+                    if (_bitSet.GetBit(_index)) {
+                        _returned++;
+                        return true;
+                    }
                 }
 
                 _bitSet = null;
@@ -2003,8 +2004,10 @@ namespace Ludaludaed.KECS {
                         _entries[priorEntry].Next = entry.Next;
                     }
                     _data[i] = default;
+                    
                     entry.Key = -1;
                     entry.Next = _freeListIdx;
+                    
                     _freeListIdx = i;
                     _count--;
                     return;
@@ -2233,7 +2236,9 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOf<T>(this T[] array, T value, EqualityComparer<T> comparer) {
             for (int i = 0, length = array.Length; i < length; ++i) {
-                if (comparer.Equals(array[i], value)) return i;
+                if (comparer.Equals(array[i], value)) {
+                    return i;
+                }
             }
 
             return -1;
@@ -2255,12 +2260,10 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EnsureLength<T>(ref T[] array, int index, in T defaultValue) {
-            if (index >= array.Length) {
-                var oldLength = array.Length;
-
-                InnerEnsureLength(ref array, index);
-                array.Fill(defaultValue, oldLength);
-            }
+            if (index < array.Length) return;
+            var oldLength = array.Length;
+            InnerEnsureLength(ref array, index);
+            array.Fill(defaultValue, oldLength);
         }
     }
 
