@@ -1781,7 +1781,7 @@ namespace Ludaludaed.KECS {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BitSet SetBit(int index) {
+        public void SetBit(int index) {
             var chunk = index / BitSet.ChunkCapacity;
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
@@ -1791,12 +1791,10 @@ namespace Ludaludaed.KECS {
                 _chunks[chunk] = newValue;
                 _count++;
             }
-
-            return this;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BitSet ClearBit(int index) {
+        public void ClearBit(int index) {
             var chunk = index / BitSet.ChunkCapacity;
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
@@ -1806,8 +1804,6 @@ namespace Ludaludaed.KECS {
                 _chunks[chunk] = newValue;
                 _count--;
             }
-
-            return this;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1833,7 +1829,9 @@ namespace Ludaludaed.KECS {
         public bool Intersects(BitSet other) {
             ArrayExtension.EnsureLength(ref other._chunks, _chunks.Length);
             for (int i = 0, length = _chunks.Length; i < length; i++) {
-                if ((_chunks[i] & other._chunks[i]) != 0) return true;
+                if ((_chunks[i] & other._chunks[i]) != 0) {
+                    return true;
+                }
             }
 
             return false;
@@ -1878,7 +1876,6 @@ namespace Ludaludaed.KECS {
             //         hashResult = unchecked(hashResult * 31459 + word);
             //     }
             // }
-            //
             // return (int) ((hashResult >> 32) ^ hashResult);
         }
 
