@@ -159,7 +159,7 @@ namespace Ludaludaed.KECS {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
 
-        private readonly HashMap<Archetype> _archetypeSignatures; 
+        private readonly HashMap<Archetype> _archetypeSignatures;
         internal readonly FastList<Archetype> Archetypes;
 
         private Query[] _queries;
@@ -331,8 +331,10 @@ namespace Ludaludaed.KECS {
             entityData.Archetype.RemoveEntity(entity.Id);
             entityData.Archetype = null;
             entityData.Age++;
-            if (entityData.Age == 0)
+            if (entityData.Age == 0) {
                 entityData.Age = 1;
+            }
+
             ArrayExtension.EnsureLength(ref _freeEntityIds, _freeEntityCount);
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
@@ -414,15 +416,18 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype GetArchetype(BitSet signature) {
             var hash = signature.GetHashCode();
-            if (_archetypeSignatures.TryGetValue(hash, out var archetype)) return archetype;
-            archetype = new Archetype(new BitSet(signature), Config.Entities);
-            Archetypes.Add(archetype);
-            _archetypeSignatures.Set(hash, archetype);
+
+            if (!_archetypeSignatures.TryGetValue(hash, out var archetype)) {
+                archetype = new Archetype(new BitSet(signature), Config.Entities);
+                Archetypes.Add(archetype);
+                _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
-            for (int i = 0, length = DebugListeners.Count; i < length; i++) {
-                DebugListeners.Get(i).OnArchetypeCreated(archetype);
-            }
+                for (int i = 0, length = DebugListeners.Count; i < length; i++) {
+                    DebugListeners.Get(i).OnArchetypeCreated(archetype);
+                }
 #endif
+            }
+
             return archetype;
         }
 
@@ -722,8 +727,7 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Type GetTypeByIndex(int idx) {
-            if (idx >= ComponentTypesCount) return default;
-            return ComponentsTypes[idx];
+            return idx >= ComponentTypesCount ? default : ComponentsTypes[idx];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -907,7 +911,9 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Query With<T>() where T : struct {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (!Exclude.GetBit(typeIdx)) Include.SetBit(typeIdx);
+            if (!Exclude.GetBit(typeIdx)) {
+                Include.SetBit(typeIdx);
+            }
 #if DEBUG
             if (Exclude.GetBit(typeIdx))
                 throw new Exception($"|KECS| The component ({typeof(T).Name}) was excluded from the request.");
@@ -918,7 +924,9 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Query Without<T>() where T : struct {
             var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (!Include.GetBit(typeIdx)) Exclude.SetBit(typeIdx);
+            if (!Include.GetBit(typeIdx)) {
+                Exclude.SetBit(typeIdx);
+            }
 #if DEBUG
             if (Include.GetBit(typeIdx))
                 throw new Exception($"|KECS| The component ({typeof(T).Name}) was included in the request.");
