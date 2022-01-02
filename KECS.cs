@@ -159,7 +159,7 @@ namespace Ludaludaed.KECS {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
 
-        private readonly HashMap<Archetype> _archetypeSignatures;
+        private readonly HashMap<Archetype> _archetypeSignatures; 
         internal readonly FastList<Archetype> Archetypes;
 
         private Query[] _queries;
