@@ -1786,11 +1786,12 @@ namespace Ludaludaed.KECS {
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue | (1UL << (index % BitSet.ChunkCapacity));
-            
+
             if (oldValue != newValue) {
                 _chunks[chunk] = newValue;
                 _count++;
             }
+
             return this;
         }
 
@@ -1800,11 +1801,12 @@ namespace Ludaludaed.KECS {
             ArrayExtension.EnsureLength(ref _chunks, chunk);
             var oldValue = _chunks[chunk];
             var newValue = oldValue & ~(1UL << (index % BitSet.ChunkCapacity));
-            
+
             if (oldValue != newValue) {
                 _chunks[chunk] = newValue;
                 _count--;
             }
+
             return this;
         }
 
@@ -1842,6 +1844,7 @@ namespace Ludaludaed.KECS {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] = 0;
             }
+
             _count = 0;
         }
 
@@ -1855,12 +1858,19 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() {
-            ulong h = 1234;
-            for (var i = _chunks.Length - 1; i >= 0; i--) {
-                h ^= ((ulong) i + 1) * _chunks[i];
+            // var hashResult = _count;
+            // foreach (var idx in this) {
+            //     hashResult = unchecked(hashResult * 31459 + idx);
+            // }
+            // return hashResult;
+            var hashResult = (ulong) _count;
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
+                var word = _chunks[i];
+                if (word != 0UL) {
+                    hashResult = unchecked(hashResult * 31459 + word);
+                }
             }
-
-            return (int) ((h >> 32) ^ h);
+            return (int) ((hashResult >> 32) ^ hashResult);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1921,7 +1931,7 @@ namespace Ludaludaed.KECS {
         private T _empty;
 
         public int Count => _count;
-        
+
         private struct Entry {
             public int Next;
             public int Key;
@@ -1949,7 +1959,7 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int key, T value) {
             var index = IndexFor(key);
-            
+
             for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
                 if (_entries[i].Key == key) {
                     _data[i] = value;
@@ -2015,11 +2025,12 @@ namespace Ludaludaed.KECS {
                     } else {
                         _entries[priorEntry].Next = entry.Next;
                     }
+
                     _data[i] = default;
-                    
+
                     entry.Key = -1;
                     entry.Next = _freeListIdx;
-                    
+
                     _freeListIdx = i;
                     _count--;
                     return;
