@@ -1863,14 +1863,23 @@ namespace Ludaludaed.KECS {
             //     hashResult = unchecked(hashResult * 31459 + idx);
             // }
             // return hashResult;
-            var hashResult = (ulong) _count;
-            for (int i = 0, length = _chunks.Length; i < length; i++) {
+            ulong hashResult = 31459;
+            for (var i = _chunks.Length - 1; i >= 0; i--) {
                 var word = _chunks[i];
                 if (word != 0UL) {
-                    hashResult = unchecked(hashResult * 31459 + word);
+                    hashResult = unchecked(hashResult ^ ((ulong) i + 1) * word);
                 }
             }
             return (int) ((hashResult >> 32) ^ hashResult);
+            // var hashResult = (ulong) _count;
+            // for (int i = 0, length = _chunks.Length; i < length; i++) {
+            //     var word = _chunks[i];
+            //     if (word != 0UL) {
+            //         hashResult = unchecked(hashResult * 31459 + word);
+            //     }
+            // }
+            //
+            // return (int) ((hashResult >> 32) ^ hashResult);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
