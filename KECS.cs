@@ -351,12 +351,10 @@ namespace Ludaludaed.KECS {
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-            if (_componentPools.Contains(idx)) {
-                return (ComponentPool<T>) _componentPools.Get(idx);
+            if (!_componentPools.Contains(idx)) {
+                var pool = new ComponentPool<T>(Config.Entities);
+                _componentPools.Set(idx, pool);
             }
-
-            var pool = new ComponentPool<T>(Config.Entities);
-            _componentPools.Set(idx, pool);
             return (ComponentPool<T>) _componentPools.Get(idx);
         }
 
@@ -376,14 +374,10 @@ namespace Ludaludaed.KECS {
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot get pool.");
 #endif
             var idx = ComponentTypeInfo<T>.TypeIndex;
-
-            if (_taskPools.Contains(idx)) {
-                return (TaskPool<T>) _taskPools.Get(idx);
+            if (!_taskPools.Contains(idx)) {
+                var pool = new TaskPool<T>(Config.Entities);
+                _taskPools.Set(idx, pool);
             }
-
-            var pool = new TaskPool<T>(Config.Entities);
-            _taskPools.Set(idx, pool);
-
             return (TaskPool<T>) _taskPools.Get(idx);
         }
 
@@ -597,7 +591,6 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetEvent<T>(in this Entity entity, in T value) where T : struct {
-            if (!entity.IsAlive()) return;
             entity.World.GetTaskPool<T>().Add(entity, value);
         }
 
