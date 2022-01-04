@@ -355,6 +355,7 @@ namespace Ludaludaed.KECS {
                 var pool = new ComponentPool<T>(Config.Entities);
                 _componentPools.Set(idx, pool);
             }
+
             return (ComponentPool<T>) _componentPools.Get(idx);
         }
 
@@ -378,6 +379,7 @@ namespace Ludaludaed.KECS {
                 var pool = new TaskPool<T>(Config.Entities);
                 _taskPools.Set(idx, pool);
             }
+
             return (TaskPool<T>) _taskPools.Get(idx);
         }
 
@@ -1563,7 +1565,6 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public sealed class SparseSet {
-        private const int MinCapacity = 16;
         private const int None = -1;
         private int[] _sparse;
         public int[] Dense;
@@ -1572,7 +1573,7 @@ namespace Ludaludaed.KECS {
         public int Count => _denseCount;
 
         public SparseSet(int capacity) {
-            if (capacity < MinCapacity) capacity = MinCapacity;
+            capacity = Math.Pot(capacity);
             Dense = new int[capacity];
             _sparse = new int[capacity];
             _sparse.Fill(None);
@@ -1645,7 +1646,6 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public sealed class HandleMap<T> {
-        private const int MinCapacity = 16;
         private const int None = -1;
         private int[] _dense;
         private int[] _sparse;
@@ -1657,7 +1657,7 @@ namespace Ludaludaed.KECS {
         public ref T Empty => ref _empty;
 
         public HandleMap(int capacity) {
-            if (capacity < MinCapacity) capacity = MinCapacity;
+            capacity = Math.Pot(capacity);
             _dense = new int[capacity];
             _sparse = new int[capacity];
             Data = new T[capacity];
@@ -1869,6 +1869,7 @@ namespace Ludaludaed.KECS {
                     hashResult = unchecked(hashResult ^ ((ulong) i + 1) * word);
                 }
             }
+
             return (int) ((hashResult >> 32) ^ hashResult);
             // var hashResult = (ulong) _count;
             // for (int i = 0, length = _chunks.Length; i < length; i++) {
@@ -1949,7 +1950,7 @@ namespace Ludaludaed.KECS {
             _count = 0;
             _freeListIdx = -1;
 
-            _capacity = HashHelpers.GetCapacity(capacity);
+            _capacity = Math.Pot(capacity);
             _empty = default;
             _entries = new Entry[_capacity];
             _buckets = new int[_capacity];
@@ -1999,7 +2000,7 @@ namespace Ludaludaed.KECS {
                 return;
             }
 
-            var newCapacity = HashHelpers.ExpandCapacity(_length);
+            var newCapacity = Math.Pot(_capacity << 1);
 
             Array.Resize(ref _data, newCapacity);
             Array.Resize(ref _entries, newCapacity);
@@ -2140,7 +2141,6 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public sealed class FastList<T> {
-        private const int MinCapacity = 16;
         private T[] _data;
         private int _count;
         private EqualityComparer<T> _comparer;
@@ -2148,16 +2148,13 @@ namespace Ludaludaed.KECS {
         public int Count => _count;
 
         public FastList(int capacity = 0) {
-            if (capacity < MinCapacity) capacity = MinCapacity;
+            capacity = Math.Pot(capacity);
             _data = new T[capacity];
             _count = 0;
             _comparer = EqualityComparer<T>.Default;
         }
 
-        public FastList(EqualityComparer<T> comparer, int capacity = 0) {
-            if (capacity < MinCapacity) capacity = MinCapacity;
-            _data = new T[capacity];
-            _count = 0;
+        public FastList(EqualityComparer<T> comparer, int capacity = 0) : this(capacity) {
             _comparer = comparer;
         }
 
@@ -2249,7 +2246,7 @@ namespace Ludaludaed.KECS {
     public static class ArrayExtension {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InnerEnsureLength<T>(ref T[] array, int index) {
-            var newLength = Math.Max(1, array.Length);
+            var newLength = System.Math.Max(1, array.Length);
 
             while (index >= newLength) {
                 newLength <<= 1;
@@ -2296,35 +2293,20 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    internal static class HashHelpers {
-        private static readonly int[] capacities = {
-            4,
-            16,
-            64,
-            256,
-            1024,
-            4096,
-            16384,
-            65536,
-            262144,
-            1048576,
-            4194304,
-        };
-
-        public static int ExpandCapacity(int oldSize) {
-            var min = oldSize << 1;
-            return min > 2146435069U && 2146435069 > oldSize ? 2146435069 : GetCapacity(min);
-        }
-
-        public static int GetCapacity(int min) {
-            for (int index = 0, length = capacities.Length; index < length; ++index) {
-                var prime = capacities[index];
-                if (prime >= min) {
-                    return prime;
-                }
+    internal static class Math {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Pot(int v) {
+            if (v < 2) {
+                return 2;
             }
 
-            throw new Exception("Prime is too big");
+            var n = v - 1;
+            n |= n >> 1;
+            n |= n >> 2;
+            n |= n >> 4;
+            n |= n >> 8;
+            n |= n >> 16;
+            return n + 1;
         }
     }
 
