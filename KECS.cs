@@ -1841,16 +1841,18 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetAll() {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
-                _chunks[i] = 0xffffffff;
+                _chunks[i] = ulong.MaxValue;
             }
+
             _count = _chunks.Length * ChunkCapacity;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearAll() {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
-                _chunks[i] = 0x00000000;
+                _chunks[i] = 0UL;
             }
+
             _count = 0;
         }
 
@@ -1886,6 +1888,80 @@ namespace Ludaludaed.KECS {
             //     }
             // }
             // return (int) ((hashResult >> 32) ^ hashResult);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(BitSet left, BitSet right) {
+            if (left is null && right is null) {
+                return true;
+            }
+            if (left is null || right is null) {
+                return false;
+            }
+            return left.Equals(right);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(BitSet left, BitSet right) {
+            if (left is null && right is null) {
+                return false;
+            }
+            if (left is null || right is null) {
+                return true;
+            }
+            return !left.Equals(right);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool Equals(BitSet other) {
+            if (other is null) {
+                return false;
+            }
+            
+            if (_count != other._count) {
+                return false;
+            }
+
+            if (_chunks.Length >= other._chunks.Length) {
+                for (int i = 0, length = other._chunks.Length; i < length; i++) {
+                    var word = _chunks[i];
+                    var otherWord = other._chunks[i];
+                    if (word != otherWord) {
+                        return false;
+                    }
+                }
+
+                for (int i = other._chunks.Length, length = _chunks.Length; i < length; i++) {
+                    var word = _chunks[i];
+                    if (word != 0UL) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } else {
+                for (int i = 0, length = _chunks.Length; i < length; i++) {
+                    var word = _chunks[i];
+                    var otherWord = other._chunks[i];
+                    if (word != otherWord) {
+                        return false;
+                    }
+                }
+
+                for (int i = _chunks.Length, length = other._chunks.Length; i < length; i++) {
+                    var word = other._chunks[i];
+                    if (word != 0UL) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object obj) {
+            return obj is BitSet bitSet && Equals(bitSet);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
