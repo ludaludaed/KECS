@@ -302,7 +302,7 @@ namespace Ludaludaed.KECS {
                 var newEntityId = _freeEntityIds[--_freeEntityCount];
                 ref var entityData = ref _entities[newEntityId];
                 entity.Id = newEntityId;
-                entityData.Signature.Clear();
+                entityData.Signature.ClearAll();
                 entityData.Archetype = emptyArchetype;
                 entity.Age = entityData.Age;
             } else {
@@ -641,7 +641,7 @@ namespace Ludaludaed.KECS {
                 world.GetPool(idx).Remove(entity.Id);
             }
 
-            entityData.Signature.Clear();
+            entityData.Signature.ClearAll();
             entity.UpdateArchetype();
         }
 
@@ -704,7 +704,7 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear() {
             _entities.Clear();
-            Signature.Clear();
+            Signature.ClearAll();
         }
     }
 
@@ -945,8 +945,8 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Recycle() {
-            Include.Clear();
-            Exclude.Clear();
+            Include.ClearAll();
+            Exclude.ClearAll();
             World.RecycleQuery(this);
         }
     }
@@ -1839,11 +1839,18 @@ namespace Ludaludaed.KECS {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() {
+        public void SetAll() {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
-                _chunks[i] = 0;
+                _chunks[i] = 0xffffffff;
             }
+            _count = _chunks.Length * ChunkCapacity;
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ClearAll() {
+            for (int i = 0, length = _chunks.Length; i < length; i++) {
+                _chunks[i] = 0x00000000;
+            }
             _count = 0;
         }
 
