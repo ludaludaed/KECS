@@ -1879,6 +1879,7 @@ namespace Ludaludaed.KECS {
                     hashResult = unchecked(hashResult ^ ((ulong) i + 1) * word);
                 }
             }
+
             return (int) ((hashResult >> 32) ^ hashResult);
             // var hashResult = (ulong) _count;
             // for (int i = 0, length = _chunks.Length; i < length; i++) {
@@ -1895,9 +1896,11 @@ namespace Ludaludaed.KECS {
             if (left is null && right is null) {
                 return true;
             }
+
             if (left is null || right is null) {
                 return false;
             }
+
             return left.Equals(right);
         }
 
@@ -1906,9 +1909,11 @@ namespace Ludaludaed.KECS {
             if (left is null && right is null) {
                 return false;
             }
+
             if (left is null || right is null) {
                 return true;
             }
+
             return !left.Equals(right);
         }
 
@@ -1917,7 +1922,7 @@ namespace Ludaludaed.KECS {
             if (other is null) {
                 return false;
             }
-            
+
             if (_count != other._count) {
                 return false;
             }
