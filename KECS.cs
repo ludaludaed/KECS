@@ -585,10 +585,11 @@ namespace Ludaludaed.KECS {
             var world = entity.World;
             ref var entityData = ref world.GetEntityData(entity);
             var pool = world.GetPool<T>();
-            if (!entityData.Signature.GetBit(idx)) return;
-            entityData.Signature.ClearBit(idx);
-            pool.Remove(entity.Id);
-            entity.UpdateArchetype();
+            if (entityData.Signature.GetBit(idx)) {
+                entityData.Signature.ClearBit(idx);
+                pool.Remove(entity.Id);
+                entity.UpdateArchetype();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
