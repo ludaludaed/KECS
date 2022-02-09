@@ -2228,7 +2228,7 @@ namespace Ludaludaed.KECS {
     public sealed class FastList<T> {
         private T[] _data;
         private int _count;
-        private EqualityComparer<T> _comparer;
+        private readonly EqualityComparer<T> _comparer;
 
         public int Count => _count;
 
