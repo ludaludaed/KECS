@@ -193,7 +193,7 @@ namespace Ludaludaed.KECS {
             _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
             Archetypes.Add(emptyArch);
             _isAlive = true;
-            Config = config;
+            this.Config = config;
             Name = name;
         }
 
