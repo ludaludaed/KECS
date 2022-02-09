@@ -215,7 +215,7 @@ namespace Ludaludaed.KECS {
             Entity entity;
             entity.World = this;
             for (int i = 0, length = _dirtyEntities.Count; i < length; i++) {
-                var entityId = _dirtyEntities.Dense[i];
+                var entityId = _dirtyEntities[i];
                 ref var entityData = ref _entities[entityId];
                 entity.Id = entityId;
                 entity.Age = entityData.Age;
@@ -390,7 +390,7 @@ namespace Ludaludaed.KECS {
                 throw new Exception($"|KECS| World - {Name} destroyed");
 #endif
             for (int i = 0, length = _taskPools.Count; i < length; i++) {
-                _taskPools.Data[i].Execute();
+                _taskPools[i].Execute();
             }
         }
 
@@ -500,7 +500,7 @@ namespace Ludaludaed.KECS {
         public Entity Build(World world) {
             var entity = world.CreateEntity();
             for (int i = 0, length = _builders.Count; i < length; i++) {
-                _builders.Data[i].Set(entity);
+                _builders[i].Set(entity);
             }
 
             entity.UpdateArchetype();
@@ -1568,17 +1568,28 @@ namespace Ludaludaed.KECS {
     public sealed class SparseSet {
         private const int None = -1;
         private int[] _sparse;
-        public int[] Dense;
+        private int[] _dense;
         private int _denseCount;
 
         public int Count => _denseCount;
 
         public SparseSet(int capacity) {
             capacity = Math.Pot(capacity);
-            Dense = new int[capacity];
+            _dense = new int[capacity];
             _sparse = new int[capacity];
             _sparse.Fill(None);
             _denseCount = 0;
+        }
+
+        public int this[int index] {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get {
+#if DEBUG
+                if (index >= _denseCount || index < 0)
+                    throw new Exception($"|KECS| Index {index} out of bounds of dense array");
+#endif
+                return _dense[index];
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1590,9 +1601,9 @@ namespace Ludaludaed.KECS {
         public void Set(int sparseIdx) {
             if (Contains(sparseIdx)) return;
             ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
-            ArrayExtension.EnsureLength(ref Dense, _denseCount);
+            ArrayExtension.EnsureLength(ref _dense, _denseCount);
             _sparse[sparseIdx] = _denseCount;
-            Dense[_denseCount] = sparseIdx;
+            _dense[_denseCount] = sparseIdx;
             _denseCount++;
         }
 
@@ -1603,15 +1614,15 @@ namespace Ludaludaed.KECS {
             _sparse[sparseIdx] = None;
             _denseCount--;
             if (packedIdx >= _denseCount) return;
-            var lastSparseIdx = Dense[_denseCount];
-            Dense[packedIdx] = lastSparseIdx;
+            var lastSparseIdx = _dense[_denseCount];
+            _dense[packedIdx] = lastSparseIdx;
             _sparse[lastSparseIdx] = packedIdx;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear() {
             _denseCount = 0;
-            Array.Clear(Dense, 0, Dense.Length);
+            Array.Clear(_dense, 0, _dense.Length);
             _sparse.Fill(None);
         }
 
@@ -1631,7 +1642,7 @@ namespace Ludaludaed.KECS {
 
             public int Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => _set.Dense[_index++];
+                get => _set._dense[_index++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1650,7 +1661,7 @@ namespace Ludaludaed.KECS {
         private const int None = -1;
         private int[] _dense;
         private int[] _sparse;
-        public T[] Data;
+        private T[] _data;
         private int _denseCount;
 
         private T _empty;
@@ -1661,7 +1672,7 @@ namespace Ludaludaed.KECS {
             capacity = Math.Pot(capacity);
             _dense = new int[capacity];
             _sparse = new int[capacity];
-            Data = new T[capacity];
+            _data = new T[capacity];
             _sparse.Fill(None);
             _denseCount = 0;
             _empty = default(T);
@@ -1671,27 +1682,38 @@ namespace Ludaludaed.KECS {
         public bool Contains(int sparseIdx) {
             return _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
         }
+        
+        public ref T this[int index] {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get {
+#if DEBUG
+                if (index >= _denseCount || index < 0)
+                    throw new Exception($"|KECS| Index {index} out of bounds of data array");
+#endif
+                return ref _data[index];
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx) {
-            if (Contains(sparseIdx)) return ref Data[_sparse[sparseIdx]];
+            if (Contains(sparseIdx)) return ref _data[_sparse[sparseIdx]];
             return ref Empty;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int sparseIdx, T value) {
             if (Contains(sparseIdx)) {
-                Data[_sparse[sparseIdx]] = value;
+                _data[_sparse[sparseIdx]] = value;
                 return;
             }
 
             ArrayExtension.EnsureLength(ref _sparse, sparseIdx, None);
             ArrayExtension.EnsureLength(ref _dense, _denseCount);
-            ArrayExtension.EnsureLength(ref Data, _denseCount);
+            ArrayExtension.EnsureLength(ref _data, _denseCount);
 
             _sparse[sparseIdx] = _denseCount;
             _dense[_denseCount] = sparseIdx;
-            Data[_denseCount] = value;
+            _data[_denseCount] = value;
             _denseCount++;
         }
 
@@ -1707,20 +1729,20 @@ namespace Ludaludaed.KECS {
 
             if (packedIdx < _denseCount) {
                 var lastSparseIdx = _dense[_denseCount];
-                var lastValue = Data[_denseCount];
+                var lastValue = _data[_denseCount];
 
                 _dense[packedIdx] = lastSparseIdx;
-                Data[packedIdx] = lastValue;
+                _data[packedIdx] = lastValue;
                 _sparse[lastSparseIdx] = packedIdx;
             }
 
-            Data[_denseCount] = default;
+            _data[_denseCount] = default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear() {
             _denseCount = 0;
-            Array.Clear(Data, 0, Data.Length);
+            Array.Clear(_data, 0, _data.Length);
             Array.Clear(_dense, 0, _dense.Length);
             _sparse.Fill(None);
         }
@@ -1741,7 +1763,7 @@ namespace Ludaludaed.KECS {
 
             public ref T Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => ref _handleMap.Data[_index++];
+                get => ref _handleMap._data[_index++];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
