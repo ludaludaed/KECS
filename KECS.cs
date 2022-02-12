@@ -227,10 +227,14 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddDelayedChange(in int entityId) {
-            if (_lockCount <= 0)
+            if (_lockCount <= 0) {
                 return false;
-            if (!_dirtyEntities.Contains(entityId))
+            }
+
+            if (!_dirtyEntities.Contains(entityId)) {
                 _dirtyEntities.Set(entityId);
+            }
+
             return true;
         }
 
@@ -613,7 +617,10 @@ namespace Ludaludaed.KECS {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void UpdateArchetype(in this Entity entity) {
             var world = entity.World;
-            if (world.AddDelayedChange(in entity.Id)) return;
+            if (world.AddDelayedChange(in entity.Id)) {
+                return;
+            }
+
             ref var entityData = ref world.GetEntityData(entity);
 
             if (entityData.Signature.Count == 0) {
@@ -728,12 +735,8 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Type[] GetAllTypes() {
-            var count = ComponentTypesCount;
-            var infos = new Type[count];
-            for (var i = 0; i < count; i++) {
-                infos[i] = ComponentsTypes[i];
-            }
-
+            var infos = new Type[ComponentTypesCount];
+            Array.Copy(ComponentsTypes, infos, ComponentTypesCount);
             return infos;
         }
     }
@@ -1682,7 +1685,7 @@ namespace Ludaludaed.KECS {
         public bool Contains(int sparseIdx) {
             return _denseCount > 0 && sparseIdx < _sparse.Length && _sparse[sparseIdx] != None;
         }
-        
+
         public ref T this[int index] {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get {
@@ -1800,6 +1803,7 @@ namespace Ludaludaed.KECS {
             for (var i = 0; i < newSize; i++) {
                 _chunks[i] = other._chunks[i];
             }
+
             _count = other._count;
         }
 
@@ -1844,6 +1848,7 @@ namespace Ludaludaed.KECS {
                     return false;
                 }
             }
+
             return true;
         }
 
@@ -1855,6 +1860,7 @@ namespace Ludaludaed.KECS {
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -1863,6 +1869,7 @@ namespace Ludaludaed.KECS {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] = ulong.MaxValue;
             }
+
             _count = _chunks.Length * ChunkCapacity;
         }
 
@@ -1871,6 +1878,7 @@ namespace Ludaludaed.KECS {
             for (int i = 0, length = _chunks.Length; i < length; i++) {
                 _chunks[i] = 0UL;
             }
+
             _count = 0;
         }
 
@@ -1891,6 +1899,7 @@ namespace Ludaludaed.KECS {
                     hashResult = unchecked(hashResult ^ ((ulong) i + 1) * word);
                 }
             }
+
             return (int) ((hashResult >> 32) ^ hashResult);
         }
 
@@ -1899,9 +1908,11 @@ namespace Ludaludaed.KECS {
             if (left is null && right is null) {
                 return true;
             }
+
             if (left is null || right is null) {
                 return false;
             }
+
             return left.Equals(right);
         }
 
@@ -1910,9 +1921,11 @@ namespace Ludaludaed.KECS {
             if (left is null && right is null) {
                 return false;
             }
+
             if (left is null || right is null) {
                 return true;
             }
+
             return !left.Equals(right);
         }
 
@@ -1921,9 +1934,11 @@ namespace Ludaludaed.KECS {
             if (other is null) {
                 return false;
             }
+
             if (_count != other._count) {
                 return false;
             }
+
             if (_chunks.Length >= other._chunks.Length) {
                 for (int i = 0, length = other._chunks.Length; i < length; i++) {
                     var word = _chunks[i];
