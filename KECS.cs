@@ -742,7 +742,7 @@ namespace Ludaludaed.KECS {
             Array.Copy(ComponentsTypes, infos, ComponentTypesCount);
             return ComponentTypesCount;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Type[] GetAllTypes() {
             var infos = new Type[ComponentTypesCount];
