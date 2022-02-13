@@ -30,11 +30,11 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public static class Worlds {
-        private static readonly HashMap<World> _worlds;
+        private static readonly IntHashMap<World> _worlds;
         private static readonly object _lockObject;
 
         static Worlds() {
-            _worlds = new HashMap<World>(32);
+            _worlds = new IntHashMap<World>(32);
             _lockObject = new object();
         }
 
@@ -159,7 +159,7 @@ namespace Ludaludaed.KECS {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
 
-        private readonly HashMap<Archetype> _archetypeSignatures;
+        private readonly IntHashMap<Archetype> _archetypeSignatures;
         internal readonly FastList<Archetype> Archetypes;
 
         private Query[] _queries;
@@ -181,7 +181,7 @@ namespace Ludaludaed.KECS {
         internal World(WorldConfig config, string name) {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-            _archetypeSignatures = new HashMap<Archetype>(config.Archetypes);
+            _archetypeSignatures = new IntHashMap<Archetype>(config.Archetypes);
             Archetypes = new FastList<Archetype>(config.Archetypes);
 
             _entities = new EntityData[config.Entities];
@@ -1430,7 +1430,7 @@ namespace Ludaludaed.KECS {
     public sealed class Systems : UpdateSystem {
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
-        private HashMap<object> _sharedData;
+        private IntHashMap<object> _sharedData;
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT") {
@@ -1438,7 +1438,7 @@ namespace Ludaludaed.KECS {
             if (string.IsNullOrEmpty(name))
                 throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
-            _sharedData = new HashMap<object>();
+            _sharedData = new IntHashMap<object>();
             _allSystems = new FastList<SystemBase>();
             _updateSystems = new FastList<UpdateSystem>();
             _world = world;
@@ -2037,7 +2037,7 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class HashMap<T> {
+    public sealed class IntHashMap<T> {
         private Entry[] _entries;
         private int[] _buckets;
         private T[] _data;
@@ -2055,7 +2055,7 @@ namespace Ludaludaed.KECS {
             public int Key;
         }
 
-        public HashMap(int capacity = 0) {
+        public IntHashMap(int capacity = 0) {
             _length = 0;
             _count = 0;
             _freeListIdx = -1;
@@ -2213,32 +2213,32 @@ namespace Ludaludaed.KECS {
         }
 
         public struct Enumerator {
-            private HashMap<T> _hashMap;
+            private IntHashMap<T> _intHashMap;
             private int _current;
             private int _index;
 
-            public Enumerator(HashMap<T> hashMap) {
-                _hashMap = hashMap;
+            public Enumerator(IntHashMap<T> intHashMap) {
+                _intHashMap = intHashMap;
                 _current = 0;
                 _index = -1;
             }
 
             public ref T Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => ref _hashMap._data[_current];
+                get => ref _intHashMap._data[_current];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool MoveNext() {
-                while (++_index < _hashMap._length) {
-                    ref var entry = ref _hashMap._entries[_index];
+                while (++_index < _intHashMap._length) {
+                    ref var entry = ref _intHashMap._entries[_index];
                     if (entry.Key >= 0) {
                         _current = _index;
                         return true;
                     }
                 }
 
-                _hashMap = null;
+                _intHashMap = null;
                 _current = 0;
                 _index = -1;
                 return false;
