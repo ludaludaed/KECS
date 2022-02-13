@@ -703,6 +703,11 @@ namespace Ludaludaed.KECS {
         internal void RemoveEntity(in int entityId) {
             _entities.Remove(entityId);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal int GetEntityByIndex(in int index) {
+            return _entities[index];
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SparseSet.Enumerator GetEnumerator() {
@@ -971,7 +976,7 @@ namespace Ludaludaed.KECS {
 #endif
     public static class QueryExtensions {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsMatch(this Query query, Archetype archetype) {
+        internal static bool IsMatch(this Query query, Archetype archetype) {
             return archetype.Count > 0 && archetype.Signature.Contains(query.Include) &&
                    (query.Exclude.Count == 0 || !archetype.Signature.Intersects(query.Exclude));
         }
@@ -1713,6 +1718,7 @@ namespace Ludaludaed.KECS {
             if (Contains(sparseIdx)) {
                 return ref _data[_sparse[sparseIdx]];
             }
+
             return ref Empty;
         }
 
