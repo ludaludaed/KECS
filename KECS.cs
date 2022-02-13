@@ -1626,10 +1626,11 @@ namespace Ludaludaed.KECS {
             var packedIdx = _sparse[sparseIdx];
             _sparse[sparseIdx] = None;
             _denseCount--;
-            if (packedIdx >= _denseCount) return;
-            var lastSparseIdx = _dense[_denseCount];
-            _dense[packedIdx] = lastSparseIdx;
-            _sparse[lastSparseIdx] = packedIdx;
+            if (packedIdx < _denseCount) {
+                var lastSparseIdx = _dense[_denseCount];
+                _dense[packedIdx] = lastSparseIdx;
+                _sparse[lastSparseIdx] = packedIdx;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1646,7 +1647,7 @@ namespace Ludaludaed.KECS {
 
         public struct Enumerator {
             private int _index;
-            private SparseSet _set;
+            private readonly SparseSet _set;
 
             public Enumerator(SparseSet set) {
                 _set = set;
@@ -1709,7 +1710,9 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Get(int sparseIdx) {
-            if (Contains(sparseIdx)) return ref _data[_sparse[sparseIdx]];
+            if (Contains(sparseIdx)) {
+                return ref _data[_sparse[sparseIdx]];
+            }
             return ref Empty;
         }
 
