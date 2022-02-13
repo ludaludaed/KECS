@@ -299,7 +299,7 @@ namespace Ludaludaed.KECS {
             if (!_isAlive)
                 throw new Exception($"|KECS| World - {Name} was destroyed. You cannot create entity.");
 #endif
-            ref var emptyArchetype = ref Archetypes.Get(0);
+            ref var emptyArchetype = ref Archetypes[0];
             Entity entity;
             entity.World = this;
             if (_freeEntityCount > 0) {
@@ -323,7 +323,7 @@ namespace Ludaludaed.KECS {
             emptyArchetype.AddEntity(entity.Id);
 #if DEBUG
             for (int i = 0, length = DebugListeners.Count; i < length; i++) {
-                DebugListeners.Get(i).OnEntityCreated(entity);
+                DebugListeners[i].OnEntityCreated(entity);
             }
 #endif
             return entity;
@@ -343,7 +343,7 @@ namespace Ludaludaed.KECS {
             _freeEntityIds[_freeEntityCount++] = entity.Id;
 #if DEBUG
             for (int i = 0, length = DebugListeners.Count; i < length; i++) {
-                DebugListeners.Get(i).OnEntityDestroyed(entity);
+                DebugListeners[i].OnEntityDestroyed(entity);
             }
 #endif
         }
@@ -423,7 +423,7 @@ namespace Ludaludaed.KECS {
                 _archetypeSignatures.Set(hash, archetype);
 #if DEBUG
                 for (int i = 0, length = DebugListeners.Count; i < length; i++) {
-                    DebugListeners.Get(i).OnArchetypeCreated(archetype);
+                    DebugListeners[i].OnArchetypeCreated(archetype);
                 }
 #endif
             }
@@ -458,7 +458,7 @@ namespace Ludaludaed.KECS {
             _isAlive = false;
 #if DEBUG
             for (int i = 0, length = DebugListeners.Count; i < length; i++) {
-                DebugListeners.Get(i).OnWorldDestroyed(this);
+                DebugListeners[i].OnWorldDestroyed(this);
             }
 #endif
         }
@@ -636,7 +636,7 @@ namespace Ludaludaed.KECS {
 #if DEBUG
             var debugListeners = world.DebugListeners;
             for (int i = 0, length = debugListeners.Count; i < length; i++) {
-                debugListeners.Get(i).OnEntityChanged(entity);
+                debugListeners[i].OnEntityChanged(entity);
             }
 #endif
         }
@@ -1522,7 +1522,7 @@ namespace Ludaludaed.KECS {
             _initialized = true;
 #endif
             for (int i = 0, length = _allSystems.Count; i < length; i++) {
-                _allSystems.Get(i).Initialize();
+                _allSystems[i].Initialize();
             }
         }
 
@@ -1534,7 +1534,7 @@ namespace Ludaludaed.KECS {
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
 #endif
             for (int i = 0, length = _updateSystems.Count; i < length; i++) {
-                var update = _updateSystems.Get(i);
+                var update = _updateSystems[i];
                 if (update.IsEnable) {
                     update.OnUpdate(deltaTime);
                 }
@@ -1548,12 +1548,12 @@ namespace Ludaludaed.KECS {
             _destroyed = true;
 #endif
             for (int i = 0, length = _allSystems.Count; i < length; i++) {
-                var destroy = _allSystems.Get(i);
+                var destroy = _allSystems[i];
                 if (destroy.IsEnable) destroy.OnDestroy();
             }
 
             for (int i = 0, length = _allSystems.Count; i < length; i++) {
-                var destroy = _allSystems.Get(i);
+                var destroy = _allSystems[i];
                 if (destroy.IsEnable) {
                     destroy.PostDestroy();
                 }
@@ -1564,7 +1564,7 @@ namespace Ludaludaed.KECS {
             _sharedData.Clear();
 #if DEBUG
             for (int i = 0, length = _debugListeners.Count; i < length; i++) {
-                _debugListeners.Get(i).OnSystemsDestroyed(this);
+                _debugListeners[i].OnSystemsDestroyed(this);
             }
 #endif
         }
@@ -2271,13 +2271,15 @@ namespace Ludaludaed.KECS {
             _comparer = comparer;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int index) {
+        public ref T this[int index] {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get {
 #if DEBUG
-            if (index >= _count || index < 0)
-                throw new Exception($"|KECS| Index {index} out of bounds of array");
+                if (index >= _count || index < 0)
+                    throw new Exception($"|KECS| Index {index} out of bounds of array");
 #endif
-            return ref _data[index];
+                return ref _data[index];
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
