@@ -703,7 +703,7 @@ namespace Ludaludaed.KECS {
         internal void RemoveEntity(in int entityId) {
             _entities.Remove(entityId);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal int GetEntityByIndex(in int index) {
             return _entities[index];
