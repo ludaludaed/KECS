@@ -1958,41 +1958,25 @@ namespace Ludaludaed.KECS {
                 return false;
             }
 
-            if (_chunks.Length >= other._chunks.Length) {
-                for (int i = 0, length = other._chunks.Length; i < length; i++) {
-                    var word = _chunks[i];
-                    var otherWord = other._chunks[i];
-                    if (word != otherWord) {
-                        return false;
-                    }
+            for (int i = 0, length = System.Math.Min(other._chunks.Length, _chunks.Length); i < length; i++) {
+                var word = _chunks[i];
+                var otherWord = other._chunks[i];
+                if (word != otherWord) {
+                    return false;
                 }
-
-                for (int i = other._chunks.Length, length = _chunks.Length; i < length; i++) {
-                    var word = _chunks[i];
-                    if (word != 0UL) {
-                        return false;
-                    }
-                }
-
-                return true;
-            } else {
-                for (int i = 0, length = _chunks.Length; i < length; i++) {
-                    var word = _chunks[i];
-                    var otherWord = other._chunks[i];
-                    if (word != otherWord) {
-                        return false;
-                    }
-                }
-
-                for (int i = _chunks.Length, length = other._chunks.Length; i < length; i++) {
-                    var word = other._chunks[i];
-                    if (word != 0UL) {
-                        return false;
-                    }
-                }
-
-                return true;
             }
+
+            for (int i = System.Math.Min(other._chunks.Length, _chunks.Length),
+                length = System.Math.Max(other._chunks.Length, _chunks.Length);
+                i < length;
+                i++) {
+                var word = _chunks[i];
+                if (word != 0UL) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
