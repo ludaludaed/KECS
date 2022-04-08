@@ -1966,13 +1966,19 @@ namespace Ludaludaed.KECS {
                 }
             }
 
-            for (int i = System.Math.Min(other._chunks.Length, _chunks.Length),
-                length = System.Math.Max(other._chunks.Length, _chunks.Length);
-                i < length;
-                i++) {
-                var word = _chunks[i];
-                if (word != 0UL) {
-                    return false;
+            if (_chunks.Length >= other._chunks.Length) {
+                for (int i = other._chunks.Length, length = _chunks.Length; i < length; i++) {
+                    var word = _chunks[i];
+                    if (word != 0UL) {
+                        return false;
+                    }
+                }
+            } else {
+                for (int i = _chunks.Length, length = other._chunks.Length; i < length; i++) {
+                    var word = other._chunks[i];
+                    if (word != 0UL) {
+                        return false;
+                    }
                 }
             }
 
