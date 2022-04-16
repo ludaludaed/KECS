@@ -705,7 +705,7 @@ namespace Ludaludaed.KECS {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal int GetEntityByIndex(in int index) {
+        internal int GetEntity(in int index) {
             return _entities[index];
         }
 
@@ -823,6 +823,69 @@ namespace Ludaludaed.KECS {
     // QUERY
     //==================================================================================================================
 
+#if ENABLE_IL2CPP
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
+    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
+#endif
+    public sealed class Query {
+        internal readonly BitSet Include;
+        internal readonly BitSet Exclude;
+        internal readonly World World;
+
+        internal Query(World world) {
+            World = world;
+            Include = new BitSet(world.Config.Components);
+            Exclude = new BitSet(world.Config.Components);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Query With<T>() where T : struct {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (!Exclude.GetBit(typeIdx)) {
+                Include.SetBit(typeIdx);
+            }
+#if DEBUG
+            if (Exclude.GetBit(typeIdx))
+                throw new Exception($"|KECS| The component ({typeof(T).Name}) was excluded from the request.");
+#endif
+            return this;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Query Without<T>() where T : struct {
+            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
+            if (!Include.GetBit(typeIdx)) {
+                Exclude.SetBit(typeIdx);
+            }
+#if DEBUG
+            if (Include.GetBit(typeIdx))
+                throw new Exception($"|KECS| The component ({typeof(T).Name}) was included in the request.");
+#endif
+            return this;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode() {
+            var hashResult = Include.Count + Exclude.Count;
+            foreach (var idx in Include) {
+                hashResult = unchecked(hashResult * 31459 + idx);
+            }
+
+            foreach (var idx in Exclude) {
+                hashResult = unchecked(hashResult * 31459 - idx);
+            }
+
+            return hashResult;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Recycle() {
+            Include.ClearAll();
+            Exclude.ClearAll();
+            World.RecycleQuery(this);
+        }
+    }
+
     public delegate void ForEachHandler(Entity entity);
 
     public delegate void ForEachHandler<T>(Entity entity, ref T comp0)
@@ -906,69 +969,6 @@ namespace Ludaludaed.KECS {
         where S : struct
         where D : struct
         where F : struct;
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    public sealed class Query {
-        internal readonly BitSet Include;
-        internal readonly BitSet Exclude;
-        internal readonly World World;
-
-        internal Query(World world) {
-            World = world;
-            Include = new BitSet(world.Config.Components);
-            Exclude = new BitSet(world.Config.Components);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query With<T>() where T : struct {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (!Exclude.GetBit(typeIdx)) {
-                Include.SetBit(typeIdx);
-            }
-#if DEBUG
-            if (Exclude.GetBit(typeIdx))
-                throw new Exception($"|KECS| The component ({typeof(T).Name}) was excluded from the request.");
-#endif
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Query Without<T>() where T : struct {
-            var typeIdx = ComponentTypeInfo<T>.TypeIndex;
-            if (!Include.GetBit(typeIdx)) {
-                Exclude.SetBit(typeIdx);
-            }
-#if DEBUG
-            if (Include.GetBit(typeIdx))
-                throw new Exception($"|KECS| The component ({typeof(T).Name}) was included in the request.");
-#endif
-            return this;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() {
-            var hashResult = Include.Count + Exclude.Count;
-            foreach (var idx in Include) {
-                hashResult = unchecked(hashResult * 31459 + idx);
-            }
-
-            foreach (var idx in Exclude) {
-                hashResult = unchecked(hashResult * 31459 - idx);
-            }
-
-            return hashResult;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Recycle() {
-            Include.ClearAll();
-            Exclude.ClearAll();
-            World.RecycleQuery(this);
-        }
-    }
 
 #if ENABLE_IL2CPP
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
