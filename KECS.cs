@@ -159,7 +159,7 @@ namespace Ludaludaed.KECS {
         private readonly HandleMap<IComponentPool> _componentPools;
         private readonly HandleMap<ITaskPool> _taskPools;
 
-        private readonly IntHashMap<Archetype> _archetypeSignatures;
+        private readonly Dictionary<BitSet, Archetype> _archetypeSignatures;
         internal readonly FastList<Archetype> Archetypes;
 
         private Query[] _queries;
@@ -181,7 +181,7 @@ namespace Ludaludaed.KECS {
         internal World(WorldConfig config, string name) {
             _componentPools = new HandleMap<IComponentPool>(config.Components);
             _taskPools = new HandleMap<ITaskPool>(config.Components);
-            _archetypeSignatures = new IntHashMap<Archetype>(config.Archetypes);
+            _archetypeSignatures = new Dictionary<BitSet, Archetype>(config.Archetypes);
             Archetypes = new FastList<Archetype>(config.Archetypes);
 
             _entities = new EntityData[config.Entities];
@@ -189,8 +189,9 @@ namespace Ludaludaed.KECS {
             _dirtyEntities = new SparseSet(config.Entities);
             _queries = new Query[config.Queries];
 
-            var emptyArch = new Archetype(new BitSet(config.Components), config.Entities);
-            _archetypeSignatures.Set(emptyArch.Hash, emptyArch);
+            var emptySet = new BitSet(config.Components);
+            var emptyArch = new Archetype(emptySet, config.Entities);
+            _archetypeSignatures.Add(emptySet, emptyArch);
             Archetypes.Add(emptyArch);
             _isAlive = true;
             Config = config;
@@ -415,12 +416,11 @@ namespace Ludaludaed.KECS {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Archetype GetArchetype(BitSet signature) {
-            var hash = signature.GetHashCode();
-
-            if (!_archetypeSignatures.TryGetValue(hash, out var archetype)) {
-                archetype = new Archetype(new BitSet(signature), Config.Entities);
+            if (!_archetypeSignatures.TryGetValue(signature, out var archetype)) {
+                var newBitSet = new BitSet(signature);
+                archetype = new Archetype(newBitSet, Config.Entities);
                 Archetypes.Add(archetype);
-                _archetypeSignatures.Set(hash, archetype);
+                _archetypeSignatures.Add(newBitSet, archetype);
 #if DEBUG
                 for (int i = 0, length = DebugListeners.Count; i < length; i++) {
                     DebugListeners[i].OnArchetypeCreated(archetype);
