@@ -30,11 +30,11 @@ namespace Ludaludaed.KECS {
     [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
 #endif
     public static class Worlds {
-        private static readonly IntHashMap<World> _worlds;
+        private static readonly Dictionary<int, World> _worlds;
         private static readonly object _lockObject;
 
         static Worlds() {
-            _worlds = new IntHashMap<World>(32);
+            _worlds = new Dictionary<int, World>(32);
             _lockObject = new object();
         }
 
@@ -45,11 +45,11 @@ namespace Ludaludaed.KECS {
 #if DEBUG
                 if (string.IsNullOrEmpty(name))
                     throw new Exception("|KECS| World name cant be null or empty.");
-                if (_worlds.Contains(hashName))
+                if (_worlds.ContainsKey(hashName))
                     throw new Exception($"|KECS| A world with {name} name already exists.");
 #endif
                 var newWorld = new World(CheckConfig(config), name);
-                _worlds.Set(hashName, newWorld);
+                _worlds.Add(hashName, newWorld);
                 return newWorld;
             }
         }
@@ -69,10 +69,10 @@ namespace Ludaludaed.KECS {
             var hashName = name.GetHashCode();
             lock (_lockObject) {
 #if DEBUG
-                if (!_worlds.Contains(hashName))
+                if (!_worlds.ContainsKey(hashName))
                     throw new Exception($"|KECS| No world with {name} name was found.");
 #endif
-                return _worlds.Get(hashName);
+                return _worlds[hashName];
             }
         }
 
@@ -1435,7 +1435,7 @@ namespace Ludaludaed.KECS {
     public sealed class Systems : UpdateSystem {
         private readonly FastList<UpdateSystem> _updateSystems;
         private readonly FastList<SystemBase> _allSystems;
-        private IntHashMap<object> _sharedData;
+        private Dictionary<int, object> _sharedData;
         public readonly string Name;
 
         public Systems(World world, string name = "DEFAULT") {
@@ -1443,7 +1443,7 @@ namespace Ludaludaed.KECS {
             if (string.IsNullOrEmpty(name))
                 throw new Exception("|KECS| Systems name cant be null or empty.");
 #endif
-            _sharedData = new IntHashMap<object>();
+            _sharedData = new Dictionary<int, object>();
             _allSystems = new FastList<SystemBase>();
             _updateSystems = new FastList<UpdateSystem>();
             _world = world;
@@ -1475,10 +1475,10 @@ namespace Ludaludaed.KECS {
                 throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            if (_sharedData.Contains(hash))
+            if (_sharedData.ContainsKey(hash))
                 throw new Exception($"|KECS| You have already added this type{typeof(T).Name} of data");
 #endif
-            _sharedData.Set(hash, data);
+            _sharedData.Add(hash, data);
             return this;
         }
 
@@ -1490,10 +1490,10 @@ namespace Ludaludaed.KECS {
                 throw new Exception("|KECS| Systems haven't initialized yet.");
             if (_destroyed)
                 throw new Exception("|KECS| The systems were destroyed. You cannot update them.");
-            if (!_sharedData.Contains(hash))
+            if (!_sharedData.ContainsKey(hash))
                 throw new Exception($"|KECS| No data of this type {typeof(T).Name} was found");
 #endif
-            return _sharedData.Get(hash) as T;
+            return _sharedData[hash] as T;
         }
 
         public FastList<SystemBase> GetSystems() {
@@ -2027,219 +2027,6 @@ namespace Ludaludaed.KECS {
                 _count = 0;
                 _index = -1;
                 _returned = 0;
-                return false;
-            }
-        }
-    }
-
-#if ENABLE_IL2CPP
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.NullChecks, false)]
-    [Unity.IL2CPP.CompilerServices.Il2CppSetOption (Unity.IL2CPP.CompilerServices.Option.ArrayBoundsChecks, false)]
-#endif
-    public sealed class IntHashMap<T> {
-        private Entry[] _entries;
-        private int[] _buckets;
-        private T[] _data;
-
-        private int _freeListIdx;
-        private int _capacity;
-        private int _length;
-        private int _count;
-        private T _empty;
-
-        public int Count => _count;
-
-        private struct Entry {
-            public int Next;
-            public int Key;
-        }
-
-        public IntHashMap(int capacity = 0) {
-            _length = 0;
-            _count = 0;
-            _freeListIdx = -1;
-
-            _capacity = Math.Pot(capacity);
-            _empty = default;
-            _entries = new Entry[_capacity];
-            _buckets = new int[_capacity];
-            _data = new T[_capacity];
-
-            _buckets.Fill(-1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int IndexFor(int key) {
-            return key & (_capacity - 1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int key, T value) {
-            var index = IndexFor(key);
-
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
-                if (_entries[i].Key == key) {
-                    _data[i] = value;
-                    return;
-                }
-            }
-
-            int entryIdx;
-
-            if (_freeListIdx >= 0) {
-                entryIdx = _freeListIdx;
-                _freeListIdx = _entries[entryIdx].Next;
-            } else {
-                EnsureRehash();
-                index = IndexFor(key);
-                entryIdx = _length++;
-            }
-
-            ref var entry = ref _entries[entryIdx];
-            entry.Next = _buckets[index];
-            entry.Key = key;
-            _data[entryIdx] = value;
-            _buckets[index] = entryIdx;
-            _count++;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureRehash() {
-            if (_length < _capacity) {
-                return;
-            }
-
-            var newCapacity = Math.Pot(_capacity << 1);
-
-            Array.Resize(ref _data, newCapacity);
-            Array.Resize(ref _entries, newCapacity);
-
-            var newBuckets = new int[newCapacity];
-            newBuckets.Fill(-1);
-
-            for (int i = 0, length = _length; i < length; i++) {
-                ref var rehashEntry = ref _entries[i];
-                var rehashIdx = IndexFor(rehashEntry.Key);
-
-                rehashEntry.Next = newBuckets[rehashIdx];
-                newBuckets[rehashIdx] = i;
-            }
-
-            _buckets = newBuckets;
-            _capacity = newCapacity;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int key) {
-            var index = IndexFor(key);
-
-            var priorEntry = -1;
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
-                ref var entry = ref _entries[i];
-                if (entry.Key == key) {
-                    if (priorEntry < 0) {
-                        _buckets[index] = entry.Next;
-                    } else {
-                        _entries[priorEntry].Next = entry.Next;
-                    }
-
-                    _data[i] = default;
-
-                    entry.Key = -1;
-                    entry.Next = _freeListIdx;
-
-                    _freeListIdx = i;
-                    _count--;
-                    return;
-                }
-
-                priorEntry = i;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(int key) {
-            var index = IndexFor(key);
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
-                if (_entries[i].Key == key) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetValue(int key, out T value) {
-            var index = IndexFor(key);
-            value = default;
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
-                if (_entries[i].Key == key) {
-                    value = _data[i];
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T Get(int key) {
-            var index = IndexFor(key);
-            for (var i = _buckets[index]; i != -1; i = _entries[i].Next) {
-                if (_entries[i].Key == key) {
-                    return ref _data[i];
-                }
-            }
-
-            return ref _empty;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() {
-            Array.Clear(_entries, 0, _length);
-            Array.Clear(_data, 0, _length);
-            _buckets.Fill(-1);
-
-            _length = 0;
-            _count = 0;
-            _freeListIdx = -1;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator() {
-            return new Enumerator(this);
-        }
-
-        public struct Enumerator {
-            private IntHashMap<T> _intHashMap;
-            private int _current;
-            private int _index;
-
-            public Enumerator(IntHashMap<T> intHashMap) {
-                _intHashMap = intHashMap;
-                _current = 0;
-                _index = -1;
-            }
-
-            public ref T Current {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => ref _intHashMap._data[_current];
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() {
-                while (++_index < _intHashMap._length) {
-                    ref var entry = ref _intHashMap._entries[_index];
-                    if (entry.Key >= 0) {
-                        _current = _index;
-                        return true;
-                    }
-                }
-
-                _intHashMap = null;
-                _current = 0;
-                _index = -1;
                 return false;
             }
         }
