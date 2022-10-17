@@ -927,6 +927,23 @@ namespace Ludaludaed.KECS {
                 _world.Lock();
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private bool SkipToNext() {
+                _archetypeIdx++;
+                while (true) {
+                    if (_archetypeIdx >= _archetypesCount) {
+                        return false;
+                    }
+
+                    if (_query.IsMatch(_archetypes[_archetypeIdx]) && _archetypes.Count > 0) {
+                        _currentEnumerator = _archetypes[_archetypeIdx].GetEnumerator();
+                        return true;
+                    }
+
+                    _archetypeIdx++;
+                }
+            }
+
             public Entity Current {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => _current;
@@ -938,35 +955,11 @@ namespace Ludaludaed.KECS {
                     return false;
                 }
 
-                if (!_query.IsMatch(_archetypes[_archetypeIdx]) || _archetypes.Count < 0) {
-                    _archetypeIdx++;
-                    while (true) {
-                        if (_archetypeIdx >= _archetypesCount) {
-                            return false;
-                        }
-
-                        if (_query.IsMatch(_archetypes[_archetypeIdx]) && _archetypes.Count > 0) {
-                            _currentEnumerator = _archetypes[_archetypeIdx].GetEnumerator();
-                            break;
-                        }
-
-                        _archetypeIdx++;
-                    }
-                }
-
-                if (!_currentEnumerator.MoveNext()) {
-                    _archetypeIdx++;
-                    while (true) {
-                        if (_archetypeIdx >= _archetypesCount) {
-                            return false;
-                        }
-
-                        if (_query.IsMatch(_archetypes[_archetypeIdx]) && _archetypes.Count > 0) {
-                            _currentEnumerator = _archetypes[_archetypeIdx].GetEnumerator();
-                            break;
-                        }
-
-                        _archetypeIdx++;
+                if (!_query.IsMatch(_archetypes[_archetypeIdx]) ||
+                    _archetypes.Count < 0 ||
+                    !_currentEnumerator.MoveNext()) {
+                    if (!SkipToNext()) {
+                        return false;
                     }
                 }
 
