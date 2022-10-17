@@ -683,15 +683,15 @@ namespace Ludaludaed.KECS {
 #endif
     public sealed class Archetype {
         private readonly SparseSet _entities;
+        private readonly int _hash;
         public readonly BitSet Signature;
-        public readonly int Hash;
 
         public int Count => _entities.Count;
 
         internal Archetype(BitSet signature, int entityCapacity) {
             _entities = new SparseSet(entityCapacity);
             Signature = signature;
-            Hash = Signature.GetHashCode();
+            _hash = Signature.GetHashCode();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -718,6 +718,11 @@ namespace Ludaludaed.KECS {
         public void Clear() {
             _entities.Clear();
             Signature.ClearAll();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode() {
+            return _hash;
         }
     }
 
@@ -883,6 +888,98 @@ namespace Ludaludaed.KECS {
             Include.ClearAll();
             Exclude.ClearAll();
             World.RecycleQuery(this);
+        }
+
+        public Enumerator GetEnumerator() {
+            return new Enumerator(this);
+        }
+
+        public struct Enumerator : IDisposable {
+            private World _world;
+
+            private FastList<Archetype> _archetypes;
+            private SparseSet.Enumerator _currentEnumerator;
+
+            private int _archetypeIdx;
+
+            private int _archetypesCount;
+            private Entity _current;
+
+            private Query _query;
+
+            public Enumerator(Query query) {
+                _query = query;
+                _world = query.World;
+                _archetypes = _world.Archetypes;
+
+                _archetypesCount = _archetypes.Count;
+                _archetypeIdx = 0;
+
+                _current = default;
+                _current.World = _world;
+
+                if (_archetypesCount == 0) {
+                    _currentEnumerator = default;
+                } else {
+                    _currentEnumerator = _archetypes[0].GetEnumerator();
+                }
+
+                _world.Lock();
+            }
+
+            public Entity Current {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => _current;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext() {
+                if (_archetypeIdx >= _archetypesCount) {
+                    return false;
+                }
+
+                if (!_query.IsMatch(_archetypes[_archetypeIdx]) || _archetypes.Count < 0) {
+                    _archetypeIdx++;
+                    while (true) {
+                        if (_archetypeIdx >= _archetypesCount) {
+                            return false;
+                        }
+
+                        if (_query.IsMatch(_archetypes[_archetypeIdx]) && _archetypes.Count > 0) {
+                            _currentEnumerator = _archetypes[_archetypeIdx].GetEnumerator();
+                            break;
+                        }
+
+                        _archetypeIdx++;
+                    }
+                }
+
+                if (!_currentEnumerator.MoveNext()) {
+                    _archetypeIdx++;
+                    while (true) {
+                        if (_archetypeIdx >= _archetypesCount) {
+                            return false;
+                        }
+
+                        if (_query.IsMatch(_archetypes[_archetypeIdx]) && _archetypes.Count > 0) {
+                            _currentEnumerator = _archetypes[_archetypeIdx].GetEnumerator();
+                            break;
+                        }
+
+                        _archetypeIdx++;
+                    }
+                }
+
+                _current.Id = _currentEnumerator.Current;
+                _current.Age = _world.GetEntityData(_current.Id).Age;
+                return true;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Dispose() {
+                _world.Unlock();
+                _query.Recycle();
+            }
         }
     }
 
